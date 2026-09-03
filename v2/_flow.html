@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Flow map</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Every node, lane, fork, connector and legend
+     style lives in physician-chrome.css section A; this file only arranges
+     them. The one local rule is the release sequence, which is a horizontal
+     run of nodes rather than a fork, because the steps are ordered. */
+
+  .fl-seq {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--s-md);
+    align-items: stretch;
+    margin-bottom: var(--air-tier);
+  }
+  .fl-step {
+    display: grid;
+    gap: var(--s-2xs);
+    align-content: start;
+  }
+  .fl-step__n {
+    font-size: var(--size-caption);
+    font-weight: var(--w-emphasis);
+    color: var(--wf-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .fl-rail {
+    height: var(--line-signal);
+    background: var(--wf-line);
+    margin-bottom: var(--s-xs);
+  }
+  .fl-rail[data-done="true"] { background: var(--wf-gold); }
+</style>
+</head>
+<body class="wf">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><b>v2 flow</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/_flow.html">v0</a>
+    <a href="../v1/_flow.html">v1</a>
+    <span aria-current="page">v2</span>
+  </span>
+</nav>
+
+<div class="wf-doc wf-doc--wide">
+
+  <p class="wf-eyebrow">Version 2</p>
+  <h1 class="wf-title">The reference surface, plus everything the shipped portal can already do</h1>
+  <p class="wf-lede">Sixteen screens in two families. v1 recreated the canonical reference surface and stopped
+  where it stops: at a disabled <em>Sign and release</em> button, inside one patient's chart, with no way in
+  and no way out. v2 keeps every one of those screens and adds the four things a working portal needs around
+  them, plus the five capabilities v0 has today and v1 has no home for.</p>
+
+  <p class="wf-sectionlabel">What v2 adds over v1</p>
+  <ul class="wf-notelist">
+    <li><strong>A way in.</strong> v1 opens on a chart. v2 opens on a queue, ordered by lifecycle state, so
+    the first question a physician answers is which patient rather than which tab.</li>
+    <li><strong>The release act, in full.</strong> v1's care plan ends at <em>Sign and release, not wired</em>.
+    v2 replaces it with the three separate acts the role matrix actually defines: note lock, order
+    authorization, patient release, each with its own attestation.</li>
+    <li><strong>An audit read.</strong> The matrix grants the physician <em>Audit log: read relevant
+    patient</em>. Neither prior version has a surface where that permission can be exercised.</li>
+    <li><strong>A patient channel.</strong> The production strategy names <em>patient message action</em> in
+    its minimum surface. v1 has Aleron AI, which is a channel to the model, not to the patient.</li>
+    <li><strong>Screening.</strong> A seventh chart section for the obligations that are not ranked against
+    opportunities, which in v1 are scattered between the action map's required channel and the care plan's
+    preventive gaps.</li>
+  </ul>
+
+  <p class="wf-sectionlabel">v0 capabilities absorbed</p>
+  <ul class="wf-notelist">
+    <li><strong>The cohort list</strong> from <code>v0/patients.html</code>, including its six-domain risk
+    read, which becomes a density toggle on <a href="panel.html">Panel</a>.</li>
+    <li><strong>Ordering</strong> from <code>v0/lab-orders.html</code>: the authorize-order card, the
+    collection methods, the genetics counseling gate, the orders table and the review-and-sign flow. v1
+    proposes order intents and has nowhere to place one.</li>
+    <li><strong>Order authorization records</strong> from <code>v0/standing-orders.html</code>: both standing
+    orders, their fail-closed behaviour and the genetics advisory.</li>
+    <li><strong>The Canvas door</strong> from <code>v0/emr.html</code>, kept almost verbatim, with a
+    reconciliation panel added beneath it.</li>
+    <li><strong>The note composer</strong> from <code>v0/care-plan.html</code>: the indication field,
+    per-problem assessment and plan, the auto-drafted narrative and the add-to-problem-list toggle, folded
+    into the reference surface's workbench.</li>
+  </ul>
+
+  <p class="wf-sectionlabel">Inbox family &middot; register O4, four fixed rail items</p>
+  <p class="wf-prose wf-prose--dim">The surface a physician lands on. Same <code>.prail</code> anatomy as the
+  chart rail, a different fixed set, because rails are fixed per surface family.</p>
+
+  <div class="wf-fork">
+    <a class="wf-node" href="inbox.html" data-state="new">
+      <span class="wf-node__step">Landing</span>
+      <span class="wf-node__title">Inbox</span>
+      <span class="wf-node__route">aleron.md/inbox</span>
+    </a>
+    <a class="wf-node" href="panel.html" data-state="carried">
+      <span class="wf-node__step">Cohort</span>
+      <span class="wf-node__title">Panel</span>
+      <span class="wf-node__route">aleron.md/panel</span>
+    </a>
+    <a class="wf-node" href="reviews.html" data-state="new">
+      <span class="wf-node__step">Audit</span>
+      <span class="wf-node__title">Reviews</span>
+      <span class="wf-node__route">aleron.md/reviews</span>
+    </a>
+    <a class="wf-node" href="messages.html" data-state="new">
+      <span class="wf-node__step">Patient channel</span>
+      <span class="wf-node__title">Messages</span>
+      <span class="wf-node__route">aleron.md/messages</span>
+    </a>
+  </div>
+
+  <div class="wf-connector" role="presentation"></div>
+  <p class="wf-prose wf-prose--dim">A queue row opens a chart. Every route below is scoped to one patient,
+  AL-47M Ethan Park.</p>
+
+  <p class="wf-sectionlabel">Chart family &middot; register O4, six fixed rail sections</p>
+  <p class="wf-prose wf-prose--dim">Six items, which is the number register O4 fixes for a surface family.
+  Risk carries the action map behind it as a second view. Care Plan carries all three commit acts including
+  release, composed the way <code>apps/physician/src/dashboardApp.js:961</code> composes them rather than as a
+  separate screen. Orders carries what is placed and what is due. The Canvas chart sits in the rail foot
+  because it is a link out of the product, not a section of it.</p>
+
+  <div class="wf-lane">
+    <div class="wf-fork">
+      <a class="wf-node" href="patient-data.html" data-state="new">
+        <span class="wf-node__step">Rail 1 &middot; absorbs Vitality</span>
+        <span class="wf-node__title">Patient Data</span>
+        <span class="wf-node__route">chart/AL-47M/patient-data</span>
+      </a>
+      <a class="wf-node" href="risk-models.html" data-state="new">
+        <span class="wf-node__step">Rail 2</span>
+        <span class="wf-node__title">Risk</span>
+        <span class="wf-node__route">chart/AL-47M/risk</span>
+      </a>
+      <a class="wf-node" href="risk-actions.html" data-state="new">
+        <span class="wf-node__step">Rail 2, second view</span>
+        <span class="wf-node__title">Risk &middot; action map</span>
+        <span class="wf-node__route">chart/AL-47M/risk/actions</span>
+      </a>
+    </div>
+
+    <div class="wf-connector"></div>
+
+    <div class="wf-fork">
+      <a class="wf-node" href="care-plan.html" data-state="new">
+        <span class="wf-node__step">Rail 3 &middot; absorbs release</span>
+        <span class="wf-node__title">Care Plan</span>
+        <span class="wf-node__route">chart/AL-47M/care-plan</span>
+      </a>
+      <a class="wf-node" href="orders.html" data-state="carried">
+        <span class="wf-node__step">Rail 4 &middot; absorbs Screening</span>
+        <span class="wf-node__title">Orders</span>
+        <span class="wf-node__route">chart/AL-47M/orders</span>
+      </a>
+      <a class="wf-node" href="journal.html" data-state="new">
+        <span class="wf-node__step">Rail 5</span>
+        <span class="wf-node__title">Journal</span>
+        <span class="wf-node__route">chart/AL-47M/journal</span>
+      </a>
+      <a class="wf-node" href="aleron-ai.html" data-state="new">
+        <span class="wf-node__step">Rail 6</span>
+        <span class="wf-node__title">Aleron AI</span>
+        <span class="wf-node__route">chart/AL-47M/aleron-ai</span>
+      </a>
+    </div>
+
+    <div class="wf-connector"></div>
+
+    <div class="wf-fork">
+      <a class="wf-node" href="emr.html" data-state="carried">
+        <span class="wf-node__step">Chart rail foot</span>
+        <span class="wf-node__title">Open in Canvas</span>
+        <span class="wf-node__route">chart/AL-47M/emr</span>
+      </a>
+      <a class="wf-node" href="standing-orders.html" data-state="carried">
+        <span class="wf-node__step">Inbox rail foot &middot; practice-wide</span>
+        <span class="wf-node__title">Standing orders</span>
+        <span class="wf-node__route">practice/standing-orders</span>
+      </a>
+    </div>
+  </div>
+
+  <p class="wf-prose wf-prose--dim">Three screens merged away in the compression pass: <code>vitality.html</code>
+  into Patient Data, hinged on the HRV block the reference surface already calls the bridge;
+  <code>screening.html</code> into Orders, because a screening schedule is a forward order plan; and
+  <code>care-plan-release.html</code> back into Care Plan, which removes a page navigation from the middle of
+  a legally binding sequence. The three commit acts stay three separately attested acts. Standing orders left
+  the chart rail entirely: v0's own eyebrow calls it a practice-wide registry, not patient-specific.</p>
+
+  <p class="wf-sectionlabel">The release path &middot; drawn as a sequence, because it is one</p>
+  <p class="wf-prose">Signing the note, authorizing the orders and releasing to the patient are three acts,
+  not three steps of one act. The matrix gives each its own permission row, and only the third one is
+  delegable. Everything before act 1 is reversible; nothing after act 3 is.</p>
+
+  <div class="fl-seq">
+    <div class="fl-step">
+      <span class="fl-rail" data-done="true" role="presentation"></span>
+      <span class="fl-step__n">Step 1</span>
+      <a class="wf-node" href="inbox.html" data-state="new">
+        <span class="wf-node__step">Review pending</span>
+        <span class="wf-node__title">Start review</span>
+        <span class="wf-node__route">Inbox</span>
+      </a>
+    </div>
+    <div class="fl-step">
+      <span class="fl-rail" data-done="true" role="presentation"></span>
+      <span class="fl-step__n">Step 2</span>
+      <a class="wf-node" href="care-plan.html" data-state="new">
+        <span class="wf-node__step">Plan editing</span>
+        <span class="wf-node__title">Edit the plan</span>
+        <span class="wf-node__route">Care Plan</span>
+      </a>
+    </div>
+    <div class="fl-step">
+      <span class="fl-rail" role="presentation"></span>
+      <span class="fl-step__n">Act 1</span>
+      <a class="wf-node" href="care-plan.html" data-state="new">
+        <span class="wf-node__step">Plan ready for signature</span>
+        <span class="wf-node__title">Note lock</span>
+        <span class="wf-node__route">Care Plan, commit card 1</span>
+      </a>
+    </div>
+    <div class="fl-step">
+      <span class="fl-rail" role="presentation"></span>
+      <span class="fl-step__n">Act 2</span>
+      <a class="wf-node" href="orders.html" data-state="carried">
+        <span class="wf-node__step">Separate physician act</span>
+        <span class="wf-node__title">Order authorization</span>
+        <span class="wf-node__route">Care Plan card 2, Lab orders</span>
+      </a>
+    </div>
+    <div class="fl-step">
+      <span class="fl-rail" role="presentation"></span>
+      <span class="fl-step__n">Act 3</span>
+      <a class="wf-node" href="care-plan.html" data-state="new">
+        <span class="wf-node__step">Plan signed to Plan released</span>
+        <span class="wf-node__title">Patient release</span>
+        <span class="wf-node__route">Care plan release</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="wf-connector" role="presentation"></div>
+
+  <div class="wf-fork">
+    <a class="wf-node" href="reviews.html" data-state="new">
+      <span class="wf-node__step">After act 3</span>
+      <span class="wf-node__title">A row appends to the release audit</span>
+      <span class="wf-node__route">Reviews</span>
+    </a>
+    <a class="wf-node" href="messages.html" data-state="new">
+      <span class="wf-node__step">After act 3</span>
+      <span class="wf-node__title">Released items become referenceable in a message</span>
+      <span class="wf-node__route">Messages</span>
+    </a>
+    <a class="wf-node" href="emr.html" data-state="carried">
+      <span class="wf-node__step">After act 3</span>
+      <span class="wf-node__title">The Canvas note id links back</span>
+      <span class="wf-node__route">EMR reconciliation</span>
+    </a>
+  </div>
+
+  <p class="wf-prose wf-prose--dim">The blocked path forks at act 3. When any of the four gating checks fails,
+  the lifecycle state is <em>Signature blocked</em>, the act buttons are absent rather than greyed, and the
+  four named blockers are the screen. That specimen is on
+  <a href="care-plan.html">Care plan release</a>.</p>
+
+  <p class="wf-sectionlabel">Legend</p>
+  <div class="wf-legend">
+    <span><i class="is-new"></i> new, from v1 or the reference surface</span>
+    <span><i class="is-carried"></i> carried, absorbed from v0</span>
+    <span><i class="is-gap"></i> gap, no canonical component or icon exists</span>
+  </div>
+
+  <p class="wf-sectionlabel">Where the state words come from</p>
+  <p class="wf-prose">Every lifecycle string on every v2 screen is a literal from
+  <code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> section 4, rendered in sentence case and never
+  invented: <em>physician review pending</em>, <em>plan editing</em>, <em>plan ready for signature</em>,
+  <em>signature blocked</em>, <em>plan signed</em>, <em>plan released</em>, <em>patient plan available</em>,
+  <em>action tracking active</em>, <em>monitoring update requires review</em>, <em>physician hold</em>,
+  <em>results partially received</em>. Section 4's <em>Release allowed</em> column is the reason act 3 is
+  reachable only from <em>plan signed</em>.</p>
+
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Two families rather than one. v0 has a header nav and a per-chart tab strip; v1 has one rail
+    and one patient. v2 declares two fixed rails on the same <code>.prail</code> anatomy, which is
+    what register O4 means by rails being fixed per surface family.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The release path is drawn as an ordered sequence with three separate acts, not as one
+    signature. This is the single most important thing the reference surface teaches and the thing v0
+    gets half right: v0 separates signing orders from locking the note and then has no third
+    act.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>Five v0 capabilities, each landing on a named screen and each annotated on that screen with
+    the v0 file it came from. The gold left edge on a node is the marker.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Screening has no rail icon and Lab orders, Standing orders and EMR have no rail item at all.
+    They are reached from the care plan, which works but understates them: three of the four carried
+    v0 capabilities are currently second-class in the navigation.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's login screen has no v2 counterpart in this set. Real physician login is on the
+    production strategy's list, but it is an auth surface rather than a workflow surface and nothing
+    in the role matrix shapes it, so it is left in v0 as the baseline.</span></p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Patients</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything. */
+  .v0-pagehead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-sm) var(--air-group);
+    margin-bottom: var(--air-tier);
+  }
+  .v0-pagehead h1 { font-size: var(--size-h2); font-weight: var(--w-emphasis); letter-spacing: -0.02em; }
+  .v0-pagehead__count { font-size: var(--size-small); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .v0-search { max-width: 360px; margin-bottom: var(--air-tier); }
+  .v0-legends { display: grid; gap: var(--air-row); margin-top: var(--air-tier); }
+  .v0-legendrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-sm) var(--s-lg); }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>Patients</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <span aria-disabled="true" title="v1 has no cohort view: the reference surface opens straight into one patient's chart">v1</span>
+    <a href="../v2/inbox.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       layouts/physician.blade.php: a 56px header and a centred main. No
+       sidebar, no footer, no patient-context bar. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-pagehead">
+        <h1>Patients</h1>
+        <span class="v0-pagehead__count">6 patients</span>
+      </div>
+
+      <div class="amd-field v0-search">
+        <label class="amd-field__label" for="q">Search by name</label>
+        <input class="amd-input" id="q" type="search" placeholder="Patient name">
+      </div>
+
+      <!-- The cohort list is the one elevated Tier-1 holder on the page, and
+           it is a CSS grid rather than a table. -->
+      <div class="amd-card" data-tier="1" style="padding: 0; overflow: hidden;">
+        <div class="ds-cohort">
+
+          <div class="ds-cohort__legend" role="row">
+            <span>Patient</span>
+            <span style="text-align: center;">Risk by domain</span>
+            <span style="text-align: center;">Criticality</span>
+            <span style="text-align: right;">Last run</span>
+          </div>
+
+          <a class="ds-cohort__row" href="risk-models.html">
+            <span>
+              <span class="ds-cohort__name">Ethan Park</span><br>
+              <span class="ds-cohort__mrn">MRN 4471-2208</span>
+            </span>
+            <span class="ds-cohort__domains" title="Systemic: moderate · Cardiovascular: moderate · Metabolic: high · Kidney: low · Cancer: moderate · Neurodegenerative: moderate">
+              <span class="ds-dot" data-tier="moderate">SYS</span>
+              <span class="ds-dot" data-tier="moderate">CVD</span>
+              <span class="ds-dot" data-tier="high">MET</span>
+              <span class="ds-dot" data-tier="low">CKD</span>
+              <span class="ds-dot" data-tier="moderate">CAN</span>
+              <span class="ds-dot" data-tier="moderate">NEU</span>
+            </span>
+            <span class="ds-cohort__crit">
+              <span class="ds-pill ds-pill--crit" title="Critical · 2 mandatory or override, 1 do now, 0 strong candidate, 3 later · run 2d ago">Critical &middot; 2</span>
+            </span>
+            <span class="ds-cohort__run">2d ago</span>
+          </a>
+
+          <a class="ds-cohort__row" href="risk-models.html">
+            <span>
+              <span class="ds-cohort__name">Mara Chen</span><br>
+              <span class="ds-cohort__mrn">MRN 4471-3095</span>
+            </span>
+            <span class="ds-cohort__domains" title="Systemic: moderate · Cardiovascular: moderate · Metabolic: low · Kidney: low · Cancer: moderate · Neurodegenerative: moderate">
+              <span class="ds-dot" data-tier="moderate">SYS</span>
+              <span class="ds-dot" data-tier="moderate">CVD</span>
+              <span class="ds-dot" data-tier="low">MET</span>
+              <span class="ds-dot" data-tier="low">CKD</span>
+              <span class="ds-dot" data-tier="moderate">CAN</span>
+              <span class="ds-dot" data-tier="moderate">NEU</span>
+            </span>
+            <span class="ds-cohort__crit">
+              <span class="ds-pill ds-pill--accent" title="High · 0 mandatory or override, 2 do now, 1 strong candidate, 4 later · run today">High &middot; 2</span>
+            </span>
+            <span class="ds-cohort__run">today</span>
+          </a>
+
+          <a class="ds-cohort__row" href="risk-models.html">
+            <span>
+              <span class="ds-cohort__name">Daniel Whitfield</span><br>
+              <span class="ds-cohort__mrn">MRN 4470-8812</span>
+            </span>
+            <span class="ds-cohort__domains" title="Systemic: low · Cardiovascular: high · Metabolic: moderate · Kidney: moderate · Cancer: low · Neurodegenerative: low">
+              <span class="ds-dot" data-tier="low">SYS</span>
+              <span class="ds-dot" data-tier="high">CVD</span>
+              <span class="ds-dot" data-tier="moderate">MET</span>
+              <span class="ds-dot" data-tier="moderate">CKD</span>
+              <span class="ds-dot" data-tier="low">CAN</span>
+              <span class="ds-dot" data-tier="low">NEU</span>
+            </span>
+            <span class="ds-cohort__crit">
+              <span class="ds-pill ds-pill--crit" title="Critical · 1 mandatory or override, 3 do now, 2 strong candidate, 5 later · run 4d ago">Critical</span>
+            </span>
+            <span class="ds-cohort__run">4d ago</span>
+          </a>
+
+          <a class="ds-cohort__row" href="risk-models.html">
+            <span>
+              <span class="ds-cohort__name">Priya Raghunathan</span><br>
+              <span class="ds-cohort__mrn">MRN 4471-1160</span>
+            </span>
+            <span class="ds-cohort__domains" title="Systemic: low · Cardiovascular: low · Metabolic: low · Kidney: low · Cancer: moderate · Neurodegenerative: low">
+              <span class="ds-dot" data-tier="low">SYS</span>
+              <span class="ds-dot" data-tier="low">CVD</span>
+              <span class="ds-dot" data-tier="low">MET</span>
+              <span class="ds-dot" data-tier="low">CKD</span>
+              <span class="ds-dot" data-tier="moderate">CAN</span>
+              <span class="ds-dot" data-tier="low">NEU</span>
+            </span>
+            <span class="ds-cohort__crit">
+              <span class="ds-pill" title="Routine · 0 mandatory or override, 0 do now, 1 strong candidate, 6 later · run 9d ago">Routine</span>
+            </span>
+            <span class="ds-cohort__run">9d ago</span>
+          </a>
+
+          <a class="ds-cohort__row" href="risk-models.html">
+            <span>
+              <span class="ds-cohort__name">Marcus Bell</span><br>
+              <span class="ds-cohort__mrn">marcus.bell@example.com</span>
+            </span>
+            <span class="ds-cohort__domains" title="Systemic: no analysis · Cardiovascular: no analysis · Metabolic: no analysis · Kidney: no analysis · Cancer: no analysis · Neurodegenerative: no analysis">
+              <span class="ds-dot" data-tier="none">SYS</span>
+              <span class="ds-dot" data-tier="none">CVD</span>
+              <span class="ds-dot" data-tier="none">MET</span>
+              <span class="ds-dot" data-tier="none">CKD</span>
+              <span class="ds-dot" data-tier="none">CAN</span>
+              <span class="ds-dot" data-tier="none">NEU</span>
+            </span>
+            <span class="ds-cohort__crit">
+              <span class="ds-criticality-none" title="No action-layer run on file">&ndash;</span>
+            </span>
+            <span class="ds-cohort__run">&ndash;</span>
+          </a>
+
+          <a class="ds-cohort__row" href="risk-models.html">
+            <span>
+              <span class="ds-cohort__name">Helena Vasquez</span><br>
+              <span class="ds-cohort__mrn">MRN 4470-4417</span>
+            </span>
+            <span class="ds-cohort__domains" title="Systemic: moderate · Cardiovascular: low · Metabolic: moderate · Kidney: high · Cancer: low · Neurodegenerative: moderate">
+              <span class="ds-dot" data-tier="moderate">SYS</span>
+              <span class="ds-dot" data-tier="low">CVD</span>
+              <span class="ds-dot" data-tier="moderate">MET</span>
+              <span class="ds-dot" data-tier="high">CKD</span>
+              <span class="ds-dot" data-tier="low">CAN</span>
+              <span class="ds-dot" data-tier="moderate">NEU</span>
+            </span>
+            <span class="ds-cohort__crit">
+              <span class="ds-pill ds-pill--accent" title="High · 0 mandatory or override, 1 do now, 2 strong candidate, 3 later · run 1d ago">High</span>
+            </span>
+            <span class="ds-cohort__run">1d ago</span>
+          </a>
+
+        </div>
+      </div>
+
+      <div class="v0-legends">
+        <div class="v0-legendrow">
+          <span class="ds-legend">
+            <span><span class="ds-dot" data-tier="low">L</span> low</span>
+            <span><span class="ds-dot" data-tier="moderate">M</span> moderate</span>
+            <span><span class="ds-dot" data-tier="high">H</span> high</span>
+            <span><span class="ds-dot" data-tier="none">&ndash;</span> no analysis</span>
+          </span>
+          <span class="ds-caption">CVD &middot; CKD &middot; CAN &middot; MET &middot; NEU &middot; SYS</span>
+        </div>
+        <div class="ds-legend">
+          <span><span class="ds-pill ds-pill--crit">Critical</span> mandatory or catastrophic override</span>
+          <span><span class="ds-pill ds-pill--accent">High</span> do this now</span>
+          <span><span class="ds-pill">Routine</span> candidates for later</span>
+          <span><span class="ds-criticality-none">&ndash;</span> no action-layer run</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Six domain tiles per row, six characters each, encoded by weight and one ember
+    because the palette has no green and no amber. Legible once you know the code, and the
+    legend is 200 px below the thing it explains.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>This is the only list surface in the product. There is no work queue, no lifecycle
+    state, and no notion of what needs the physician next: the cohort sorts by nothing and the
+    only recency signal is <code>Last run</code>. v2 replaces it with the inbox the strategy
+    document already specifies.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Loading renders four <code>.ds-skeleton</code> bars. The design system forbids
+    skeletons outright; the sanctioned instrument is three pulsing dots.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The header is the whole shell. Every patient page below this one re-renders its own
+    identity block and tab strip inside its content section, which is why four of those tab
+    strips are subtly different from each other.</span></p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Aleron AI</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. The thread, the confidence meter, the input and
+     the buttons are all canonical components; what is local is the context
+     strip, the thought card's arrangement, and the composer's grid. */
+
+  /* Six-cell context strip. It says what the agent can see, before the agent
+     says anything, because an isolated agent that does not declare its
+     isolation is just a chatbot. */
+  .ai-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-md);
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+    margin-bottom: var(--air-group);
+  }
+  .ai-strip > div { display: grid; gap: var(--s-2xs); align-content: start; min-width: 0; }
+  .ai-strip dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ai-strip dd { margin: 0; font-size: var(--size-small); line-height: 1.45; color: var(--text-primary); }
+
+  /* The log. .amd-ai-thread is canonical; these two rules only set the width
+     of an agent turn, which the component leaves to the surface. */
+  .ai-log { display: grid; gap: var(--air-tier); }
+  .ai-log .amd-ai-thread__message[data-author="agent"] { max-width: 78ch; }
+  .ai-role { display: block; margin-bottom: var(--s-2xs); font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ai-log p { margin: 0 0 var(--air-row); font-size: var(--size-small); line-height: 1.6; }
+  .ai-log p:last-of-type { margin-bottom: 0; }
+
+  /* Thought card. A claim the agent is making about this patient, with the
+     evidence for and against it laid out before either control is reachable.
+     Selection is the inset field with a forward-gold edge. */
+  .ai-thought {
+    display: grid;
+    gap: var(--air-row);
+    margin-top: var(--air-tier);
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-left: var(--line-signal) solid transparent;
+    border-radius: 0 var(--radius-tier2) var(--radius-tier2) 0;
+  }
+  .ai-thought[aria-expanded="true"] { background: var(--surface-inset); border-left-color: var(--signal-forward); }
+  .ai-thought__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs) var(--s-sm); }
+  .ai-thought__type { font-size: var(--size-caption); font-weight: var(--w-emphasis); color: var(--text-tertiary); }
+  .ai-thought__claim { margin: 0; font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.5; max-width: 78ch; }
+  .ai-thought__limit { font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); max-width: 78ch; }
+  .ai-thought h4 { margin: 0 0 var(--s-2xs); font-size: var(--size-caption); font-weight: var(--w-emphasis); color: var(--text-tertiary); }
+  .ai-thought ul { margin: 0; padding-left: var(--s-md); display: grid; gap: var(--s-2xs); font-size: var(--size-small); line-height: 1.5; color: var(--text-secondary); }
+  .ai-thought section p { margin: 0; font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); max-width: 78ch; }
+  .ai-evidence { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-md); }
+  .ai-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); padding-top: var(--air-row); border-top: var(--line-thin) solid var(--hairline); }
+
+  /* Two-step adoption confirmation. */
+  .ai-confirm { display: grid; gap: var(--air-tier); }
+  .ai-confirm blockquote {
+    margin: 0;
+    padding: var(--s-sm) var(--s-md);
+    border-left: var(--line-signal) solid var(--border-strong);
+    background: var(--surface-inset);
+    font-size: var(--size-text);
+    line-height: 1.6;
+    color: var(--text-primary);
+    max-width: 78ch;
+  }
+  .ai-confirm__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-lg); }
+
+  /* Composer. */
+  .ai-compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-sm); align-items: end; }
+  .ai-compose textarea { resize: vertical; min-height: var(--s-3xl); }
+  .ai-prompts { display: flex; flex-wrap: wrap; gap: var(--s-xs); margin-top: var(--air-tier); }
+
+  .ai-note { font-size: var(--size-small); line-height: 1.55; color: var(--text-tertiary); max-width: 84ch; }
+
+  @media (max-width: 1100px) {
+    .ai-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ai-evidence { grid-template-columns: minmax(0, 1fr); }
+    .ai-confirm__grid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Aleron AI</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-disabled="true" title="v0 has no AI surface. The current portal's only model output is the deterministic risk engine plus the systemic narrative pass, and neither is conversational.">v0</span>
+    <a href="../v1/aleron-ai.html">v1</a>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/aleron-ai</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+        <nav class="prail__nav">
+          <a class="prail__item" href="patient-data.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Patient Data
+          </a>
+          <a class="prail__item" href="risk-models.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+            Risk
+          </a>
+          <a class="prail__item" href="care-plan.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+            Care Plan
+          </a>
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <a class="prail__item" href="orders.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v13a2 2 0 0 0 4 0V3"/><path d="M10 11h4"/></svg>
+            Orders
+          </a>
+          <a class="prail__item" href="journal.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+            Journal
+          </a>
+          <a class="prail__item" href="aleron-ai.html" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+            Aleron AI
+          </a>
+        </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="emr.html">Open in Canvas &#8599;</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-16" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-16" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Aleron AI</h1>
+          <span class="phead__aside"><span class="pbase">2 open thoughts &middot; 0 adopted</span></span>
+        </div>
+        <p>An isolated patient-context agent. It answers from this patient's current state and nothing else.</p>
+      </header>
+
+      <dl class="ai-strip">
+        <div>
+          <dt>Patient</dt>
+          <dd>Ethan Park &middot; AL-47M &middot; 47M</dd>
+        </div>
+        <div>
+          <dt>Dominant lens</dt>
+          <dd>metabolic-risk phenotype &middot; Metabolic <span class="pval">34<span class="pval__u">%</span></span></dd>
+        </div>
+        <div>
+          <dt>Required</dt>
+          <dd>Colorectal cancer screening &middot; ATM P/LP guidance</dd>
+        </div>
+        <div>
+          <dt>Map</dt>
+          <dd><span class="pval">28<span class="pval__u">library items</span></span> &middot; <span class="pval">4<span class="pval__u">candidate signals</span></span></dd>
+        </div>
+        <div>
+          <dt>Top action</dt>
+          <dd>Tirzepatide &middot; <span class="pval">+1.90<span class="pval__u">QALY</span></span> net</dd>
+        </div>
+        <div>
+          <dt>Top gate</dt>
+          <dd>Home or ambulatory BP confirmation &middot; <span class="pval">65<span class="pval__u">% odds</span></span></dd>
+        </div>
+      </dl>
+
+      <!-- ===== The conversation. One Tier-1 holder per screen. ===== -->
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Conversation</h2>
+          <span class="pmod__meta">Thread <code>thr-al47m-0114</code> &middot; last activity 09:22, 31 Aug 2026</span>
+        </div>
+        <div class="pmod__body">
+          <div class="amd-ai-thread ai-log">
+
+            <div class="amd-ai-thread__message" data-author="agent">
+              <span class="ai-role">Aleron AI</span>
+              <p>Context loaded for Ethan Park. Ask about this chart, diagnostics, vitality,
+              genetics, or recommendations.</p>
+              <p class="amd-ai-thread__source">Source: current chart, action map, genetics, vitality, and scored candidates. Limited to visible source fields.</p>
+            </div>
+
+            <div class="amd-ai-thread__message" data-author="user">
+              <span class="ai-role">You</span>
+              <p>What diagnostics matter most and why?</p>
+            </div>
+
+            <div class="amd-ai-thread__message" data-author="agent">
+              <span class="ai-role">Aleron AI</span>
+              <p>Three, in this order. Home or ambulatory blood-pressure confirmation carries the
+              highest value of information on the board at <span class="pval">65<span class="pval__u">% reclassification odds</span></span>
+              and <span class="pval">+0.63<span class="pval__u">QALY</span></span> if reclassified, because
+              systolic pressure is the largest movable term in the PREVENT predictor and the only
+              reading on file comes from a single clinic setting.</p>
+              <p>A home sleep apnea test is second at <span class="pval">35<span class="pval__u">% odds</span></span>
+              and <span class="pval">+0.45<span class="pval__u">QALY</span></span>. Its value is
+              structural rather than numeric: if it is positive, the blood-pressure and fatigue
+              findings become downstream of one driver instead of two independent problems.</p>
+              <p>Third, FIB-4 with AST, ALT and platelets at <span class="pval">20<span class="pval__u">% odds</span></span>
+              and <span class="pval">+0.70<span class="pval__u">QALY</span></span>, because no domain
+              model stages the liver and the result gates resmetirom.</p>
+              <p>Two clinical thoughts came out of assembling that answer. Neither has entered the
+              Care Plan and neither will until you adopt it.</p>
+              <p class="amd-ai-thread__source">Source: current chart, action map, genetics, vitality, and scored candidates. Limited to visible source fields.</p>
+
+              <!-- ===== Clinical thought, open and expanded ===== -->
+              <article class="ai-thought" aria-expanded="true">
+                <div class="ai-thought__head">
+                  <span class="ai-thought__type">Hypothesis</span>
+                  <span class="pbase">Open</span>
+                  <span class="amd-confidence" data-level="moderate" role="img" aria-label="Moderate confidence, 3 of 5">
+                    <span class="amd-confidence__bars">
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="false"></span>
+                      <span class="amd-confidence__bar" data-on="false"></span>
+                    </span>
+                    <span class="pbase">Moderate confidence, estimated 55 %, uncalibrated</span>
+                  </span>
+                </div>
+
+                <p class="ai-thought__claim">Untreated sleep-disordered breathing is the upstream
+                driver of this patient's stage-2 blood pressure and of part of his insulin
+                resistance.</p>
+
+                <p class="ai-thought__limit"><b>Main limitation:</b> no sleep study has been
+                performed, so the hypothesis rests on one oximetry nadir and a phenotype that is
+                equally consistent with visceral adiposity acting alone.</p>
+
+                <section>
+                  <h4>Clinical basis</h4>
+                  <p>Intermittent nocturnal hypoxia raises sympathetic tone and nocturnal cortisol,
+                  which elevates morning blood pressure and worsens hepatic insulin resistance.
+                  Four findings in this packet are each explained by that mechanism and none of the
+                  five domain models has a sleep input, so no engine can test it. The competing
+                  explanation, visceral adiposity acting directly, predicts the same lipid and
+                  glycemic pattern but not the oxygen nadir.</p>
+                </section>
+
+                <div class="ai-evidence">
+                  <section>
+                    <h4>Support</h4>
+                    <ul>
+                      <li>SpO&#8322; nadir <span class="pval">89<span class="pval__u">%</span></span> across the trailing 30 nights</li>
+                      <li>BP <span class="pval">142/90<span class="pval__u">mmHg</span></span> untreated, stage 2</li>
+                      <li>Waist <span class="pval">105<span class="pval__u">cm</span></span>, waist-to-height 0.59</li>
+                      <li>HOMA-IR <span class="pval">4.3</span>, insulin-resistant</li>
+                      <li>Energy <span class="pval">4<span class="pval__u">of 10</span></span> and clarity <span class="pval">4<span class="pval__u">of 10</span></span></li>
+                    </ul>
+                  </section>
+                  <section>
+                    <h4>Contradictory evidence</h4>
+                    <ul>
+                      <li>Overnight RHR <span class="pval">38<span class="pval__u">bpm</span></span>. Untreated obstructive sleep apnea usually raises nocturnal heart rate rather than lowering it.</li>
+                      <li>No snoring and no witnessed apnea recorded in the intake history.</li>
+                      <li>Never smoked, and no reported daytime sleepiness score on file.</li>
+                    </ul>
+                  </section>
+                  <section>
+                    <h4>Missing information</h4>
+                    <ul>
+                      <li>STOP-BANG score</li>
+                      <li>Home sleep apnea test</li>
+                      <li>Neck circumference</li>
+                      <li>Bed-partner report</li>
+                      <li>Alcohol intake in drinks per day</li>
+                    </ul>
+                  </section>
+                </div>
+
+                <details class="pdisc">
+                  <summary>Confidence conditions and provenance</summary>
+                  <div class="pdisc__body">
+                    <dl class="pfacts">
+                      <dt>Would raise it</dt><dd>A positive home sleep apnea test. A STOP-BANG of 3 or more. A nocturnal dip below 10 % on ambulatory monitoring.</dd>
+                      <dt>Would lower it</dt><dd>A negative home sleep apnea test. An ECG showing a primary conduction cause for the bradycardia, which would take the oxygen nadir with it.</dd>
+                      <dt>Patient-data provenance</dt><dd><code>packet.wearables.spo2_nadir</code> &middot; <code>packet.vitals.bp</code> &middot; <code>packet.anthro.waist_cm</code> &middot; <code>packet.labs.homa_ir</code> &middot; <code>packet.pro.energy</code></dd>
+                      <dt>Alternatives considered</dt><dd>Visceral adiposity acting directly, without a sleep component. Primary conduction disease producing both the bradycardia and the desaturation.</dd>
+                      <dt>Consultations</dt><dd><span class="pna">None run.</span> A Sleep Medicine specialist lens and a challenge pass are both available and neither has been used.</dd>
+                    </dl>
+                  </div>
+                </details>
+
+                <div class="ai-controls">
+                  <button class="amd-button" data-density="row" data-wide data-variant="primary" type="button">Adopt</button>
+                  <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Dismiss</button>
+                  <button class="amd-button" data-density="row" data-wide data-variant="tertiary" type="button">Discuss</button>
+                  <button class="amd-button" data-density="row" data-wide data-variant="tertiary" type="button">Consult</button>
+                  <span class="pbase">No claim enters the Care Plan until you adopt it.</span>
+                </div>
+              </article>
+
+              <!-- ===== Second thought, collapsed ===== -->
+              <article class="ai-thought" aria-expanded="false">
+                <div class="ai-thought__head">
+                  <span class="ai-thought__type">Pattern</span>
+                  <span class="pbase">Open</span>
+                  <span class="amd-confidence" data-level="high" role="img" aria-label="High confidence, 4 of 5">
+                    <span class="amd-confidence__bars">
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="false"></span>
+                    </span>
+                    <span class="pbase">High confidence, estimated 78 %, uncalibrated</span>
+                  </span>
+                </div>
+                <p class="ai-thought__claim">Waist 105 cm with triglycerides 180 mg/dL, HOMA-IR 4.3
+                and hs-CRP 3.0 mg/L is a hepatic steatosis pattern that no domain model stages.</p>
+                <div class="ai-controls">
+                  <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Review clinical thought</button>
+                  <span class="pbase">Collapsed. Evidence, contradictions and controls open with the card.</span>
+                </div>
+              </article>
+            </div>
+
+          </div>
+
+          <div class="ai-compose" style="margin-top: var(--air-group);">
+            <label class="amd-field">
+              <span class="amd-field__label" for="ai-prompt">Ask about this patient</span>
+              <textarea class="amd-input" id="ai-prompt" name="message" rows="2"
+                        placeholder="Ask about this patient, the map, or recommendations"></textarea>
+            </label>
+            <button class="amd-button" data-variant="primary" type="button">Ask</button>
+          </div>
+
+          <div class="ai-prompts">
+            <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Clinical overview</button>
+            <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Two recommendations</button>
+            <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Diagnostic gates</button>
+            <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Vitality lens</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Second specimen: the adoption confirmation ===== -->
+      <p class="wf-note" data-kind="new" style="margin: var(--air-section) 0 var(--air-tier);"><span class="wf-note__tag">new</span>
+        <span>Second specimen. Adoption is two steps. Pressing <b>Adopt</b> above replaces the
+        control row with the panel below, inside the same card; both are shown here so the whole
+        act is legible in one sitting.</span></p>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Confirm this exact claim</h2>
+          <span class="pmod__sub">Step 2 of 2. Nothing has been adopted yet.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="ai-confirm">
+
+            <blockquote>Untreated sleep-disordered breathing is the upstream driver of this
+            patient's stage-2 blood pressure and of part of his insulin resistance.</blockquote>
+
+            <div class="ai-confirm__grid">
+              <div>
+                <h3 class="ai-thought__type" style="margin: 0 0 var(--s-2xs);">Current confidence</h3>
+                <p class="ai-note">
+                  <span class="amd-confidence" data-level="moderate" role="img" aria-label="Moderate confidence, 3 of 5">
+                    <span class="amd-confidence__bars">
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="true"></span>
+                      <span class="amd-confidence__bar" data-on="false"></span>
+                      <span class="amd-confidence__bar" data-on="false"></span>
+                    </span>
+                  </span>
+                </p>
+                <p class="ai-note">Moderate confidence, estimated <span class="pval">55<span class="pval__u">%</span></span>
+                and uncalibrated. Main limitation: no sleep study has been performed, so the
+                hypothesis rests on one oximetry nadir and a phenotype.</p>
+              </div>
+              <div>
+                <h3 class="ai-thought__type" style="margin: 0 0 var(--s-2xs);">Consultations considered (0)</h3>
+                <p class="ai-note">None. A Sleep Medicine specialist lens, a challenge pass and a
+                blind second opinion were all available and none was run. Adopting without one is
+                permitted and is recorded.</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="ai-thought__type" style="margin: 0 0 var(--s-xs);">Unresolved contradictions (3)</h3>
+              <ul class="ai-note" style="padding-left: var(--s-md);">
+                <li>Overnight RHR <span class="pval">38<span class="pval__u">bpm</span></span>. Untreated obstructive sleep apnea usually raises nocturnal heart rate rather than lowering it.</li>
+                <li>No snoring and no witnessed apnea recorded in the intake history.</li>
+                <li>No daytime sleepiness score on file, so the commonest corroborating symptom is neither present nor absent.</li>
+              </ul>
+            </div>
+
+            <p class="pbound pbound--quiet">
+              This confirmation promotes only the quoted claim into an adopted conclusion. It does
+              not write to the chart.
+            </p>
+
+            <div class="ai-controls" style="border-top: 0; padding-top: 0;">
+              <button class="amd-button" data-density="row" data-wide data-variant="primary" type="button">Adopt for drafting</button>
+              <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>What this agent can see, and what adoption does next</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Scope</dt><dd>One patient. Answers are limited to the selected patient, current model outputs, the action library, genetics, candidate signals, and the map. There is no cohort context and no cross-patient memory.</dd>
+            <dt>Not in scope</dt><dd><span class="pna">Literature search, guideline lookup, and any source outside this chart.</span> A claim the agent cannot ground in a visible source field is not emitted.</dd>
+            <dt>Adoption</dt><dd>An adopted conclusion becomes available for drafting. A structured Care Plan proposal may then be generated from it, and that proposal is reviewed and added to the plan as a separate act.</dd>
+            <dt>Chart writes</dt><dd>None from this surface, in any state. Adoption, drafting and proposal generation all stop short of the chart; only Care Plan writes, and only on release.</dd>
+            <dt>Dismissal</dt><dd>A dismissed claim cannot be adopted or used for drafting. It stays visible in the thread, because a rejected hypothesis is part of the reasoning record.</dd>
+            <dt>Provenance</dt><dd>Every agent turn carries the same source line. It is fixed text, not a per-answer claim, because the boundary does not vary by question.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <p class="pfoot">
+        Answers are limited to the selected patient, current model outputs, the action library,
+        genetics, candidate signals, and the map &middot; no claim enters the Care Plan until it is
+        adopted, and adoption does not write to the chart.
+      </p>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The six-cell context strip, the conversation log with its fixed provenance footer, the
+    composer and the four canned prompts are the reference surface's Aleron AI pane, carried
+    unchanged. v0 has no AI surface of any kind.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span><b>Claim adoption</b>, from the later app build's <code>aiColleagueView.js</code>: the
+    clinical thought card with its type and state, the confidence line with its main limitation,
+    the four evidence sections, the confidence conditions and provenance disclosure, and the two-step
+    confirmation with its blockquote and boundary sentence, all verbatim in structure. The
+    reference surface's agent produces prose and stops there, so a physician who agrees with it has
+    nowhere to put the agreement.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Contradictory evidence and missing information sit beside support, at equal width, above
+    the controls. An adoption control that is reachable before the contradictions have been read is
+    the interface arguing for its own claim.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Adopt is a two-step act and the second step restates the exact claim in a blockquote. The
+    quoted text is what is adopted, not the conversation around it, and the boundary sentence says
+    what the act does and does not do.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><code>.amd-confidence</code> is canonical and is used as declared, moderate at three of
+    five bars. The band word beside it is a baseline word rather than a tile, because low confidence
+    is not a hazard; it is the reason to consult before adopting.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The thought card has no canonical component. <code>.amd-proposed-action</code> is the
+    nearest and it is a different object: a proposed act with accept and reject controls, not a
+    claim with evidence for and against it. The card is screen-local here and is a strong candidate
+    for section B once Care Plan's proposal card is settled, since the two share the
+    adopt-then-confirm shape.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><code>.amd-button</code>'s 44 px floor is again wrong for a card-level control row; the
+    local override shrinks it to 32 px. Same finding as the action-map ledger: the registry needs a
+    dense variant.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Screening has no canonical icon. The magnifier with a plus is drawn inline in the
+    canonical stroke grammar and flagged provisional in the markup.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>The later app build's full consultation menu, six consultation types plus a specialist
+    lens select, rendered inline on every expanded card. It is collapsed to one <b>Consult</b>
+    control here: six buttons of equal weight beside Adopt and Dismiss makes the two acts that
+    matter the same size as four that do not.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>The app build's <em>Waiting for Codex</em> and <em>Saving to backend</em> composer
+    states, which name the provider on the surface. Provider identity is system context, and the
+    canonical loading instrument is three pulsing dots with no vendor attached.</span></p>
+</div>
+
+</body>
+</html>

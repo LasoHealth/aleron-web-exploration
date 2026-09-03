@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Risk Models · Cardiovascular</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     This screen is partials/domain-panel.blade.php, whose every rule lives
+     in inline style attributes in the Blade file. What follows is that
+     arrangement lifted into one place so the markup stays readable. */
+  .v0-panel { display: grid; gap: var(--air-tier); }
+  .v0-dhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-md) var(--s-2xl); }
+  .v0-dhead__score { display: flex; align-items: baseline; gap: var(--s-sm); margin-top: var(--s-2xs); }
+  .v0-dhead__score .amd-value { font-size: var(--size-display); font-weight: 600; line-height: 1; color: var(--text-primary); }
+  .v0-dhead__meta { display: grid; gap: var(--s-sm); min-width: 24ch; align-content: start; }
+  .v0-dhead__meta p + p { margin-top: var(--s-2xs); }
+  .v0-dhead__note {
+    margin-top: var(--s-md);
+    padding-top: var(--s-md);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .v0-step__head { padding: var(--s-md) var(--s-lg); }
+  .v0-step__head h3 { margin-top: var(--s-2xs); font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .v0-step__head p.sub { margin-top: var(--s-2xs); font-size: var(--size-small); color: var(--text-tertiary); max-width: 72ch; line-height: 1.55; }
+  .v0-step__rows { border-top: var(--line-thin) solid var(--hairline); }
+  /* Row grid comes from .ds-defrow / .ds-defrow--wide in v0-tokens.css; this
+     only adds the panel's row padding and hairline. */
+  .v0-drow {
+    padding: var(--s-sm) var(--s-lg);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .v0-drow dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .v0-group { border-top: var(--line-thin) solid var(--hairline); }
+  .v0-group__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-sm); padding: var(--s-sm) var(--s-lg); }
+  .v0-group__left { display: flex; align-items: baseline; gap: var(--s-sm); min-width: 0; }
+  .v0-group__chip {
+    flex: 0 0 auto;
+    padding: var(--s-2xs) var(--s-xs);
+    border-radius: var(--radius-tile);
+    background: var(--surface-inset);
+    color: var(--text-tertiary);
+    font-size: var(--size-caption);
+  }
+  .v0-group__head h4 { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .v0-group__rule { flex: 0 0 auto; font-size: var(--size-caption); color: var(--text-tertiary); }
+  .v0-group__desc,
+  .v0-group__none { padding: 0 var(--s-lg) var(--s-xs); font-size: var(--size-small); font-style: italic; color: var(--text-tertiary); line-height: 1.55; }
+  .v0-group__foot {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-sm);
+    padding: var(--s-xs) var(--s-lg);
+    background: var(--surface-inset);
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .v0-scroll { overflow-x: auto; }
+  .v0-panel .amd-citation-table th:first-child,
+  .v0-panel .amd-citation-table td:first-child { padding-left: var(--s-lg); }
+  .v0-panel .amd-citation-table th:last-child,
+  .v0-panel .amd-citation-table td:last-child { padding-right: var(--s-lg); }
+  .v0-panel .amd-citation-table thead th { font-weight: 400; font-size: var(--size-caption); color: var(--text-tertiary); }
+  .v0-panel .amd-citation-table td { vertical-align: top; }
+  @media (max-width: 1080px) {
+    .v0-dhead { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <a href="risk-models.html">Risk Models</a> / <b>Cardiovascular</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <a href="../v1/risk-models.html">v1</a>
+    <a href="../v2/risk-models.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/risk-models</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       Same route as Summary. The domain is a client-side tab, so the URL
+       does not change and this view cannot be linked to, bookmarked or
+       opened in a second window beside another domain. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+          <p class="v0-ident__sub">MRN 4471-2208 &middot; Last run 2d ago</p>
+        </div>
+        <nav class="v0-tabs" aria-label="Patient sections">
+          <a href="care-plan.html">Care Plan</a>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <span aria-current="page">Risk Models</span>
+          <a href="lab-orders.html">Lab Orders</a>
+          <a href="standing-orders.html">Standing Orders</a>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <nav class="v0-subtabs" aria-label="Risk model domains">
+        <a href="risk-models.html">Summary</a>
+        <a href="risk-models-systemic.html">Systemic</a>
+        <a href="risk-models-domain.html" aria-current="page">Cardiovascular</a>
+        <a href="risk-models-domain.html">Metabolic</a>
+        <a href="risk-models-domain.html">Kidney</a>
+        <a href="risk-models-domain.html">Cancer</a>
+        <a href="risk-models-domain.html">Neurodegenerative</a>
+      </nav>
+
+      <div class="v0-panel">
+
+        <!-- 1. HEADER CARD, the single elevated Tier-1 holder. -->
+        <section class="amd-card" data-tier="1" style="padding: var(--s-lg);">
+          <div class="v0-dhead">
+            <div style="min-width: 0;">
+              <p style="font-size: var(--size-caption); color: var(--text-tertiary);">30-year CARDIOVASCULAR risk</p>
+              <div class="v0-dhead__score">
+                <span class="amd-value">16%</span>
+                <span class="ds-pill ds-pill--accent">moderate</span>
+              </div>
+              <p style="margin-top: var(--s-xs); font-size: var(--size-small); color: var(--text-tertiary);">Aleron CVD Risk Engine Spec v2.3 &middot; cvd-risk-engine</p>
+            </div>
+
+            <div class="v0-dhead__meta">
+              <div>
+                <p style="font-size: var(--size-caption); color: var(--text-tertiary);">Baseline</p>
+                <p class="ds-mono">12.65%&nbsp;&nbsp;pre-modifier</p>
+              </div>
+              <div>
+                <p style="font-size: var(--size-caption); color: var(--text-tertiary);">Net modifier</p>
+                <p class="ds-mono">&times;1.26&nbsp;&nbsp;+0.231 log-HR</p>
+              </div>
+              <div>
+                <p style="font-size: var(--size-caption); color: var(--text-tertiary);">Confidence tier</p>
+                <p style="font-size: var(--size-small); color: var(--text-primary);">Tier 2</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="v0-dhead__note">Thirty-year total cardiovascular risk of 16 % places this patient in the moderate tier. The PREVENT baseline of 12.65 % is amplified by persistent low-grade inflammation and by insulin resistance. The hemodynamic group contributed no modifier because no ambulatory or wearable series was submitted, and the genetic group found no pathogenic cardiovascular variant on the panel that has been run.</p>
+        </section>
+
+        <!-- 2. STEP 1 · BASELINE MODEL -->
+        <section class="amd-card" data-tier="flat" style="padding: 0;">
+          <header class="v0-step__head">
+            <p style="font-size: var(--size-caption); color: var(--text-tertiary);">Step 1</p>
+            <h3>Baseline model</h3>
+          </header>
+          <dl class="v0-step__rows">
+            <div class="ds-defrow v0-drow">
+              <dt>Inputs</dt>
+              <dd class="ds-mono">age 47 &middot; sex male &middot; total-C 205 &middot; HDL 40 &middot; LDL 132 &middot; eGFR 93 &middot; HbA1c 6.0 &middot; non-DM</dd>
+            </div>
+            <div class="ds-defrow v0-drow">
+              <dt>Base P</dt>
+              <dd class="ds-mono">12.65%</dd>
+            </div>
+            <div class="ds-defrow v0-drow">
+              <dt>Base model</dt>
+              <dd class="ds-mono">aha-prevent-v1</dd>
+            </div>
+            <div class="ds-defrow v0-drow">
+              <dt>Formula</dt>
+              <dd class="ds-mono">logit(p) = &alpha; + &beta;_logAge&middot;ln(age/55) + &beta;_nonHDL&middot;(non-HDL_mmol &minus; 3.5) + &beta;_HDL&middot;((HDL_mmol &minus; 1.3)/0.3) + &beta;_SBP-&middot;((min(SBP,110)&minus;110)/20) + &beta;_SBP+&middot;((max(SBP,110)&minus;110)/20) + &beta;_DM&middot;DM + &beta;_smk&middot;smk + &beta;_eGFR-&middot;((min(eGFR,60)&minus;60)/&minus;15) + &beta;_eGFR+&middot;((max(eGFR,60)&minus;60)/&minus;15) + &beta;_BPtx&middot;BPtx + &beta;_statin&middot;statin + 8 interaction terms (logAge &times; {nonHDL, HDL, SBP+, DM, smk, eGFR&minus;}; BPtx &times; SBP+; statin &times; nonHDL);  p = 1 / (1 + exp(&minus;logit))</dd>
+            </div>
+            <div class="ds-defrow v0-drow">
+              <dt>Coefficients</dt>
+              <dd class="ds-mono">Sex-specific (M / F) &times; horizon (10y / 30y): 4 published coefficient tables of 19 terms each. See PreventCoefficients::totalCvd10yr() / totalCvd30yr() for exact &beta; values per AHA PREVENT 2024 spec &sect;1.1.</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- 3. STEP 2 · BASELINE MODIFIERS. Four groups, A to D, each with a
+             component table and a composite arithmetic footer. -->
+        <section class="amd-card" data-tier="flat" style="padding: 0;">
+          <header class="v0-step__head">
+            <p style="font-size: var(--size-caption); color: var(--text-tertiary);">Step 2</p>
+            <h3>Baseline modifiers</h3>
+          </header>
+
+          <div class="v0-group">
+            <div class="v0-group__head">
+              <span class="v0-group__left">
+                <span class="v0-group__chip amd-value">Group A</span>
+                <h4>Lipid &amp; inflammatory</h4>
+              </span>
+              <span class="v0-group__rule">PRODUCT</span>
+            </div>
+            <p class="v0-group__desc">Circulating particles that drive endothelial injury and plaque deposition. The most modifiable lever in CVD.</p>
+            <div class="v0-scroll">
+              <table class="amd-citation-table" style="font-size: var(--size-small);">
+                <thead>
+                  <tr>
+                    <th style="width: 22%;">Modifier</th>
+                    <th>Effect</th>
+                    <th>Citation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="color: var(--text-primary);">hsCRP &ge; 2.0 mg/L on &ge;2 measurements</td>
+                    <td style="white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--status-crit); font-weight: var(--w-emphasis);">&uarr; 1.10&times;</td>
+                    <td style="color: var(--text-tertiary);">Spec &sect;3.1 A6</td>
+                  </tr>
+                  <tr>
+                    <td style="color: var(--text-primary);">Lp(a) continuous (25.0 nmol/L)</td>
+                    <td style="white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-secondary);">&middot; 1.00&times;</td>
+                    <td style="color: var(--text-tertiary);">PMID:19906021; &beta;=0.11; nmol/L canonical</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="v0-group__foot">
+              <span style="font-size: var(--size-caption); color: var(--text-tertiary);">Group A composite</span>
+              <span class="ds-mono" style="font-variant-numeric: tabular-nums;">1.10 &times; 1.00 = 1.10&times;</span>
+            </div>
+          </div>
+
+          <div class="v0-group">
+            <div class="v0-group__head">
+              <span class="v0-group__left">
+                <span class="v0-group__chip amd-value">Group B</span>
+                <h4>Hemodynamic &amp; autonomic</h4>
+              </span>
+              <span class="v0-group__rule">PRODUCT</span>
+            </div>
+            <p class="v0-group__desc">Pressure and conduction state affecting vessel-wall stress and chronotropic reserve.</p>
+            <p class="v0-group__none">No data submitted.</p>
+            <div class="v0-group__foot">
+              <span style="font-size: var(--size-caption); color: var(--text-tertiary);">Group B composite</span>
+              <span class="ds-mono" style="font-variant-numeric: tabular-nums;">= 1.00&times;</span>
+            </div>
+          </div>
+
+          <!-- Reproduced defect: groupRule() hard-codes MAX for "Group C
+               (genetic)" and groupDescription() gives C the genetic prose,
+               but the CVD engine's group C is Metabolic & glycemic and its
+               group D is Genetic & familial. Both descriptions and the rule
+               are one letter out of register. -->
+          <div class="v0-group">
+            <div class="v0-group__head">
+              <span class="v0-group__left">
+                <span class="v0-group__chip amd-value">Group C</span>
+                <h4>Metabolic &amp; glycemic</h4>
+              </span>
+              <span class="v0-group__rule">MAX</span>
+            </div>
+            <p class="v0-group__desc">Fixed architecture amplifying endothelial injury. Dominant lesion wins; variants don&rsquo;t stack.</p>
+            <div class="v0-scroll">
+              <table class="amd-citation-table" style="font-size: var(--size-small);">
+                <thead>
+                  <tr>
+                    <th style="width: 22%;">Modifier</th>
+                    <th>Effect</th>
+                    <th>Citation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="color: var(--text-primary);">HOMA-IR 4.30 (&gt; 3.0)</td>
+                    <td style="white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--status-crit); font-weight: var(--w-emphasis);">&uarr; 1.15&times;</td>
+                    <td style="color: var(--text-tertiary);">Spec &sect;3.3 C1</td>
+                  </tr>
+                  <tr>
+                    <td style="color: var(--text-primary);">Metabolic syndrome (3/5 ATP-III criteria)</td>
+                    <td style="white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-secondary);">&uarr; 1.12&times;</td>
+                    <td style="color: var(--text-tertiary);">NCEP ATP-III; spec &sect;3.3 C2</td>
+                  </tr>
+                  <tr>
+                    <td style="color: var(--text-primary);">HbA1c 6.0% (prediabetic range)</td>
+                    <td style="white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-secondary);">&uarr; 1.08&times;</td>
+                    <td style="color: var(--text-tertiary);">Spec &sect;3.3 C3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="v0-group__foot">
+              <span style="font-size: var(--size-caption); color: var(--text-tertiary);">Group C composite</span>
+              <span class="ds-mono" style="font-variant-numeric: tabular-nums;">max(1.15, 1.12, 1.08) = 1.15&times;</span>
+            </div>
+          </div>
+
+          <div class="v0-group">
+            <div class="v0-group__head">
+              <span class="v0-group__left">
+                <span class="v0-group__chip amd-value">Group D</span>
+                <h4>Genetic &amp; familial</h4>
+              </span>
+              <span class="v0-group__rule">PRODUCT</span>
+            </div>
+            <p class="v0-group__desc">Behaviors and conditions that modify endothelial inflammation and metabolic pressure.</p>
+            <p class="v0-group__none">No active modifiers in this group.</p>
+            <div class="v0-group__foot">
+              <span style="font-size: var(--size-caption); color: var(--text-tertiary);">Group D composite</span>
+              <span class="ds-mono" style="font-variant-numeric: tabular-nums;">= 1.00&times;</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. STEP 3 · COMPOSITE RISK -->
+        <section class="amd-card" data-tier="flat" style="padding: 0;">
+          <header class="v0-step__head">
+            <p style="font-size: var(--size-caption); color: var(--text-tertiary);">Step 3</p>
+            <h3>Composite risk</h3>
+          </header>
+          <dl class="v0-step__rows">
+            <div class="ds-defrow ds-defrow--wide v0-drow">
+              <dt>Sum log-HR</dt>
+              <dd class="ds-mono" style="font-variant-numeric: tabular-nums;">ln(1.10) + ln(1.00) + ln(1.15) + ln(1.00) = +0.235</dd>
+            </div>
+            <div class="ds-defrow ds-defrow--wide v0-drow">
+              <dt>Composite modifier</dt>
+              <dd class="ds-mono" style="font-variant-numeric: tabular-nums;">exp(+0.235) = 1.265</dd>
+            </div>
+            <div class="ds-defrow ds-defrow--wide v0-drow">
+              <dt>Base &times; composite</dt>
+              <dd class="ds-mono" style="font-variant-numeric: tabular-nums; color: var(--text-primary);">12.65% &times; 1.265 = 16.00%</dd>
+            </div>
+            <div class="ds-defrow ds-defrow--wide v0-drow" style="border-bottom: 0;">
+              <dt>Tier rule</dt>
+              <dd>Tier classifier &rarr; MODERATE</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- 7. INFORMATION GAPS -->
+        <section class="amd-card" data-tier="flat" style="padding: 0;">
+          <header class="v0-step__head">
+            <h3 style="margin-top: 0;">Information gaps</h3>
+            <p class="sub">Conditional inputs absent from the record that would materially refine the posterior. Framework principle: <em>an unassessed risk is not a low risk.</em></p>
+          </header>
+          <div class="v0-scroll" style="border-top: var(--line-thin) solid var(--hairline);">
+            <table class="amd-citation-table" style="font-size: var(--size-small);">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">Input</th>
+                  <th>Why missing matters</th>
+                  <th style="width: 22%;">If obtained &middot; effect</th>
+                  <th style="width: 18%;">Cadence</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color: var(--text-primary);">Coronary artery calcium score</td>
+                  <td style="color: var(--text-secondary);">The moderate tier sits between two treatment paths. A score of zero moves this patient to low; a score above 100 moves him to high.</td>
+                  <td style="color: var(--text-tertiary);">Informs cvd</td>
+                  <td style="color: var(--text-tertiary);">once, repeat at 5 y if zero</td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary);">Ambulatory blood pressure monitoring</td>
+                  <td style="color: var(--text-secondary);">Group B returned no modifier because no dipping status or home cuff series was submitted, so a reverse dipper and a normal dipper score identically here.</td>
+                  <td style="color: var(--text-tertiary);">Informs cvd</td>
+                  <td style="color: var(--text-tertiary);">24 h series, annually</td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary);">Apolipoprotein B repeat</td>
+                  <td style="color: var(--text-secondary);">A single ApoB of 112 mg/dL cannot establish discordance against LDL-C 132 mg/dL, and the group A discordance term needs two draws.</td>
+                  <td style="color: var(--text-tertiary);">Informs cvd</td>
+                  <td style="color: var(--text-tertiary);">3 mo after any therapy change</td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary);">oxLDL</td>
+                  <td style="color: var(--text-secondary);">Group A carries an oxidised-LDL term at the 75th percentile for age and sex that stays unevaluated without the assay.</td>
+                  <td style="color: var(--text-tertiary);">Informs cvd</td>
+                  <td style="color: var(--text-tertiary);">once, then as indicated</td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary);">Omega-3 index</td>
+                  <td style="color: var(--text-secondary);">Below 4 % this adds a further group A modifier. The record holds no value, so the group composite is a floor rather than an estimate.</td>
+                  <td style="color: var(--text-tertiary);">Informs cvd</td>
+                  <td style="color: var(--text-tertiary);">6 mo</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 8. EVIDENCE & PROVENANCE -->
+        <section class="amd-card" data-tier="flat" style="padding: var(--s-lg); display: grid; gap: var(--s-md);">
+          <div>
+            <h3 style="margin-bottom: var(--s-xs); font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary);">Evidence &amp; provenance</h3>
+            <p style="font-size: var(--size-small); color: var(--text-secondary); line-height: 1.6;">Spec &sect;3.1 A6; PMID:19906021; &beta;=0.11; nmol/L canonical; Spec &sect;3.3 C1; NCEP ATP-III; spec &sect;3.3 C2; Spec &sect;3.3 C3.</p>
+          </div>
+          <div style="padding-top: var(--s-sm); border-top: var(--line-thin) solid var(--hairline); font-size: var(--size-caption); color: var(--text-tertiary);">
+            Aleron CVD Risk Engine Spec v2.3
+            <span style="margin: 0 var(--s-2xs);">&middot;</span>cvd-risk-engine
+            <span style="margin: 0 var(--s-2xs);">&middot;</span>8/29/2026, 9:14:02 AM
+            <span style="margin: 0 var(--s-2xs);">&middot;</span>1.0.0
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Group C is labelled <b>Metabolic &amp; glycemic</b> by the engine but carries the genetic
+    group&rsquo;s prose (<i>fixed architecture, dominant lesion wins</i>) and the genetic group&rsquo;s
+    MAX rule, while group D is <b>Genetic &amp; familial</b> and carries the behavioural prose.
+    <code>groupRule()</code> and <code>groupDescription()</code> in <code>portal.js</code> are one
+    letter out of register with <code>app/Services/CVD/Domain/</code>. The arithmetic on this page is
+    therefore wrong: three metabolic terms that should multiply are being collapsed with MAX.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The formula and coefficient rows run the audit face at caption size across the full measure
+    with <code>word-break: break-word</code>. That is 480 characters of unbreakable notation in the
+    retired face, and it is the tallest element on the page.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Numbers appear at four precisions with no stated convention: the headline is <code>16%</code>,
+    the baseline block is <code>12.65%</code>, the log-HR is three decimals and the multipliers are
+    two. Nothing on the page says which is the reportable figure.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Effect direction is carried by an arrow glyph plus a colour that only separates crit from
+    everything else. A modifier of 1.12&times; and a modifier of 1.00&times; both render in secondary
+    ink, so a real amplification and a no-op look the same until you read the digits.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The header card metadata blocks are the audit face and are the only place the pre-modifier
+    baseline appears. There is no unit on <code>+0.231 log-HR</code> beyond the word itself and no
+    interval anywhere on the page.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The <code>Engine</code> row the panel can emit never renders for this domain:
+    <code>step1Rows()</code> makes it the fallback for domains with no identified base model, so CVD,
+    CKD and Neuro show <code>Base model</code> instead and Cancer and Metabolic show
+    <code>Engine</code>. The same table means two different things across the five tabs.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Six sections, all flat cards, all the same weight, in a fixed order that never collapses.
+    The physician scrolls past the entire derivation to reach the information gaps, which is the only
+    part of the page that names an action.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>This view has no URL of its own. All six domain panels are mounted under
+    <code>/patients/1/risk-models</code> and switched with <code>x-show</code>, so the physician
+    cannot link a colleague to the cardiovascular derivation.</span></p>
+</div>
+
+</body>
+</html>

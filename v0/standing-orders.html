@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Standing Orders</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     patients/standing-orders.blade.php: one Tier-1 card per catalog type,
+     each holding a header, an optional hazard annunciator, an authorization
+     record table, an authorized-menu table, and for genetics an advisory. */
+  .v0-socard { margin-bottom: var(--air-tier); }
+  .v0-socard__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-md);
+    padding: var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .v0-socard__head h2 { font-size: var(--size-h3); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .v0-socard__head p { margin-top: var(--s-2xs); font-size: var(--size-caption); color: var(--text-secondary); }
+  .v0-sotable th[scope="row"] { width: 22ch; font-weight: 400; color: var(--text-secondary); }
+  .v0-sotable thead th { font-size: var(--size-caption); color: var(--text-secondary); font-weight: 400; }
+  .v0-menulabel {
+    padding: var(--s-sm) var(--s-md);
+    border-top: var(--line-thin) solid var(--hairline);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    font-weight: var(--w-emphasis);
+    color: var(--text-primary);
+  }
+  .v0-socard .amd-annunciator { margin: var(--s-md); }
+  .v0-socard .amd-annunciator--top { margin-bottom: 0; }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>Standing Orders</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <span aria-disabled="true" title="v1 has no standing-order surface: the reference surface has no concept of a practice-level authorization document">v1</span>
+    <a href="../v2/standing-orders.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/standing-orders</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       A practice-level compliance artifact rendered inside a patient chart.
+       Nothing on this page is patient-specific: the same two cards render
+       identically for every patient in the cohort. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+          <p class="v0-ident__sub">The standing order(s) that would authorize this patient&rsquo;s Junction orders (&sect;5 Model 1). Read only: each is a signed document referenced by environment configuration, not app state.</p>
+        </div>
+
+        <!-- Tab strip variant 3 of 4 again: inset holder, radius-tile items. -->
+        <nav class="v0-tabs" data-variant="tile" aria-label="Patient sections">
+          <a href="care-plan.html">Care Plan</a>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <a href="risk-models.html">Risk Models</a>
+          <a href="lab-orders.html">Lab Orders</a>
+          <span aria-current="page">Standing Orders</span>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <!-- Gap rollup. Renders only when at least one card is unconfigured. -->
+      <div class="amd-annunciator" role="alert" style="margin-bottom: var(--air-tier);">
+        <span class="amd-annunciator__hazard">1 of 2 not configured</span>
+        <span style="font-size: var(--size-small);">Orders under an unconfigured standing order are refused (fail closed), see <code>\App\Services\Junction\StandingOrder::for()</code>.</span>
+      </div>
+
+      <!-- ── Blood labs ──────────────────────────────────────────────── -->
+      <div class="amd-card v0-socard" data-tier="1" style="padding: 0; overflow: hidden;">
+        <div class="v0-socard__head">
+          <div>
+            <h2>Blood labs</h2>
+            <p>Catalog key <span class="amd-value">blood</span></p>
+          </div>
+          <span class="ds-pill ds-pill--ok">Authorized</span>
+        </div>
+
+        <table class="amd-citation-table v0-sotable" style="font-size: var(--size-small);">
+          <tbody>
+            <tr>
+              <th scope="row">Standing order reference</th>
+              <td><span class="amd-value" data-role="value">ALR-SO-2025-014</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Ordering physician NPI</th>
+              <td><span class="amd-value" data-role="value">1487203956</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Canvas practitioner id</th>
+              <td><span class="amd-value" data-role="value">Practitioner/9d31c07a</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Ordering</th>
+              <td><span class="ds-pill ds-pill--ok">Enabled</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="v0-menulabel">Authorized menu</div>
+        <table class="amd-citation-table v0-sotable" style="font-size: var(--size-small);">
+          <thead>
+            <tr>
+              <th>Test / panel</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="color: var(--text-primary);">Lipid Panel (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Comprehensive Metabolic Panel (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Hemoglobin A1c (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">hs-CRP (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Fasting Insulin (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Apolipoprotein B (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Lipoprotein(a) (Quest)</td><td><span class="ds-pill">No test id configured</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Urine Albumin/Creatinine Ratio (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">PSA (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">eGFR / Creatinine (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Liver Function Panel / LFTs (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Creatine Kinase (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">TSH (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Complete Blood Count (Quest)</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">p-tau217 (Quest)</td><td><span class="ds-pill">No test id configured</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Neurofilament Light / NfL (Quest)</td><td><span class="ds-pill">No test id configured</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Genetic kits ────────────────────────────────────────────── -->
+      <div class="amd-card v0-socard" data-tier="1" style="padding: 0; overflow: hidden;">
+        <div class="v0-socard__head">
+          <div>
+            <h2>Genetic kits</h2>
+            <p>Catalog key <span class="amd-value">genetics</span></p>
+          </div>
+          <span class="ds-pill ds-pill--crit">Not configured</span>
+        </div>
+
+        <div class="amd-annunciator amd-annunciator--top">
+          <span class="amd-annunciator__hazard">No reference or physician NPI on file</span>
+          <span style="font-size: var(--size-small);">Genetic kits orders are refused in this environment until both are set.</span>
+        </div>
+
+        <table class="amd-citation-table v0-sotable" style="font-size: var(--size-small);">
+          <tbody>
+            <tr>
+              <th scope="row">Standing order reference</th>
+              <td><span style="color: var(--signal-hazard);">Not set: blocks ordering</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Ordering physician NPI</th>
+              <td><span style="color: var(--signal-hazard);">Not set: blocks ordering</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Canvas practitioner id</th>
+              <td><span style="color: var(--text-secondary);">Not set: Canvas order-authorization writes fail soft (no clinician attribution)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Ordering</th>
+              <td><span class="ds-pill">Disabled: kill switch off</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="v0-menulabel">Authorized menu</div>
+        <table class="amd-citation-table v0-sotable" style="font-size: var(--size-small);">
+          <thead>
+            <tr>
+              <th>Test / panel</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="color: var(--text-primary);">Invitae 160-Gene Panel</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Hereditary Cancer Panel</td><td><span class="ds-pill ds-pill--ok">Orderable</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Cardiovascular Genetic Panel</td><td><span class="ds-pill">No test id configured</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Pharmacogenomics Panel</td><td><span class="ds-pill">No test id configured</span></td></tr>
+            <tr><td style="color: var(--text-primary);">Proactive Genetic Health Screen</td><td><span class="ds-pill">No test id configured</span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="amd-annunciator">
+          <span class="amd-annunciator__advisory">Model under review</span>
+          <span style="font-size: var(--size-small);">The Canvas clinical-documentation ADR (&sect;5) recommends genetics move from standing-order authorization to an individual-physician order with a pre-test counseling acknowledgment. The physician-portal ordering flow enforces that acknowledgment today; the mobile standing-order rail does not yet.</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Nothing on this route is patient-specific. It sits behind the patient identity block and a
+    chart tab strip, but the two cards read environment configuration and render identically for
+    every patient in the cohort. It is a practice-level artifact filed under a patient.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Two Tier-1 cards on one screen. The design system budgets one elevated holder per surface,
+    and this page also stacks a page-level hazard annunciator, a card-level hazard annunciator and a
+    card-level advisory inside them.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The genetics card says three contradictory things at once: the header pill says
+    <code>Not configured</code>, the record table says ordering is blocked, and the authorized menu
+    below lists two panels as <code>Orderable</code>. Orderable there means the catalog has a test id,
+    not that anyone can order it.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The shipped copy uses an em dash as a sentence connector in six places on this route
+    (<code>Read only</code>, <code>Not set</code> twice, <code>Disabled</code>, the fail-closed
+    rollup, the unconfigured-card body). The design system forbids the em dash in product copy
+    outright, so the replica substitutes a colon and records the divergence here.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The rollup annunciator prints a PHP class reference,
+    <code>\App\Services\Junction\StandingOrder::for()</code>, to a physician. So does the empty state
+    on Care Plan, which prints an artisan command.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The advisory admits that the portal and the mobile rail enforce different gates for the same
+    genetic order and leaves it there. There is no owner, no date and no control, so the divergence is
+    documented to the physician rather than to anyone who could close it.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Read only is stated in the subtitle and then never reinforced. The tables look exactly like
+    the editable tables on Lab Orders, down to the pill vocabulary, so the surface gives no visual cue
+    that nothing here can be acted on.</span></p>
+</div>
+
+</body>
+</html>

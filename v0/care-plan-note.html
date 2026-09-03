@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Care Plan · Review &amp; sign note</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The .cp-* vocabulary is in v0-tokens.css,
+     which transcribes resources/css/care-plan.css. What follows is the
+     step-2 arrangement: the selection manifest head, the order ledger, the
+     sign form grid and the documentation-rules disclosure. */
+  .cp-wline { width: var(--s-lg); height: var(--line-thin); flex: none; align-self: center; background: var(--border-base); }
+  .cp-cnt { margin-left: var(--s-2xs); font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
+  .cp-selbox__head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s-md); }
+  .cp-selbox__head > div { flex: 1 1 0; min-width: 0; }
+  .cp-selbox__title { font-size: var(--size-small); font-weight: var(--w-emphasis); }
+  .cp-selbox__sub { margin-top: var(--s-2xs); font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.6; max-width: 72ch; }
+  .cp-linkbtn {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-size: var(--size-caption);
+    color: var(--text-secondary);
+    text-decoration: underline dotted;
+    text-underline-offset: 0.25em;
+    cursor: pointer;
+  }
+  .cp-pcards { display: grid; gap: var(--s-sm); }
+  .cp-mand {
+    margin-left: auto;
+    font-family: var(--audit);
+    font-size: var(--size-caption);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--signal-advisory);
+  }
+  .cp-plist {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-xs);
+    padding-top: var(--s-xs);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .cp-oledger { border: var(--line-thin) solid var(--border-subtle); border-radius: var(--radius-control); overflow: hidden; }
+  .cp-orow {
+    display: flex;
+    align-items: center;
+    gap: var(--s-md);
+    padding: var(--s-xs) var(--s-sm);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    background: var(--surface-card);
+  }
+  .cp-orow:last-child { border-bottom: 0; }
+  .cp-orow .nm { flex: none; font-size: var(--size-small); font-weight: var(--w-emphasis); }
+  .cp-orow .sr {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    font-family: var(--audit);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cp-orow .st {
+    flex: none;
+    font-family: var(--audit);
+    font-size: var(--size-caption);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .cp-orow .ox {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: var(--s-lg);
+    height: var(--s-lg);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+  }
+  .cp-oscope { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.6; }
+  .cp-signblock { display: grid; gap: var(--air-row); }
+  .cp-fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-sm); }
+  .cp-fgrid .wide { grid-column: span 2; }
+  .cp-fgrid .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-sm); }
+  .cp-input {
+    width: 100%;
+    padding: var(--s-xs) var(--s-sm);
+    border: var(--line-thin) solid var(--border-base);
+    border-radius: var(--radius-control);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--size-small);
+  }
+  .cp-rules { margin-top: var(--s-lg); }
+  .cp-rules summary {
+    display: flex;
+    align-items: center;
+    gap: var(--s-xs);
+    list-style: none;
+    cursor: pointer;
+    font-family: var(--audit);
+    font-size: var(--size-caption);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .cp-rules summary::-webkit-details-marker { display: none; }
+  .cp-rules summary::marker { content: ""; }
+  .cp-rules ul {
+    margin: var(--s-sm) 0 0;
+    padding: var(--s-sm) var(--s-md);
+    background: var(--surface-sunken);
+    border-radius: var(--radius-tile);
+    display: grid;
+    gap: var(--s-xs);
+    list-style: none;
+  }
+  .cp-rules li { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-secondary); line-height: 1.7; }
+  .cp-rules li b { font-weight: 400; color: var(--text-primary); }
+  @media (max-width: 1080px) {
+    .cp-fgrid { grid-template-columns: minmax(0, 1fr); }
+    .cp-fgrid .wide { grid-column: auto; }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <a href="care-plan.html">Care Plan</a> / <b>Review &amp; sign note</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <a href="../v1/care-plan.html">v1</a>
+    <a href="../v2/care-plan.html">v2</a>
+    <a href="../v3/care-plan.html" title="v3 is a single-screen alternative: the same care plan with an opt-in model instead of opt-out">v3</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/care-plan</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       Step 2 of the composer. Two independent legal acts live on this one
+       screen: signing and sending the orders, and locking the note. Either
+       may happen first, and neither implies the other. The route does not
+       change between step 1 and step 2. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow" style="margin-bottom: var(--s-xs);">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+        </div>
+        <nav class="v0-tabs" data-variant="card" aria-label="Patient sections">
+          <span aria-current="page">Care Plan</span>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <a href="risk-models.html">Risk Models</a>
+          <a href="lab-orders.html">Lab Orders</a>
+          <a href="standing-orders.html">Standing Orders</a>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <div class="cp">
+
+        <div class="cp-band">
+          <p>
+            Care plan &rarr; progress note
+            <span style="margin: 0 var(--s-xs); color: var(--text-tertiary);">&middot;</span>5 selected
+            <span style="margin: 0 var(--s-xs); color: var(--text-tertiary);">&middot;</span>6 actions
+            <span style="margin: 0 var(--s-xs); color: var(--text-tertiary);">&middot;</span>2 pinned
+          </p>
+          <div class="cp-runmeta">
+            Run #7c1a9f04 &middot; Action Layer v2.1.0<br>
+            Dr. A. Okafor &middot; 2026-08-31
+          </div>
+        </div>
+
+        <nav class="cp-pagenav" aria-label="Patient documentation">
+          <a href="care-plan-note.html" aria-current="page">Compose note</a>
+          <a href="care-plan-note.html">Notes history <span class="cp-cnt">3</span></a>
+          <span class="cp-pagenav__right">
+            <a href="standing-orders.html">
+              <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg>
+              Practice &middot; Standing orders <span class="cp-cnt">2</span>
+            </a>
+          </span>
+        </nav>
+
+        <nav class="cp-wizard" aria-label="Progress note steps">
+          <a class="cp-wizard__step" data-state="done" href="care-plan.html" style="text-decoration: none;">
+            <span class="cp-wizard__b">
+              <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span>Select actions</span>
+          </a>
+          <span class="cp-wline"></span>
+          <span class="cp-wizard__step" data-state="current">
+            <span class="cp-wizard__b">2</span>
+            <span>Review &amp; sign note</span>
+          </span>
+        </nav>
+
+        <!-- Selection manifest -->
+        <div class="cp-selbox" aria-label="Actions this note is drafted from">
+          <div class="cp-selbox__head">
+            <div>
+              <p class="cp-selbox__title">Actions in this note <span class="cp-cnt">5</span></p>
+              <p class="cp-selbox__sub">From your care-plan selection. Each action becomes one care-area card with its assessment (why), plan (what you&rsquo;ll do), and orders.</p>
+            </div>
+            <a class="amd-button" data-variant="secondary" href="care-plan.html" style="min-height: auto; padding: var(--s-2xs) var(--s-sm); font-size: var(--size-small); text-decoration: none; flex: none;">Edit selection</a>
+          </div>
+
+          <div>
+            <div class="cp-selrow">
+              <span class="cp-selrow__n">01</span>
+              <span>Refer to genetic counseling and start the ATM carrier surveillance protocol</span>
+              <span class="cp-selrow__dom">ATM heterozygous carrier &middot; 0 orders</span>
+              <button class="cp-linkbtn" type="button" aria-label="Remove Refer to genetic counseling and start the ATM carrier surveillance protocol from this note">Remove</button>
+            </div>
+            <div class="cp-selrow">
+              <span class="cp-selrow__n">02</span>
+              <span>Confirm and treat stage 2 hypertension against the 2017 ACC/AHA threshold</span>
+              <span class="cp-selrow__dom">Stage 2 hypertension, untreated &middot; 0 orders</span>
+              <button class="cp-linkbtn" type="button" aria-label="Remove Confirm and treat stage 2 hypertension from this note">Remove</button>
+            </div>
+            <div class="cp-selrow">
+              <span class="cp-selrow__n">03</span>
+              <span>Start moderate-intensity statin therapy and repeat a lipid panel with ApoB at 12 weeks</span>
+              <span class="cp-selrow__dom">Preventive Cardiovascular (CVD) &middot; 2 orders</span>
+              <button class="cp-linkbtn" type="button" aria-label="Remove the statin action from this note">Remove</button>
+            </div>
+            <div class="cp-selrow">
+              <span class="cp-selrow__n">04</span>
+              <span>Initiate metformin, titrated over four weeks, and recheck HbA1c with fasting insulin at&hellip;</span>
+              <span class="cp-selrow__dom">Preventive Metabolic &middot; 2 orders</span>
+              <button class="cp-linkbtn" type="button" aria-label="Remove the metformin action from this note">Remove</button>
+            </div>
+            <div class="cp-selrow">
+              <span class="cp-selrow__n">05</span>
+              <span>Order a home sleep apnea test before escalating antihypertensive therapy</span>
+              <span class="cp-selrow__dom">Preventive Systemic &middot; 0 orders</span>
+              <button class="cp-linkbtn" type="button" aria-label="Remove the sleep apnea test action from this note">Remove</button>
+            </div>
+            <button class="cp-linkbtn" type="button" style="margin-top: var(--air-row);">+ Add another action from the care plan</button>
+          </div>
+        </div>
+
+        <!-- The note sheet -->
+        <article class="cp-sheet">
+          <div class="cp-sheet__status">
+            <span class="cp-badge">Unsigned draft</span>
+            <span class="cp-sheet__autosave">DRAFT AUTOSAVED &middot; NOT A LEGAL RECORD</span>
+          </div>
+
+          <div class="cp-sheet__sec">
+            <dl class="cp-metagrid">
+              <div><dt>Patient</dt><dd>Ethan Park</dd></div>
+              <div><dt>Encounter</dt><dd>Longevity review &middot; cash-pay wellness</dd></div>
+              <div><dt>Author</dt><dd>Dr. A. Okafor</dd></div>
+              <div><dt>Date of service</dt><dd style="font-variant-numeric: tabular-nums;">2026-08-31</dd></div>
+            </dl>
+          </div>
+
+          <div class="cp-sheet__sec">
+            <div class="cp-sheet__sechead">
+              <span class="ds-audit">Indication</span>
+              <span class="cp-sheet__secmeta">cash-pay &middot; no billing dx captured</span>
+            </div>
+            <textarea class="cp-textarea" rows="3" aria-label="Indication">Proactive longevity screening in a cash-pay wellness program. No payer diagnosis code required; indication documented for clinical and medical-board defensibility.</textarea>
+          </div>
+
+          <div class="cp-sheet__sec">
+            <div class="cp-sheet__sechead">
+              <span class="ds-audit">Assessment &amp; plan</span>
+              <span class="cp-sheet__secmeta">click any line to edit</span>
+            </div>
+
+            <div class="cp-pcards">
+
+              <article class="cp-pcard" data-mandatory="true">
+                <div class="cp-pcard__head">
+                  <span class="cp-pcard__n">01</span>
+                  <span>
+                    <span class="cp-pcard__title">Refer to genetic counseling and start the ATM carrier surveillance protocol. Track annual pancreatic MRI/MRCP completion.</span><br>
+                    <span class="cp-pcard__dom">ATM heterozygous carrier</span>
+                  </span>
+                  <span class="cp-mand">rule-flagged</span>
+                </div>
+                <label class="cp-field">
+                  <span>Assessment</span>
+                  <textarea class="cp-textarea" rows="2" placeholder="Clinical rationale, optional for a screening / monitoring indication">Pathogenic ATM variant reported on the 160-gene panel with no counseling encounter recorded. Loss of one functional ATM copy reduces double-strand break repair capacity.</textarea>
+                </label>
+                <label class="cp-field">
+                  <span>Plan</span>
+                  <textarea class="cp-textarea" rows="2">Refer to genetic counseling and start the ATM carrier surveillance protocol. Track annual pancreatic MRI/MRCP completion.</textarea>
+                </label>
+                <p class="cp-plist">
+                  <input type="checkbox" checked>
+                  <span>Add to problem list: <b>ATM heterozygous carrier</b></span>
+                </p>
+              </article>
+
+              <article class="cp-pcard" data-mandatory="true">
+                <div class="cp-pcard__head">
+                  <span class="cp-pcard__n">02</span>
+                  <span>
+                    <span class="cp-pcard__title">Confirm and treat stage 2 hypertension against the 2017 ACC/AHA threshold. Track home systolic average.</span><br>
+                    <span class="cp-pcard__dom">Stage 2 hypertension, untreated</span>
+                  </span>
+                  <span class="cp-mand">rule-flagged</span>
+                </div>
+                <label class="cp-field">
+                  <span>Assessment</span>
+                  <textarea class="cp-textarea" rows="2">Clinic BP 142/90 mmHg on a single untreated reading with no ambulatory series on file. Sustained pressure at this level is the largest single modifiable term in this patient's cardiovascular and neurodegenerative models.</textarea>
+                </label>
+                <label class="cp-field">
+                  <span>Plan</span>
+                  <textarea class="cp-textarea" rows="2">Confirm and treat stage 2 hypertension against the 2017 ACC/AHA threshold. Track home systolic average.</textarea>
+                </label>
+                <p class="cp-plist">
+                  <input type="checkbox" checked>
+                  <span>Add to problem list: <b>Stage 2 hypertension, untreated</b></span>
+                </p>
+              </article>
+
+              <article class="cp-pcard">
+                <div class="cp-pcard__head">
+                  <span class="cp-pcard__n">03</span>
+                  <span>
+                    <span class="cp-pcard__title">Start moderate-intensity statin therapy and repeat a lipid panel with ApoB at 12 weeks.</span><br>
+                    <span class="cp-pcard__dom">Preventive Cardiovascular (CVD)</span>
+                  </span>
+                </div>
+                <label class="cp-field">
+                  <span>Assessment</span>
+                  <textarea class="cp-textarea" rows="2">ApoB 112 mg/dL with LDL-C 132 mg/dL and hs-CRP 3.0 mg/L at age 47. Particle burden and inflammation compound rather than add, and 30-year ASCVD is 16 % before any lipid-lowering therapy.</textarea>
+                </label>
+                <label class="cp-field">
+                  <span>Plan</span>
+                  <textarea class="cp-textarea" rows="2">Start moderate-intensity statin therapy and repeat a lipid panel with ApoB at 12 weeks. Target LDL-C below 70 mg/dL and ApoB below 80 mg/dL.</textarea>
+                </label>
+                <div class="cp-field">
+                  <span>Orders &middot; what it produces</span>
+                  <div class="cp-oledger">
+                    <div class="cp-orow">
+                      <span class="nm">ApoB</span>
+                      <span class="sr"></span>
+                      <span class="st">Pending</span>
+                      <button class="ox" type="button" title="Remove from note" aria-label="Remove ApoB from this note">
+                        <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                      </button>
+                    </div>
+                    <div class="cp-orow">
+                      <span class="nm">Lipid panel</span>
+                      <span class="sr"></span>
+                      <span class="st">Pending</span>
+                      <button class="ox" type="button" title="Remove from note" aria-label="Remove Lipid panel from this note">
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="cp-plist" data-none="true" style="color: var(--text-tertiary);">Documented in note only, not added to the problem list</p>
+              </article>
+
+              <article class="cp-pcard">
+                <div class="cp-pcard__head">
+                  <span class="cp-pcard__n">04</span>
+                  <span>
+                    <span class="cp-pcard__title">Initiate metformin, titrated over four weeks, and recheck HbA1c with fasting insulin at 12 weeks.</span><br>
+                    <span class="cp-pcard__dom">Preventive Metabolic</span>
+                  </span>
+                </div>
+                <label class="cp-field">
+                  <span>Assessment</span>
+                  <textarea class="cp-textarea" rows="2">HbA1c 6.0 % with fasting glucose 110 mg/dL and HOMA-IR 4.3, giving a 34 % ten-year incident T2D estimate. Hepatic glucose output is the dominant contributor at this stage.</textarea>
+                </label>
+                <label class="cp-field">
+                  <span>Plan</span>
+                  <textarea class="cp-textarea" rows="2">Initiate metformin, titrated over four weeks, and recheck HbA1c with fasting insulin at 12 weeks. Target HbA1c below 5.7 %.</textarea>
+                </label>
+                <div class="cp-field">
+                  <span>Orders &middot; what it produces</span>
+                  <div class="cp-oledger">
+                    <div class="cp-orow">
+                      <span class="nm">HbA1c</span>
+                      <span class="sr"></span>
+                      <span class="st">Pending</span>
+                      <button class="ox" type="button" title="Remove from note" aria-label="Remove HbA1c from this note">
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                      </button>
+                    </div>
+                    <div class="cp-orow">
+                      <span class="nm">Fasting insulin</span>
+                      <span class="sr"></span>
+                      <span class="st">Pending</span>
+                      <button class="ox" type="button" title="Remove from note" aria-label="Remove Fasting insulin from this note">
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="cp-plist" data-none="true" style="color: var(--text-tertiary);">Documented in note only, not added to the problem list</p>
+              </article>
+
+              <article class="cp-pcard">
+                <div class="cp-pcard__head">
+                  <span class="cp-pcard__n">05</span>
+                  <span>
+                    <span class="cp-pcard__title">Order a home sleep apnea test before escalating antihypertensive therapy.</span><br>
+                    <span class="cp-pcard__dom">Preventive Systemic</span>
+                  </span>
+                </div>
+                <label class="cp-field">
+                  <span>Assessment</span>
+                  <textarea class="cp-textarea" rows="2">Overnight SpO2 nadir 89 % with an overnight resting heart rate of 38 bpm on 82 % wearable coverage. Sleep-disordered breathing, if present, sits upstream of the pressure and the insulin resistance.</textarea>
+                </label>
+                <label class="cp-field">
+                  <span>Plan</span>
+                  <textarea class="cp-textarea" rows="2">Order a home sleep apnea test before escalating antihypertensive therapy.</textarea>
+                </label>
+                <p class="cp-plist" data-none="true" style="color: var(--text-tertiary);">Documented in note only, not added to the problem list</p>
+              </article>
+
+            </div>
+          </div>
+
+          <!-- Sign & send orders: legal act one -->
+          <div class="cp-sheet__sec">
+            <div class="cp-sheet__sechead">
+              <span class="ds-audit">Sign &amp; send orders</span>
+              <span class="cp-sheet__secmeta">4 in scope &middot; one signature covers the set</span>
+            </div>
+
+            <div class="cp-oledger">
+              <div class="cp-orow">
+                <span class="nm">ApoB</span>
+                <span class="sr">Start moderate-intensity statin therapy and repeat a lipid panel with ApoB at 12 weeks</span>
+                <span class="st">Pending</span>
+                <button class="ox" type="button" title="Remove from note" aria-label="Remove ApoB from this note">
+                  <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                </button>
+              </div>
+              <div class="cp-orow">
+                <span class="nm">Lipid panel</span>
+                <span class="sr">Start moderate-intensity statin therapy and repeat a lipid panel with ApoB at 12 weeks</span>
+                <span class="st">Pending</span>
+                <button class="ox" type="button" title="Remove from note" aria-label="Remove Lipid panel from this note">
+                  <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                </button>
+              </div>
+              <div class="cp-orow">
+                <span class="nm">HbA1c</span>
+                <span class="sr">Initiate metformin, titrated over four weeks, and recheck HbA1c with fasting insulin at&hellip;</span>
+                <span class="st">Pending</span>
+                <button class="ox" type="button" title="Remove from note" aria-label="Remove HbA1c from this note">
+                  <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                </button>
+              </div>
+              <div class="cp-orow">
+                <span class="nm">Fasting insulin</span>
+                <span class="sr">Initiate metformin, titrated over four weeks, and recheck HbA1c with fasting insulin at&hellip;</span>
+                <span class="st">Pending</span>
+                <button class="ox" type="button" title="Remove from note" aria-label="Remove Fasting insulin from this note">
+                  <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <p class="cp-oscope">Removing an order here narrows the request scope. It is not a per-order signature.</p>
+
+            <div class="cp-signblock">
+              <div class="cp-fgrid" style="margin-bottom: var(--s-sm);">
+                <label class="cp-field">
+                  <span class="ds-audit">Collection method</span>
+                  <select class="cp-input" id="cp-cm">
+                    <option value="at_home_phlebotomy" selected>At-home phlebotomy</option>
+                    <option value="walk_in_test">Walk-in draw site</option>
+                    <option value="testkit">Test kit</option>
+                  </select>
+                </label>
+                <label class="cp-field">
+                  <span class="ds-audit">Receiver name</span>
+                  <input class="cp-input" id="cp-recv" value="Ethan Park">
+                </label>
+                <label class="cp-field wide">
+                  <span class="ds-audit">Street</span>
+                  <input class="cp-input" id="cp-street" placeholder="123 Main St">
+                </label>
+                <label class="cp-field">
+                  <span class="ds-audit">City</span>
+                  <input class="cp-input" id="cp-city">
+                </label>
+                <div class="pair">
+                  <label class="cp-field">
+                    <span class="ds-audit">State</span>
+                    <input class="cp-input" id="cp-state" maxlength="2" placeholder="TX">
+                  </label>
+                  <label class="cp-field">
+                    <span class="ds-audit">ZIP</span>
+                    <input class="cp-input" id="cp-zip" maxlength="5" placeholder="77001">
+                  </label>
+                </div>
+              </div>
+
+              <label class="cp-attest">
+                <span class="cp-attest__box" aria-hidden="true"></span>
+                <span>I am requesting the <b>4 orders enumerated above</b> for this patient under my clinical judgment. This single authenticated action authorizes each listed test; attribution alone is not a signature.</span>
+              </label>
+
+              <div class="cp-console__actions" style="margin-top: var(--s-sm);">
+                <button class="amd-button" data-variant="primary" type="button" disabled>
+                  <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  Sign &amp; send 4 orders
+                </button>
+                <span class="cp-hint">Signs the <em>orders</em>, not the note. Transmits to Junction now, while the note stays an open draft</span>
+              </div>
+
+              <p class="cp-gate" style="margin-top: var(--s-sm);">Requires recent Entra re-authentication (<code>2fa.recent</code>). A stale session returns 423 &rarr; re-auth, then returns here.</p>
+            </div>
+          </div>
+
+          <div class="cp-sheet__sec">
+            <div class="cp-sheet__sechead">
+              <span class="ds-audit">Narrative</span>
+              <span class="cp-sheet__secmeta">re-drafts from assessment &amp; plan</span>
+            </div>
+            <textarea class="cp-textarea" rows="6" aria-label="Narrative" style="min-height: 9em;">47-year-old man seen for a scheduled longevity review under a cash-pay wellness program. Five care areas are addressed in this note.
+
+A pathogenic ATM variant is on file without a recorded counseling encounter; referral placed and carrier surveillance started, with annual pancreatic MRI/MRCP tracked. Clinic blood pressure is 142/90 mmHg untreated with no ambulatory series on file; treatment initiated against the 2017 ACC/AHA threshold with home systolic average tracked. Lipids show ApoB 112 mg/dL with LDL-C 132 mg/dL and hs-CRP 3.0 mg/L; moderate-intensity statin started with lipid panel and ApoB at 12 weeks. Glycemia shows HbA1c 6.0 % with HOMA-IR 4.3; metformin initiated with HbA1c and fasting insulin at 12 weeks. Overnight oximetry shows an SpO2 nadir of 89 %; a home sleep apnea test is ordered before any escalation of antihypertensive therapy.
+
+Four laboratory orders queue for signature. No payer diagnosis code is captured; the indication above documents the request.</textarea>
+          </div>
+
+          <!-- Note-record console: legal act two -->
+          <div class="cp-sheet__sec">
+            <div class="cp-console">
+              <div class="cp-console__head">
+                <h3>Lock note</h3>
+                <span class="cp-console__tag">Note record</span>
+              </div>
+              <p style="font-size: var(--size-small); color: var(--text-secondary); line-height: 1.6;">Freezes the note as the permanent record: narrative, assessment, and plan become immutable. Generates the Note PDF and the legal-record DocumentReference in Canvas. Locking is not what sends the orders; that happens in the Orders section, independently.</p>
+              <div class="cp-console__actions">
+                <button class="amd-button" data-variant="secondary" type="button">
+                  <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                  Lock note
+                </button>
+                <button class="amd-button" data-variant="secondary" type="button">Save draft</button>
+                <span class="cp-hint">Draft autosaves &middot; a note can stay open indefinitely; locking is a choice, not a prerequisite</span>
+              </div>
+            </div>
+
+            <details class="cp-rules">
+              <summary>
+                <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+                <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5"/></svg>
+                Documentation rules
+              </summary>
+              <ul>
+                <li><b>One authenticated signature covers every order enumerated in it.</b> CLIA requires a valid request from an authorized person, not a per-test signature. State law or the performing lab may require more.</li>
+                <li><b>Signing orders and locking the note are separate acts.</b> Sign &amp; send transmits the orders; an order can transmit before the note is locked. Locking freezes the note, generates the Note PDF, and creates the legal-record DocumentReference in Canvas.</li>
+                <li><b>Cash-pay:</b> an indication is captured, not a payer diagnosis code. A valid attributable request, not a billing dx, is what the order requires.</li>
+              </ul>
+            </details>
+          </div>
+        </article>
+
+        <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-1" aria-label="Wireframe explanation, not part of the product">i</button><p class="cp-footnote wf-scaffold wf-ex__bubble" id="wf-ex-1" role="note">
+          Aleron MD design system v0.4 &middot; care plan to
+          <code>problem &rarr; note &rarr; order</code>. Standing orders are illustrative fixtures.
+        </p></div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Nine mentions of a reimbursement model that does not exist: <em>cash-pay wellness</em>,
+    <em>no billing dx captured</em>, <em>no payer diagnosis code</em>, and a documentation rule headed
+    <em>Cash-pay</em>. Aleron is a membership programme with no physician billing, so the copy is
+    explaining an absence nobody asked about and implying a payer relationship that is not there. The
+    indication itself is worth keeping, but for defensibility rather than for a payer. Recorded rather
+    than fixed, per v0's rule; v2 and v3 carry the correction.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The shipped copy is right about the note and silent about the order. <em>Generates the Note PDF
+    and the legal-record DocumentReference in Canvas</em> matches the API exactly, including the PDF
+    attachment. But <em>Sign and send transmits the orders</em> never says what the order becomes in
+    Canvas, and it cannot become anything through the API: <code>ServiceRequest</code> is read and search
+    only. Recorded rather than fixed, per v0's rule.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The attestation is a 22px unstyled square with no ring, no focus treatment and no error
+    state, and it gates a CLIA order transmission. The design system permits a checkbox for a
+    physician attestation, but not one that is quieter than every field above it.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The two legal acts are stacked in the same scroll with the same button vocabulary.
+    <code>Sign &amp; send 4 orders</code> is primary, <code>Lock note</code> is secondary, and only a
+    13px hint line under each says which one is irreversible and which one transmits.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The sheet carries its own shadow (<code>--shadow-sheet</code>, a two-layer 48px drop) on a
+    page that already has a Tier-1 card in its tab strip. This is the second elevation on the surface
+    and the only place in the product where a shadow is declared by hand.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Row 04 in the manifest reads <code>&hellip; with fasting insulin at&hellip;</code>. The
+    payload builder truncates any derived title over 90 characters, and the truncation lands mid
+    phrase in a legal document&rsquo;s scope list while the untruncated text is visible two inches
+    below in the same note.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Every field label on this screen is the audit face in tracked caps: the meta grid keys, the
+    section eyebrows, the collection-method label, the order statuses and the autosave hint. Only the
+    body text and the textareas are in the voice face.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Autosave state is announced as <code>DRAFT AUTOSAVED &middot; NOT A LEGAL RECORD</code> in
+    tertiary caption at the top of the sheet and never repeats. On a note this tall the physician
+    signs orders 1200px away from the only statement of the document&rsquo;s status.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The order ledger renders twice: once per problem card and once consolidated. The per-card
+    copy has an empty source column and identical remove controls, so removing an order in one place
+    silently changes the other list.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Genetics can never transmit from here. A queued genetics kit shows the status
+    <code>Via lab orders</code> and stays in the note as documentation, because the counseling gate
+    lives only on the Lab Orders route. Nothing links the two.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Every problem card is editable free text pre-filled from the engine, and edits are counted
+    but not diffed. The note can diverge arbitrarily from the run it cites, and the provenance band at
+    the top still names run <code>#7c1a9f04</code> as the source.</span></p>
+</div>
+
+</body>
+</html>

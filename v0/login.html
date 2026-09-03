@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Sign in</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     layouts/guest.blade.php: no header, no footer, a centred main capped
+     at 380 px, the wordmark bar above it. The cap itself stays on the element
+     as an inline style, exactly as the Blade file writes it. */
+  .v0-guest {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    padding: var(--air-section) var(--s-lg);
+  }
+  .v0-guest__col { width: 100%; display: grid; gap: var(--air-tier); }
+  .v0-guest__brand { margin-bottom: var(--air-group); }
+  .v0-authhead { padding: var(--s-lg) var(--s-lg) var(--s-xs); }
+  .v0-authhead h1 { font-size: var(--size-h3); font-weight: var(--w-emphasis); letter-spacing: -0.01em; }
+  .v0-authhead p { margin-top: var(--s-2xs); font-size: var(--size-small); color: var(--text-secondary); }
+  .v0-authbody { padding: var(--s-md) var(--s-lg) var(--s-lg); display: grid; gap: var(--s-md); }
+  .v0-authbody p { font-size: var(--size-small); color: var(--text-secondary); max-width: 48ch; line-height: 1.55; }
+  .v0-authbody .amd-button[data-variant="primary"] { justify-content: center; text-decoration: none; font-weight: var(--w-emphasis); }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>Sign in</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <span aria-disabled="true" title="v1 has no authentication surface: the reference surface starts inside an authenticated chart">v1</span>
+    <span aria-disabled="true" title="v2 has no authentication surface either: sign-in was never in scope for the proposals">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/login</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       layouts/guest.blade.php: the portal header is dropped because
+       pre-login there is no patient context to anchor. The register is
+       still resolved from localStorage before first paint, so a physician
+       who last used flight deck lands here in flight deck with no control
+       to change it back. -->
+  <div class="v0">
+
+    <main class="v0-guest">
+      <div class="v0-guest__col" style="max-width: 380px;">
+
+        <span class="v0-wordmark v0-guest__brand">Aleron MD</span>
+
+        <!-- Production: local login is off, so the page falls back to the
+             Entra workforce SSO control. Single Tier-1 card per surface. -->
+        <section class="amd-card" data-tier="1" aria-labelledby="login-title" style="padding: 0;">
+          <div class="v0-authhead">
+            <h1 id="login-title">Sign in</h1>
+            <p>Physician portal access</p>
+          </div>
+          <div class="v0-authbody">
+            <a class="amd-button" data-variant="primary" href="patients.html">Sign in with Aleron MD</a>
+            <p>You&rsquo;ll continue to Microsoft Entra to complete sign-in and multi-factor authentication.</p>
+          </div>
+        </section>
+
+        <p class="wf-note" data-kind="gap"><span class="wf-note__tag">reviewer</span>
+          <span>Only one of these two cards ever renders. The card above is production
+          (<code>localLoginEnabled</code> false); the card below is what non-production builds show
+          instead. Same route, same title, no marker telling the physician which build they are on.</span></p>
+
+        <!-- Non-production: email/password is the primary "Sign in" and the
+             Entra control is hidden entirely. -->
+        <section class="amd-card" data-tier="1" aria-labelledby="login-title-local" style="padding: 0;">
+          <div class="v0-authhead">
+            <h2 id="login-title-local">Sign in</h2>
+            <p>Physician portal access</p>
+          </div>
+          <div class="v0-authbody">
+
+            <div class="amd-annunciator" role="alert" aria-live="polite">
+              <span class="amd-annunciator__hazard">Sign-in error</span>
+              <span style="font-size: var(--size-small);">These credentials do not match our records.</span>
+            </div>
+
+            <div class="amd-field">
+              <label class="amd-field__label" for="email">Email</label>
+              <input class="amd-input" id="email" type="email" autocomplete="username" placeholder="you@aleronmd.health" value="a.okafor@aleronmd.health">
+            </div>
+
+            <div class="amd-field">
+              <label class="amd-field__label" for="password">Password</label>
+              <input class="amd-input" id="password" type="password" autocomplete="current-password">
+            </div>
+
+            <button class="amd-button" data-variant="primary" type="button">Sign in</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The page&rsquo;s only heading is <code>--size-h3</code>, one step below the h2 every
+    signed-in page gives its patient name. The sign-in screen is the smallest-titled screen in the
+    product.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The guest layout re-applies the persisted <code>meridian-register</code> value before
+    first paint but ships no register toggle, so a physician who left the portal in flight deck
+    signs in through a navy card and cannot switch back until after authentication.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The form is <code>novalidate</code> and there is no inline field validation. Every failure,
+    including a mistyped email, comes back as one hazard annunciator above the fields after a round
+    trip, and the annunciator carries the server string verbatim.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Two different primary controls sit at the same place in the flow: an anchor styled as a
+    button that leaves the product, and a submit button that posts to it. Nothing on the SSO path
+    says where the physician is being sent until Entra loads.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The gold wordmark bar is the single piece of brand ornament in the whole product, and this
+    is the only screen where it is not competing with a patient name.</span></p>
+</div>
+
+</body>
+</html>

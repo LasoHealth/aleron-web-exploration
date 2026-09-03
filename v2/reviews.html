@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Reviews</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* The count used to run into the label, so "Released 37" read as one string.
+     Same badge as the inbox, so the two audit surfaces read alike. */
+  .rv-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: var(--s-md);
+    height: var(--s-md);
+    margin-left: var(--s-2xs);
+    padding: 0 var(--s-3xs);
+    border-radius: var(--s-xs);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: var(--size-caption);
+    font-variant-numeric: tabular-nums;
+  }
+  [role="tab"][aria-selected="true"] .rv-badge { background: var(--signal-forward); color: var(--surface-page); }
+  .rv-slicenote { margin: var(--air-row) 0 0; }
+  .pledger tbody tr[hidden] { display: none; }
+  /* Screen-local layout only.
+
+     Reviews is the release audit, read across patients rather than inside one
+     chart. It satisfies the matrix's "Audit log: Read relevant patient" for
+     the physician role, and it is the only screen in the set where the row is
+     a record rather than a task: nothing here can be edited, because the log
+     is append-only. */
+
+  .rv-counts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s-md);
+    margin-bottom: var(--air-section);
+  }
+  .rv-count { display: grid; gap: var(--s-2xs); align-content: start; }
+  .rv-count dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rv-count dd { margin: 0; }
+
+  .rv-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-xs);
+    margin-bottom: var(--air-tier);
+  }
+  .rv-filters__spacer { margin-left: auto; }
+
+  /* The audit row. Wide enough for the hash to sit on its own line under the
+     package name rather than truncating: a hash you cannot read in full is
+     not an audit artefact, it is decoration. */
+  .rv-who { display: grid; gap: var(--s-2xs); min-width: 0; }
+  .rv-name { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .rv-code { font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .rv-pkg { display: grid; gap: var(--s-2xs); min-width: 0; }
+  .rv-pkgname { color: var(--text-primary); }
+  .rv-hash {
+    display: block;
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+    line-height: 1.45;
+  }
+  .rv-vis { display: grid; gap: var(--s-2xs); font-size: var(--size-caption); color: var(--text-secondary); line-height: 1.45; }
+  .rv-when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pledger td.rv-hashcell { max-width: 22ch; }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Reviews</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-disabled="true" title="v0 has no release audit. Its Notes History panel lists locked notes inside one chart and nothing across patients">v0</span>
+    <span aria-disabled="true" title="v1 keeps the audit trail inside one patient's Journal; the reference surface never leaves that chart">v1</span>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/reviews</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">AO</span>
+        <span class="prail__who">
+          <span class="prail__name">Dr. A. Okafor</span>
+          <span class="prail__code">Physician &middot; LASO Wellness</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <nav class="prail__nav">
+        <a class="prail__item" href="inbox.html">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5h4l1.5 2.5h6l1.5-2.5h4"/><path d="M5.2 5.5h13.6l1.7 8v4a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2v-4Z"/></svg>
+          Inbox <span class="prail__count">7</span>
+        </a>
+        <a class="prail__item" href="panel.html">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 6.2a3.2 3.2 0 0 1 0 6.1M18 20c0-2.4-.9-4.2-2.4-5.3"/></svg>
+          Panel <span class="prail__count">146</span>
+        </a>
+        <a class="prail__item" href="reviews.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Reviews <span class="prail__count">3</span>
+        </a>
+        <a class="prail__item" href="messages.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Messages <span class="prail__count">2</span>
+        </a>
+      </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-39" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-39" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Reviews</h1>
+          <span class="phead__aside"><span class="pbase">Newest release first</span></span>
+        </div>
+        <p>Every package you signed and every package you released, across your panel. This is the audit read, so nothing on this screen can be changed from it.</p>
+      </header>
+
+      <dl class="rv-counts">
+        <div class="rv-count">
+          <dt>Released this month</dt>
+          <dd><span class="pval pval--lg">14<span class="pval__u">packages</span></span></dd>
+        </div>
+        <div class="rv-count">
+          <dt>Signed, release pending</dt>
+          <dd><span class="pval pval--lg">2<span class="pval__u">packages</span></span></dd>
+        </div>
+        <div class="rv-count">
+          <dt>Awaiting Canvas linkage</dt>
+          <dd><span class="pval pval--lg">1<span class="pval__u">package</span></span> <span class="padv">patient visibility withheld</span></dd>
+        </div>
+        <div class="rv-count">
+          <dt>Validation failures</dt>
+          <dd><span class="pval pval--lg">1<span class="pval__u">package</span></span> <span class="ptile">blocked</span></dd>
+        </div>
+      </dl>
+
+      <div class="rv-filters">
+        <div class="amd-tabs" role="tablist" aria-label="Audit filter" id="rv-slices">
+          <button class="amd-button" role="tab" aria-selected="true" type="button" data-slice="all">All acts <span class="rv-badge">41</span></button>
+          <button class="amd-button" role="tab" aria-selected="false" type="button" tabindex="-1" data-slice="released">Released <span class="rv-badge">37</span></button>
+          <button class="amd-button" role="tab" aria-selected="false" type="button" tabindex="-1" data-slice="signed">Signed only <span class="rv-badge">3</span></button>
+          <button class="amd-button" role="tab" aria-selected="false" type="button" tabindex="-1" data-slice="blocked">Blocked <span class="rv-badge">1</span></button>
+        </div>
+        <span class="rv-filters__spacer"></span>
+        <span class="pbase">Retention: append-only, no expiry</span>
+      </div>
+
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Release audit</h2>
+          <span class="pmod__sub">One row per release package. The hash is the package the patient app received, not a rendering of it.</span>
+        </div>
+        <div class="pmod__body pmod__body--flush">
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Patient</th>
+                  <th scope="col">Package</th>
+                  <th scope="col">Signed</th>
+                  <th scope="col">Released</th>
+                  <th scope="col">Actions visible</th>
+                  <th scope="col">Hash</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <tr data-slice="released">
+                  <th scope="row">
+                    <span class="rv-who">
+                      <span class="rv-name">Joseph Ferreira</span>
+                      <span class="rv-code">AL-63M &middot; 63M</span>
+                    </span>
+                  </th>
+                  <td>
+                    <span class="rv-pkg">
+                      <span class="rv-pkgname">Cardiometabolic plan, cycle 3</span>
+                      <small class="pledger__prov">Plan <span class="pval">PLAN-63M-0007</span> &middot; run <span class="pval">RUN-63M-0011</span></small>
+                    </span>
+                  </td>
+                  <td class="rv-when">19 Aug 2026 <small class="pledger__prov">14:22, Dr. A. Okafor</small></td>
+                  <td class="rv-when">19 Aug 2026 <small class="pledger__prov">14:31, Dr. A. Okafor</small></td>
+                  <td>
+                    <span class="rv-vis">
+                      <span><span class="pval">6<span class="pval__u">visible</span></span> &middot; <span class="pval">2<span class="pval__u">hidden</span></span></span>
+                      <span>1 required item, disposed. Read receipt 26 Aug.</span>
+                    </span>
+                  </td>
+                  <td class="rv-hashcell"><span class="rv-hash">pkg 4c9e a7f2 1d06 b358</span></td>
+                </tr>
+
+                <tr data-slice="released">
+                  <th scope="row">
+                    <span class="rv-who">
+                      <span class="rv-name">Grace Okonjo</span>
+                      <span class="rv-code">AL-41F &middot; 41F</span>
+                    </span>
+                  </th>
+                  <td>
+                    <span class="rv-pkg">
+                      <span class="rv-pkgname">Preventive plan, cycle 1</span>
+                      <small class="pledger__prov">Plan <span class="pval">PLAN-41F-0003</span> &middot; run <span class="pval">RUN-41F-0004</span></small>
+                    </span>
+                  </td>
+                  <td class="rv-when">10 Aug 2026 <small class="pledger__prov">09:04, Dr. A. Okafor</small></td>
+                  <td class="rv-when">10 Aug 2026 <small class="pledger__prov">09:06, Dr. A. Okafor</small></td>
+                  <td>
+                    <span class="rv-vis">
+                      <span><span class="pval">6<span class="pval__u">visible</span></span> &middot; <span class="pval">1<span class="pval__u">hidden</span></span></span>
+                      <span>Genetics not ordered, no genetics policy attached.</span>
+                    </span>
+                  </td>
+                  <td class="rv-hashcell"><span class="rv-hash">pkg 8b13 55da 90c7 e2f1</span></td>
+                </tr>
+
+                <tr data-slice="released">
+                  <th scope="row">
+                    <span class="rv-who">
+                      <span class="rv-name">Tomas Lindqvist</span>
+                      <span class="rv-code">AL-52M &middot; 52M</span>
+                    </span>
+                  </th>
+                  <td>
+                    <span class="rv-pkg">
+                      <span class="rv-pkgname">Hold notice, hepatology pending</span>
+                      <small class="pledger__prov">Plan <span class="pval">PLAN-52M-0005</span> &middot; hold copy only, no actions</small>
+                    </span>
+                  </td>
+                  <td class="rv-when">24 Aug 2026 <small class="pledger__prov">16:40, Dr. A. Okafor</small></td>
+                  <td class="rv-when">24 Aug 2026 <small class="pledger__prov">16:41, Dr. A. Okafor</small></td>
+                  <td>
+                    <span class="rv-vis">
+                      <span><span class="pval">0<span class="pval__u">visible</span></span> &middot; <span class="pval">9<span class="pval__u">hidden</span></span></span>
+                      <span>Physician-approved hold copy released so the wait is not silent.</span>
+                    </span>
+                  </td>
+                  <td class="rv-hashcell"><span class="rv-hash">pkg 2f70 c481 6ae9 33bd</span></td>
+                </tr>
+
+                <tr data-slice="signed">
+                  <th scope="row">
+                    <span class="rv-who">
+                      <span class="rv-name">Helena Vasquez</span>
+                      <span class="rv-code">AL-58F &middot; 58F</span>
+                    </span>
+                  </th>
+                  <td>
+                    <span class="rv-pkg">
+                      <span class="rv-pkgname">Renal and metabolic plan, cycle 2</span>
+                      <small class="pledger__prov">Plan <span class="pval">PLAN-58F-0004</span> &middot; run <span class="pval">RUN-58F-0009</span></small>
+                    </span>
+                  </td>
+                  <td class="rv-when">30 Aug 2026 <small class="pledger__prov">11:12, Dr. A. Okafor</small></td>
+                  <td>
+                    <span class="pna">not released</span>
+                    <small class="pledger__prov">Awaiting Canvas note linkage, per section 7</small>
+                  </td>
+                  <td>
+                    <span class="rv-vis">
+                      <span><span class="pval">4<span class="pval__u">visible</span></span> &middot; <span class="pval">3<span class="pval__u">hidden</span></span></span>
+                      <span>Preview hashed and attested. Patient visibility stays closed until both authorizations are satisfied.</span>
+                    </span>
+                  </td>
+                  <td class="rv-hashcell"><span class="rv-hash">preview d5a2 1e88 47cc 90f4</span></td>
+                </tr>
+
+                <tr data-slice="blocked">
+                  <th scope="row">
+                    <span class="rv-who">
+                      <span class="rv-name">Priya Raghunathan</span>
+                      <span class="rv-code">AL-44F &middot; 44F</span>
+                    </span>
+                  </th>
+                  <td>
+                    <span class="rv-pkg">
+                      <span class="rv-pkgname">Preventive plan, cycle 1</span>
+                      <small class="pledger__prov">Plan <span class="pval">PLAN-44F-0002</span> &middot; run <span class="pval">RUN-44F-0002</span></small>
+                    </span>
+                  </td>
+                  <td><span class="pna">not signed</span></td>
+                  <td>
+                    <span class="ptile">blocked</span>
+                    <small class="pledger__prov">Two visible recommendations lack provenance</small>
+                  </td>
+                  <td>
+                    <span class="rv-vis">
+                      <span><span class="pval">0<span class="pval__u">visible</span></span> &middot; <span class="pval">7<span class="pval__u">withheld</span></span></span>
+                      <span>Release validation failed, so no package was produced and nothing reached the patient app.</span>
+                    </span>
+                  </td>
+                  <td class="rv-hashcell"><span class="pna">no package emitted</span></td>
+                </tr>
+
+                <tr data-slice="released">
+                  <th scope="row">
+                    <span class="rv-who">
+                      <span class="rv-name">Joseph Ferreira</span>
+                      <span class="rv-code">AL-63M &middot; 63M</span>
+                    </span>
+                  </th>
+                  <td>
+                    <span class="rv-pkg">
+                      <span class="rv-pkgname">Cardiometabolic plan, cycle 2</span>
+                      <small class="pledger__prov">Plan <span class="pval">PLAN-63M-0006</span> &middot; superseded by cycle 3, still readable</small>
+                    </span>
+                  </td>
+                  <td class="rv-when">6 May 2026 <small class="pledger__prov">08:55, Dr. A. Okafor</small></td>
+                  <td class="rv-when">6 May 2026 <small class="pledger__prov">09:02, Dr. A. Okafor</small></td>
+                  <td>
+                    <span class="rv-vis">
+                      <span><span class="pval">5<span class="pval__u">visible</span></span> &middot; <span class="pval">2<span class="pval__u">hidden</span></span></span>
+                      <span>Superseding a package does not delete it. Both rows stand.</span>
+                    </span>
+                  </td>
+                  <td class="rv-hashcell"><span class="rv-hash">pkg 91cf 0b47 dd25 6e18</span></td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <p class="pbase rv-slicenote" id="rv-slicenote" role="status" aria-live="polite"></p>
+
+      <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-38" aria-label="Wireframe explanation, not part of the product">i</button><details class="pdisc wf-scaffold wf-ex__bubble" id="wf-ex-38" role="note" open>
+        <summary>Why nothing on this screen has an edit control</summary>
+        <div class="pdisc__body">
+          <p>Role and Release Matrix v1 section 2 gives the physician <em>Read relevant patient</em> on the
+          audit log, and marks the log itself <em>immutable append-only</em>. That is not a permissions
+          nicety: a signature that can be edited after the fact is not a signature. A correction to a
+          released plan is a new package with its own hash, its own timestamp and its own row, and the
+          superseded row stays exactly where it was. There is no delete and there is no amend.</p>
+          <p>The service worker appends; nobody edits. A row you disagree with is answered with another
+          row, which is why the fifth row here records a failure that produced no package at all rather
+          than quietly disappearing.</p>
+          <dl class="pfacts">
+            <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> sections 2 and 6</dd>
+            <dt>Physician</dt><dd>Read, relevant patients only. No write path exists.</dd>
+            <dt>Admin</dt><dd>Read and export. Still no write path.</dd>
+            <dt>Recorded per act</dt><dd>Actor id, signature or release authorization id, timestamp, package hash</dd>
+            <dt>Validation failure</dt><dd>Recorded with its failure reason. No package id, because no package was produced.</dd>
+            <dt>Canvas linkage</dt><dd>Section 7: patient visibility opens only after both the Aleron release authorization and the required Canvas linkage are satisfied.</dd>
+          </dl>
+        </div>
+      </details></div>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-37" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-37" role="note">
+        Synthetic staging audit &middot; hashes are shortened for reading and are the package digest, not a
+        rendering of its contents &middot; a row is appended by the service worker at the moment of the act and
+        is never rewritten.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The audit slices filter, and the counts are badges, so this surface reads like the
+    <a href="inbox.html">inbox</a> rather than like a different product. Each row carries the slice its
+    own signed and released cells put it in, derived rather than restated, so a row cannot land in a slice
+    its own cells contradict. Arrow keys move between tabs and <code>aria-selected</code> is the source of
+    truth.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>No overlap, and the counts were right: a row was wrong.</b> The tabs claimed
+    <span class="pval">37</span> plus <span class="pval">3</span> plus <span class="pval">1</span> equals
+    <span class="pval">41</span>, and the fixture held a seventh package that fitted none of the three
+    slices, so the arithmetic looked broken. It was not. This screen's own scope is <em>every package you
+    signed and every package you released</em>, one row per release package, and that row read
+    <em>not signed</em>, <em>not released</em>, <em>no preview generated</em>, <em>no package
+    emitted</em>. There was no package and no act, so it was a row about the absence of a row. Removed;
+    the counts stand. Ethan Park's review-pending state is the <a href="inbox.html">inbox</a>'s job, and
+    he is in it.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Priya Raghunathan's blocked row stays, and the distinction is the point. It also emits no
+    package, but an act was attempted and refused, and the refusal with its reason is exactly what an
+    audit is for. No act at all is not an audit entry. The filter keeps its draft branch as a guard: if a
+    package with no act is ever added again, the note names it rather than the row disappearing into
+    <em>All acts</em>.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>This screen is why the inbox has no Released tab. The inbox had one, showing 41 patients whose
+    plan had gone out, which is a record rather than work, and a thinner record than this: a row here is
+    one release <b>package</b>, so a patient appears once per release rather than once, and it carries the
+    hash, both timestamps and what the patient can see. The inbox tab was dropped and this is where that
+    question is answered.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The whole screen. Role and Release Matrix v1 section 2 grants the physician
+    <em>Audit log: Read relevant patient</em> and neither v0 nor the reference surface offers
+    anywhere to exercise it across patients.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The idea of a locked-record list, from <code>v0/care-plan-note.html</code>. v0's Notes
+    History panel lists locked notes for one patient inside the care-plan screen. This keeps the
+    record list and lifts it out of the chart, because an audit that only reads one chart at a time
+    cannot answer "what did I release last week".</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Signed and Released are separate columns with separate timestamps and, on one row, one
+    of them empty. v0 has a note lock and an order signature and no release act at all, so it has
+    no way to show a plan that is signed but deliberately not yet visible to the patient.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Failed validations get a row. The matrix lists six conditions under which release
+    validation fails; a log that only records successes would hide every one of them.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The hash is rendered in the voice face with tabular figures and grouped in fours, because
+    P4 retires the audit face from product surfaces. A hash is the one piece of content that argues
+    hardest for mono, and it still does not get it. If reviewers find grouped voice figures
+    unreadable at length, that is the finding to bring back.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>Any control that would let a physician remove a row, amend a signature or re-release the
+    same package id. The log is append-only, so an edit affordance here would be a lie about what
+    the backend permits.</span></p>
+</div>
+
+<script>
+/* Audit slices. Client only, nothing persisted. Each row carries the slice it
+   belongs to, derived from its own signed and released cells rather than
+   restated, so a row cannot land in a slice its own cells contradict.
+
+   The three slices are disjoint, unlike the inbox's dropped All tab which
+   duplicated a different surface: All acts here is the same surface unfiltered
+   and is the audit's default read. What the set lacks is a slice for a package
+   that is neither released, signed only, nor blocked. The fixture has one, so
+   the note says so rather than letting the row quietly disappear. */
+(function () {
+  var group = document.getElementById("rv-slices");
+  var note = document.getElementById("rv-slicenote");
+  if (!group || !note) return;
+  var tabs = [].slice.call(group.querySelectorAll('[role="tab"]'));
+  var rows = [].slice.call(document.querySelectorAll(".pledger tbody tr[data-slice]"));
+  var drafts = rows.filter(function (r) { return r.getAttribute("data-slice") === "draft"; }).length;
+
+  function pick(tab) {
+    var want = tab.getAttribute("data-slice");
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+    });
+    var shown = 0;
+    rows.forEach(function (r) {
+      var hit = want === "all" || r.getAttribute("data-slice") === want;
+      r.hidden = !hit;
+      if (hit) shown++;
+    });
+    var msg = shown + " of " + rows.length + " packages on this screen are carried as fixtures.";
+    if (want === "all" && drafts) {
+      msg += " " + drafts + " is a draft, neither released, signed only nor blocked, so it shows here and under no other slice: the tab set has no home for it, and the three counts add to All acts without it.";
+    }
+    note.textContent = msg;
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener("click", function () { pick(tab); });
+    tab.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var next = tabs[(i + d + tabs.length) % tabs.length];
+      pick(next);
+      next.focus();
+    });
+  });
+
+  pick(group.querySelector('[aria-selected="true"]') || tabs[0]);
+})();
+</script>
+</body>
+</html>

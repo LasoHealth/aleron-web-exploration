@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Risk Models · Summary</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     This screen is partials/risk-summary-grid.blade.php: three stacked naked
+     sections with air between them and no wrapping card. */
+  .v0-seclabel { margin: 0 var(--s-xs) var(--s-sm); }
+  .v0-tilesub { margin-top: var(--s-2xs); font-family: var(--audit); font-size: var(--size-caption); color: var(--text-secondary); }
+  .v0-actions { display: grid; gap: var(--s-sm); }
+  .v0-gaps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--s-2xl);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .v0-gaps li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-sm);
+    padding: var(--s-sm) var(--s-xs);
+    border-top: var(--line-thin) solid var(--border-subtle);
+  }
+  .v0-gaps li:nth-child(-n+2) { border-top: 0; padding-top: 0; }
+  @media (max-width: 1080px) {
+    .v0-gaps { grid-template-columns: minmax(0, 1fr); }
+    .v0-gaps li:nth-child(2) { border-top: var(--line-thin) solid var(--border-subtle); padding-top: var(--s-sm); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>Risk Models &middot; Summary</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <a href="../v1/risk-models.html">v1</a>
+    <a href="../v2/risk-models.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/risk-models</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       layouts/physician.blade.php gives this page a 56px header and nothing
+       else. The identity block and the section tab strip below are rendered
+       by patients/risk-models.blade.php itself, which is why they are
+       re-declared on every one of the six chart pages. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+          <p class="v0-ident__sub">MRN 4471-2208 &middot; Last run 2d ago</p>
+        </div>
+
+        <!-- Tab strip variant 1 of 4: inset holder, radius-control items,
+             no border. -->
+        <nav class="v0-tabs" aria-label="Patient sections">
+          <a href="care-plan.html">Care Plan</a>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <span aria-current="page">Risk Models</span>
+          <a href="lab-orders.html">Lab Orders</a>
+          <a href="standing-orders.html">Standing Orders</a>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <!-- The second switcher on the same page: underline sub-tabs, seven of
+           them, rendered as role="tab" buttons with no href. -->
+      <nav class="v0-subtabs" aria-label="Risk model domains">
+        <a href="risk-models.html" aria-current="page">Summary</a>
+        <a href="risk-models-systemic.html">Systemic</a>
+        <a href="risk-models-domain.html">Cardiovascular</a>
+        <a href="risk-models-domain.html">Metabolic</a>
+        <a href="risk-models-domain.html">Kidney</a>
+        <a href="risk-models-domain.html">Cancer</a>
+        <a href="risk-models-domain.html">Neurodegenerative</a>
+      </nav>
+
+      <!-- 1. DOMAIN SCOREBOARD. Systemic is deliberately excluded, so the
+           strip is five wide against a seven-wide sub-tab strip. -->
+      <section class="ds-section">
+        <p class="ds-caption v0-seclabel">Domain scoreboard</p>
+        <div class="ds-grid ds-grid--5">
+
+          <a class="ds-tile" href="risk-models-domain.html">
+            <span class="ds-tile__top">
+              <span class="ds-tile__name">Cardiovascular</span>
+              <span class="ds-pill ds-pill--accent">moderate</span>
+            </span>
+            <span>
+              <span class="ds-tile__value">Moderate</span>
+              <span class="v0-tilesub">ASCVD TIER</span>
+            </span>
+            <span class="ds-tile__drivers">HOMA-IR 4.30 (&gt; 3.0) &middot; hsCRP &ge; 2.0 mg/L on &ge;2 measurements &middot; 1&deg; relative MI/stroke premature (&lt; 55 M / &lt; 65 F)</span>
+          </a>
+
+          <a class="ds-tile" href="risk-models-domain.html">
+            <span class="ds-tile__top">
+              <span class="ds-tile__name">Metabolic</span>
+              <span class="ds-pill ds-pill--crit">high</span>
+            </span>
+            <span>
+              <span class="ds-tile__value">High</span>
+              <span class="v0-tilesub">T2DM TIER</span>
+            </span>
+            <span class="ds-tile__drivers">HbA1c 6.0 % &middot; HOMA-IR 4.3 &middot; waist 105 cm</span>
+          </a>
+
+          <a class="ds-tile" href="risk-models-domain.html">
+            <span class="ds-tile__top">
+              <span class="ds-tile__name">Kidney</span>
+              <span class="ds-pill ds-pill--ok">low</span>
+            </span>
+            <span>
+              <span class="ds-tile__value">Low</span>
+              <span class="v0-tilesub">5-YR ESKD</span>
+            </span>
+            <span class="ds-tile__drivers">eGFR 93 mL/min/1.73m&sup2; &middot; UACR 14 mg/g &middot; BP 142/90 mmHg untreated</span>
+          </a>
+
+          <a class="ds-tile" href="risk-models-domain.html">
+            <span class="ds-tile__top">
+              <span class="ds-tile__name">Cancer</span>
+              <span class="ds-pill ds-pill--accent">moderate</span>
+            </span>
+            <span>
+              <span class="ds-tile__value">Moderate</span>
+              <span class="v0-tilesub">LIFETIME RISK</span>
+            </span>
+            <span class="ds-tile__drivers">ATM heterozygous P/LP &middot; BMI 29.4 &middot; never smoked</span>
+          </a>
+
+          <a class="ds-tile" href="risk-models-domain.html">
+            <span class="ds-tile__top">
+              <span class="ds-tile__name">Neurodegenerative</span>
+              <span class="ds-pill ds-pill--accent">moderate</span>
+            </span>
+            <span>
+              <span class="ds-tile__value">Moderate</span>
+              <span class="v0-tilesub">20-YR DEMENTIA</span>
+            </span>
+            <span class="ds-tile__drivers">Hypertension &middot; physical inactivity &middot; SpO2 nadir 89 %</span>
+          </a>
+
+        </div>
+      </section>
+
+      <!-- 2. PRIORITIZED ACTIONS · ACTION LAYER. Cross-domain
+           recommendations, numbered with neutral round badges. -->
+      <section class="ds-section">
+        <p class="ds-caption v0-seclabel">Prioritized actions <span style="margin: 0 var(--s-2xs);">&middot;</span> Action layer</p>
+        <div class="v0-actions">
+
+          <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+            <div class="ds-action">
+              <span class="ds-action__n">1</span>
+              <div class="ds-action__body">
+                <p class="ds-action__title">Decision 01 <span style="color: var(--text-tertiary);">&middot;</span> Initiate moderate-intensity statin</p>
+                <p class="ds-action__reason">ApoB 112 mg/dL with LDL-C 132 mg/dL and hs-CRP 3.0 mg/L in a 47-year-old with untreated stage 2 hypertension. Particle burden and inflammation are concurrent, and 30-year ASCVD sits at 16 % before any lipid-lowering therapy.</p>
+                <p class="ds-action__reason">Goal: LDL-C &lt; 70 mg/dL, ApoB &lt; 80 mg/dL</p>
+                <p class="ds-action__src">Source:
+                  <button type="button">Cardiovascular</button>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  <span style="color: var(--text-secondary);">CTT meta-analysis; 2018 AHA/ACC cholesterol guideline</span>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  Urgency: <span style="color: var(--text-primary); font-weight: var(--w-emphasis);">high</span>
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+            <div class="ds-action">
+              <span class="ds-action__n">2</span>
+              <div class="ds-action__body">
+                <p class="ds-action__title">Decision 02 <span style="color: var(--text-tertiary);">&middot;</span> Treat stage 2 hypertension</p>
+                <p class="ds-action__reason">Clinic BP 142/90 mmHg, untreated, with no ambulatory confirmation on file. Pressure is the single largest contributor to both the cardiovascular and the neurodegenerative posterior for this patient.</p>
+                <p class="ds-action__reason">Goal: &lt; 130/80 mmHg</p>
+                <p class="ds-action__src">Source:
+                  <button type="button">Cardiovascular</button>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  <span style="color: var(--text-secondary);">2017 ACC/AHA blood pressure guideline</span>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  Urgency: <span style="color: var(--text-primary); font-weight: var(--w-emphasis);">high</span>
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+            <div class="ds-action">
+              <span class="ds-action__n">3</span>
+              <div class="ds-action__body">
+                <p class="ds-action__title">Decision 03 <span style="color: var(--text-tertiary);">&middot;</span> Start metformin for prediabetes with insulin resistance</p>
+                <p class="ds-action__reason">HbA1c 6.0 %, fasting glucose 110 mg/dL, fasting insulin 16 &micro;IU/mL, HOMA-IR 4.3. Ten-year incident T2D is 34 %, and the metabolic domain is the only one of the five carrying a high tier.</p>
+                <p class="ds-action__reason">Goal: HbA1c &lt; 5.7 %, HOMA-IR &lt; 2.0</p>
+                <p class="ds-action__src">Source:
+                  <button type="button">Metabolic</button>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  <span style="color: var(--text-secondary);">DPP/DPPOS; ADA Standards of Care 2024 &sect;3</span>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  Urgency: <span style="color: var(--text-primary); font-weight: var(--w-emphasis);">high</span>
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+            <div class="ds-action">
+              <span class="ds-action__n">4</span>
+              <div class="ds-action__body">
+                <p class="ds-action__title">Decision 04 <span style="color: var(--text-tertiary);">&middot;</span> Confirm obstructive sleep apnea with a home sleep apnea test</p>
+                <p class="ds-action__reason">Overnight SpO2 nadir 89 % against an overnight resting heart rate of 38 bpm. The desaturation is unexplained by the recorded context fields and would resequence both the hypertension and the metabolic plan if confirmed.</p>
+                <p class="ds-action__src">Source:
+                  <button type="button">Systemic</button>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  <span style="color: var(--text-secondary);">AASM 2017 clinical practice guideline</span>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  Urgency: <span style="color: var(--text-primary); font-weight: var(--w-emphasis);">moderate</span>
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+            <div class="ds-action">
+              <span class="ds-action__n">5</span>
+              <div class="ds-action__body">
+                <p class="ds-action__title">Decision 05 <span style="color: var(--text-tertiary);">&middot;</span> Cascade testing for first-degree relatives (ATM heterozygous P/LP)</p>
+                <p class="ds-action__reason">A pathogenic ATM variant is on file. Carrier status changes surveillance for the patient and testing eligibility for siblings and children, and it is a required channel rather than a ranked opportunity.</p>
+                <p class="ds-action__src">Source:
+                  <button type="button">Cancer</button>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  <span style="color: var(--text-secondary);">NCCN Genetic/Familial High-Risk Assessment v3.2024</span>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  Urgency: <span style="color: var(--text-primary); font-weight: var(--w-emphasis);">moderate</span>
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+            <div class="ds-action">
+              <span class="ds-action__n">6</span>
+              <div class="ds-action__body">
+                <p class="ds-action__title">Decision 06 <span style="color: var(--text-tertiary);">&middot;</span> Structured aerobic training, three sessions per week</p>
+                <p class="ds-action__reason">VO2max 28 mL/kg/min is low for age and sex, and physical inactivity is a modifiable term in the 20-year dementia model as well as the metabolic one.</p>
+                <p class="ds-action__reason">Goal: VO2max &ge; 33 mL/kg/min at 12 months</p>
+                <p class="ds-action__src">Source:
+                  <button type="button">Neurodegenerative</button>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  <span style="color: var(--text-secondary);">Huque &amp; Anstey 2025, Age Ageing 54(7):afaf201</span>
+                  <span style="margin: 0 var(--s-2xs);">&middot;</span>
+                  Urgency: <span style="color: var(--text-primary); font-weight: var(--w-emphasis);">standard</span>
+                </p>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- 3. CRITICAL INFORMATION GAPS, consolidated cross-domain. Crit
+           items sort first; the two-column list has no column headings. -->
+      <section class="ds-section">
+        <p class="ds-caption v0-seclabel">Critical information gaps</p>
+        <ul class="v0-gaps">
+          <li>
+            <span class="ds-bullet" data-sev="high" aria-hidden="true"></span>
+            <p style="font-size: var(--size-small); line-height: 1.5;">
+              <button type="button" style="font-weight: var(--w-emphasis); color: var(--text-primary); background: none; border: 0; padding: 0; font: inherit; cursor: pointer;">Colorectal cancer screening</button><span style="color: var(--text-tertiary);">:</span>
+              <span style="color: var(--text-secondary);">never performed &middot; 21mo overdue</span>
+            </p>
+          </li>
+          <li>
+            <span class="ds-bullet" data-sev="high" aria-hidden="true"></span>
+            <p style="font-size: var(--size-small); line-height: 1.5;">
+              <button type="button" style="font-weight: var(--w-emphasis); color: var(--text-primary); background: none; border: 0; padding: 0; font: inherit; cursor: pointer;">Home sleep apnea test</button><span style="color: var(--text-tertiary);">:</span>
+              <span style="color: var(--text-secondary);">never performed &middot; SpO2 nadir 89 % on 82 % wearable coverage</span>
+            </p>
+          </li>
+          <li>
+            <span class="ds-bullet" aria-hidden="true"></span>
+            <p style="font-size: var(--size-small); line-height: 1.5;">
+              <button type="button" style="font-weight: var(--w-emphasis); color: var(--text-primary); background: none; border: 0; padding: 0; font: inherit; cursor: pointer;">Coronary artery calcium score</button><span style="color: var(--text-tertiary);">:</span>
+              <span style="color: var(--text-secondary);">Reclassifies a moderate 30-year ASCVD tier in either direction and would settle the statin decision on its own</span>
+            </p>
+          </li>
+          <li>
+            <span class="ds-bullet" aria-hidden="true"></span>
+            <p style="font-size: var(--size-small); line-height: 1.5;">
+              <button type="button" style="font-weight: var(--w-emphasis); color: var(--text-primary); background: none; border: 0; padding: 0; font: inherit; cursor: pointer;">Ambulatory blood pressure monitoring</button><span style="color: var(--text-tertiary);">:</span>
+              <span style="color: var(--text-secondary);">Clinic stage 2 with no dipping status on file; group B carries no modifier without it</span>
+            </p>
+          </li>
+          <li>
+            <span class="ds-bullet" aria-hidden="true"></span>
+            <p style="font-size: var(--size-small); line-height: 1.5;">
+              <button type="button" style="font-weight: var(--w-emphasis); color: var(--text-primary); background: none; border: 0; padding: 0; font: inherit; cursor: pointer;">Oral glucose tolerance test</button><span style="color: var(--text-tertiary);">:</span>
+              <span style="color: var(--text-secondary);">Separates impaired fasting glucose from impaired tolerance at HbA1c 6.0 % with HOMA-IR 4.3</span>
+            </p>
+          </li>
+          <li>
+            <span class="ds-bullet" aria-hidden="true"></span>
+            <p style="font-size: var(--size-small); line-height: 1.5;">
+              <button type="button" style="font-weight: var(--w-emphasis); color: var(--text-primary); background: none; border: 0; padding: 0; font: inherit; cursor: pointer;">Cystatin C</button><span style="color: var(--text-tertiary);">:</span>
+              <span style="color: var(--text-secondary);">Informs ckd</span>
+            </p>
+          </li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Two switchers stack on one page in two different mechanisms: a segmented six-item strip
+    for the chart sections and a seven-item underline strip for the domains. Nothing tells the
+    physician that the top row changes route while the bottom row changes a client-side tab.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The scoreboard is five wide and the sub-tab strip is seven wide. Systemic has a sub-tab but
+    no tile, and Summary has neither, so the two rows cannot be read against each other.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Every tile headline is the tier word repeated from the pill two inches to its right.
+    The actual number, 16 % 30-year ASCVD, is one route deeper and never appears on this
+    screen.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The driver line is the audit face, truncated with an ellipsis at one line, and it carries
+    engine label strings verbatim, including <code>1&deg; relative MI/stroke premature (&lt; 55 M /
+    &lt; 65 F)</code>. It is the densest text on the page and the least readable.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Gap severity is one 8px dot with no legend anywhere on the page. Crit and warn differ only
+    by fill, and the sort order is the only other cue that the first two rows outrank the rest.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Every domain panel is mounted at once and fetched in parallel, so all six render
+    <code>.ds-skeleton</code> bars on load. The design system forbids skeletons outright.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The last gap row reads <code>Informs ckd</code>: the raw domain key leaks into physician
+    copy because <code>infoGapRows()</code> interpolates <code>t.domain</code> without passing it
+    through <code>domainTitle()</code> the way every other line does.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>There is no patient-context bar. Name, MRN and last run are re-rendered by this Blade file
+    and by five sibling files, and they scroll away with the content.</span></p>
+</div>
+
+</body>
+</html>

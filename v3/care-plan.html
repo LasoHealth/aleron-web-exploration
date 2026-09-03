@@ -1,0 +1,2212 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v3 — Care plan, opt in</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only.
+
+     The workbench: the document on the left, basis and disposition on a
+     sticky rail beside it, never inside it. Only what will be signed lives
+     inside the document frame. Below both, the progressive commitment
+     workflow, which is three separate physician acts and three separate
+     cards. */
+
+  /* the four-step rail.
+     The screen was one continuous scroll: compose, lock, authorize, release,
+     all stacked. The four are now panes behind a rail.
+
+     It is a tablist, not a wizard. A wizard says step 3 waits on step 2, and
+     here it does not: note lock and order authorization are independent
+     physician acts and either can go first. So every step is reachable from
+     every other and none is disabled by the one before it.
+
+     amd-stepper is the canonical component and is used unchanged. Only the
+     button inside a step carries local rules, and it sets none of the
+     component's own colour or type. */
+  .cp-steps { margin: 0 0 var(--air-section); }
+  .cp-steps ol { margin: 0; }
+  .cp-stepbtn {
+    display: grid;
+    gap: var(--s-2xs);
+    justify-items: start;
+    width: 100%;
+    min-height: var(--control-min-h);
+    padding: var(--s-xs) var(--s-xs) 0 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .cp-stepbtn:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+  .cp-stepbtn b { font-size: var(--size-caption); font-weight: var(--w-emphasis); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  /* em is not emphasis here, it is the step name. The element is chosen for
+     the same reason .rx-steps uses b and small: three tiers of label inside
+     one control, with no extra class per tier. */
+  .cp-stepbtn em { font-style: normal; font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-secondary); line-height: 1.35; }
+  .cp-stepbtn small { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.4; }
+  .cp-steps [data-state="current"] .cp-stepbtn b,
+  .cp-steps [data-state="current"] .cp-stepbtn em { color: var(--text-primary); }
+  .cp-stepnote { margin: var(--s-xs) 0 0; font-size: var(--size-small); color: var(--text-tertiary); line-height: 1.5; }
+  .cp-pane[hidden] { display: none; }
+  /* The dock overlaps the foot of whichever pane is open, so every pane ends
+     with enough room for it to sit over nothing that matters. The bar is 51px,
+     so the clearance is the next step up the ladder from that, and the sticky
+     workbench rail gets the same room taken off its cap so it cannot run under
+     the bar either. */
+  .pwrap { padding-bottom: var(--s-3xl); }
+  .cp-rail { max-height: calc(100svh - var(--s-3xl) - var(--s-2xl)); }
+
+  .cp-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.58fr) minmax(250px, 0.92fr);
+    gap: var(--s-lg);
+    /* Not align-items: start. A sticky child can only travel inside its own
+       parent box, so collapsing the rail column to its content height meant
+       #rl-detail had 986px of runway against the document and left the screen
+       almost immediately. The document was 8,400px then; splitting the commit
+       acts out into their own steps cuts this pane to about 2,800px, which
+       shortens the problem without removing it. Letting the column stretch to the row height
+       gives the sticky card the full length of the document to track. The rail
+       still packs its cards at the top, via align-content on .cp-rail. */
+    margin-bottom: var(--air-section);
+  }
+  @media (max-width: 1100px) {
+    .cp-wrap { grid-template-columns: minmax(0, 1fr); }
+    /* One column: the rail stacks after the dock rather than spanning. */
+    .cp-wrap .cp-rail { grid-column: 1; grid-row: auto; }
+  }
+  /* The rail is one sticky panel that scrolls inside itself, not a column with
+     one sticky card in it.
+
+     Sticking the detail card alone looked right and was wrong: a sticky element
+     is lifted out of its painting position while its siblings stay put, so once
+     the page scrolled past them the card sat on top of "Act on this draft" and
+     covered its buttons. Measured at a 900px viewport, the add-problem control
+     was reachable across roughly 300px of scroll and occluded everywhere else,
+     and at the card's own max height it would never have been reachable at all.
+
+     Capping the rail below the viewport is what makes sticky engage: the earlier
+     attempt failed because the rail was 986px tall against 900px, and an element
+     taller than its scrollport cannot stick. With max-height plus its own
+     scrollbar the rail is always shorter, every card stays in normal flow inside
+     it, and nothing overlaps anything. */
+  .cp-rail {
+    /* Placed, not auto-flowed. The dock is a second row in column 1, so an
+       auto-placed rail landed in row 2 and started below the document instead
+       of beside it. The rail owns column 2 across both rows. */
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: var(--s-md);
+    max-height: calc(100vh - var(--s-xl));
+    overflow-y: auto;
+    display: grid;
+    gap: var(--s-md);
+    align-content: start;
+  }
+  /* The document. A problem-oriented assessment and plan, framed so the
+     boundary between "this will be signed" and "this is workbench" is a
+     visible edge rather than a convention. */
+  /* .pmod already supplies the border, radius and ground; the document only
+     needs to clip its own signature band to that radius. */
+  .ap-doc { overflow: hidden; }
+  .ap-dhead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2xs) var(--s-sm);
+    padding: var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .ap-dstate { font-size: var(--size-small); color: var(--text-secondary); }
+  .ap-dtitle { font-size: var(--size-h3); font-weight: var(--w-h3); color: var(--text-primary); }
+  .ap-dmeta { margin-left: auto; font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  /* Top padding is --air-group, not --s-md: at 16px the boundary between the
+     draft header and the body read tighter than the 20px gaps inside a single
+     problem, so the document ranked its own top edge below an internal one. */
+  .ap-body { padding: var(--air-group) var(--s-md) var(--s-md); display: grid; gap: var(--air-section); }
+  /* Section heading of the note. Was --size-caption at --text-tertiary, which
+     put a 10.5px heading over 15.5px prose in a lighter weight and a dimmer
+     colour. --size-caption is the chart-annotation tier and belongs to marks on
+     an instrument, not to the headings of a document. */
+  .ap-seclabel {
+    font-size: var(--size-lede);
+    font-weight: var(--w-emphasis);
+    color: var(--text-primary);
+    padding-bottom: var(--air-row);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  /* Prose headings inside the document use the canonical
+     .amd-prose-heading (size.h4 / weight.h4), ratified upstream after this
+     screen proved the tier was missing. The local .ap-flabel it replaced is
+     gone rather than aliased: a silent dialect is what AGENTS.md forbids. */
+  .ap-sec { display: grid; gap: var(--air-group); }
+  .ap-sechead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs); }
+  .ap-sechead > span:last-child { margin-left: auto; }
+
+  /* A problem is a group, and the air had stopped saying so. The largest gap
+     inside one was 20px and the gap between two was 26px, a ratio of 1.3 against
+     the craft floor of 2.0, and the divider rule was the same 0.09 hairline as
+     the rules inside a problem. Thirty-one identical hairlines in one document,
+     none of them ranked. Section air between problems takes the ratio to 2.2,
+     and --border-base makes the one rule that marks a boundary visibly heavier
+     than the ones that do not. */
+  .ap-prob {
+    display: grid;
+    gap: var(--air-row);
+    padding-top: var(--air-row);
+    border-top: var(--line-thin) solid var(--border-base);
+  }
+  .ap-prob:first-of-type { padding-top: 0; border-top: 0; }
+  /* The problem header is a selector that drives the rail beside it, not a
+     heading. At rest it was transparent with no border and no marker, so it
+     read as a heading and the interaction was undiscoverable: the reference
+     surface has the same gap, carrying only cursor:pointer and a hover fill.
+     The caret is the rest affordance and points at the pane it feeds. */
+  .ap-pselect {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--s-2xs) var(--s-xs);
+    width: 100%;
+    padding: var(--s-xs) var(--s-sm);
+    /* A hairline container at rest, matching .ap-orow below. Both are
+       selectable rows that drive the same detail pane, and the order rows read
+       as pressable while these did not, for exactly this reason: one had a
+       container and one was a borderless full-width row that looked like a
+       heading. The caret alone was too weak, being small, tertiary and sitting
+       500px from the title it belongs to. */
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-control);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+  }
+  .ap-pselect:hover { background: var(--surface-inset); border-color: var(--border-strong); }
+  .ap-pselect[aria-pressed="true"] { background: var(--surface-selected); border-color: var(--border-strong); }
+  /* Caret leads the row. It sits in column 1 while the head and meta stay in
+     column 2, so it reads as a marker on the row rather than a control at the
+     far end of it, and it is next to the title it belongs to instead of 500px
+     away. Placement is explicit because the caret stays last in DOM: it is
+     aria-hidden, and leaving it there keeps the spoken order title then meta
+     with no marker interrupting.
+
+     Narrower than the 16px rail icons: 12px glyph on an 8px gutter, so the
+     caret column costs 20px instead of 28px and indents the title less.
+     stroke-width rises to 2 because the recipe fixes the drawn weight, not the
+     number: 1.6 on a 24 grid renders 1.07px at 16px, and 2 renders 1.0px at
+     12px, so the caret keeps the same optical weight as the nav set instead of
+     going spindly. */
+  .ap-phead, .ap-pmeta { grid-column: 2; }
+  .ap-pcaret {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+  }
+  .ap-pcaret svg {
+    width: var(--s-sm);
+    height: var(--s-sm);
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ap-pselect:hover .ap-pcaret { color: var(--text-secondary); }
+  .ap-pselect[aria-pressed="true"] .ap-pcaret { color: var(--text-primary); }
+  .ap-phead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs); }
+  .ap-pnum { font-size: var(--size-small); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .ap-pname { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .ap-pdx { font-size: var(--size-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .ap-pmeta { font-size: var(--size-caption); color: var(--text-tertiary); }
+
+  .ap-field { display: grid; gap: var(--s-2xs); }
+  /* No font-size override here. .amd-field__label is --size-small (13px)
+     canonically, and it was being shrunk to --size-caption (10.5px), the
+     system's functional floor, while the field it labels renders at 15.5px.
+     A label smaller than its own control by 48% inverts the pair, and the
+     floor is not a size to spend on structural wayfinding. */
+  /* The order group is the third peer of Assessment and Plan, not a loose
+     stack of buttons under them, so it carries a label at the same weight
+     and size. It was the one part of a problem with no label at all, which
+     left a reviewer inspecting a class name to find out what the rows were. */
+  .ap-orders > .amd-field__label { display: block; margin-bottom: var(--s-2xs); }
+  .ap-field textarea { line-height: 1.55; }
+
+  .ap-orders { display: grid; gap: var(--s-xs); }
+  .ap-orow {
+    display: grid;
+    gap: var(--s-2xs);
+    width: 100%;
+    padding: var(--s-xs) var(--s-sm);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-control);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+  }
+  .ap-orow:hover { border-color: var(--border-strong); }
+  .ap-orow[aria-pressed="true"] { background: var(--surface-selected); border-color: var(--border-strong); }
+  /* The order type leads the row. It was third in reading order and set in
+     caption-tertiary, so "is this a prescription or a lifestyle goal" was the
+     quietest thing in the row despite being the first question about it. The
+     type now sits in a fixed column, which also gives the six rows an aligned
+     spine of types to scan down, and the name starts at the same x every time.
+     P2 applies: category rides on shape and position, never hue, so every type
+     gets the same neutral tile and the word does the work. Colour-coding by
+     type would spend five signals the register does not have. */
+  .ap-ohead {
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+    gap: var(--s-xs);
+    align-items: baseline;
+  }
+  .ap-otype {
+    justify-self: start;
+    padding: var(--line-thin) var(--s-xs);
+    border-radius: var(--radius-tile);
+    background: var(--surface-tier2);
+    color: var(--text-secondary);
+    font-size: var(--size-caption);
+    font-weight: var(--w-emphasis);
+    white-space: nowrap;
+  }
+  /* Qualifiers that used to trail the type on the same line. "required" is an
+     obligation that cannot be rejected, so it stays visible rather than being
+     folded into the detail prose. */
+  .ap-ometa { padding-left: calc(5.25rem + var(--s-xs)); }
+  .ap-odetail, .ap-odx { padding-left: calc(5.25rem + var(--s-xs)); }
+  .ap-oname { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .ap-ometa { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ap-odetail { font-size: var(--size-caption); color: var(--text-secondary); line-height: 1.5; }
+  .ap-odx { font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+  /* The closing line of a problem states WHY the disposition is what it is.
+     It does not restate the disposition, which the meta line above already
+     carries, and it is not a control: the reference surface puts basis and
+     disposition beside the document, never inside it, so the rail owns the
+     decision and the document owns the reasoning. */
+
+  .ap-docsig {
+    padding: var(--s-sm) var(--s-md);
+    border-top: var(--line-thin) solid var(--hairline);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+  .ap-docsig b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  /* Rail cards. Basis on top, the act card below it. */
+  .rl-card {
+    display: grid;
+    gap: var(--air-row);
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-base);
+    border-radius: var(--radius-tier2);
+    background: var(--surface-card);
+  }
+  .rl-k { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rl-name { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); line-height: 1.35; }
+  /* One prose tier. Running paragraphs on this surface sat at
+     --size-caption, the chart-annotation tier, which is where units, chips,
+     eyebrows and metadata belong, not sentences. The screen then had prose at
+     two sizes with no rule deciding which: .v3-basis, .rl-body, pfacts dd and
+     a commit card's own paragraphs at 13px, and .rl-src, .rl-dim, .rx-note,
+     .ap-docsig and the step note at 10.5px. All prose is --size-small now.
+     10.5px is kept for the things that are genuinely annotation. */
+  .rl-src { font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); }
+  .rl-src b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+  .rl-body { font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); }
+  .rl-acts { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
+  /* A labelled axis in the rail. The three problem axes are independent, so each
+     gets its own label and its own control rather than sharing a middot list. */
+  .rl-axis { display: grid; gap: var(--s-2xs); }
+  /* Labels a segmented control, so it matches .amd-field__label rather than
+     .rl-k, which is a card eyebrow above a title and a different pairing. */
+  .rl-axislabel { font-size: var(--size-small); color: var(--text-secondary); }
+  .rl-axis .amd-segmented { width: 100%; }
+  .rl-dim { font-size: var(--size-small); color: var(--text-tertiary); line-height: 1.5; }
+
+  /* ── act 3, the release surface, in place ──────────────────────────────
+     Carried from the deleted v2/care-plan-release.html, which was this same
+     act on a second screen. Everything here is prefixed rx- so it cannot
+     collide with the rl- workbench-rail block above, and everything is
+     scoped under .pcommit because .pcommit__card p (chrome section B) is one
+     class-plus-element and would otherwise outrank a bare rx- class. */
+
+  .rx-release { display: grid; gap: var(--air-tier); }
+
+  /* The four-step rail. amd-stepper is the canonical component; the labels
+     under each segment are this screen's own arrangement. */
+  .rx-steps { margin: 0; }
+  .rx-steps .amd-stepper__step { padding-right: var(--s-2xs); }
+  .rx-steps b {
+    font-size: var(--size-caption);
+    font-weight: var(--w-emphasis);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .rx-steps span { font-size: var(--size-small); color: var(--text-secondary); line-height: 1.35; }
+  .rx-steps small { font-size: var(--size-caption); color: var(--text-tertiary); }
+  /* complete and current step treatment now lives in physician-chrome.css
+     section B as a proposed addition to interaction.stepper. The b/span colour
+     inherits from the step, so nothing is needed here. */
+
+
+  /* One patient-visible action, rendered with every field the release package
+     is required to carry for it. Six labelled parts, so a missing one is a
+     visible gap rather than a shorter card. */
+  .pcommit .rx-act {
+    display: grid;
+    gap: var(--air-row);
+    padding-top: var(--air-group);
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .pcommit .rx-act:first-of-type { padding-top: 0; border-top: 0; }
+  .pcommit .rx-act__title { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); line-height: 1.35; }
+  .pcommit .rx-parts {
+    display: grid;
+    grid-template-columns: minmax(6rem, auto) minmax(0, 1fr);
+    gap: var(--air-row) var(--s-md);
+    font-size: var(--size-small);
+    line-height: 1.55;
+  }
+  .pcommit .rx-parts dt { color: var(--text-tertiary); font-size: var(--size-caption); }
+  .pcommit .rx-parts dd { margin: 0; color: var(--text-secondary); }
+  .pcommit .rx-parts dd b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  .pcommit .rx-msg {
+    padding: var(--s-md);
+    border-radius: var(--radius-control);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+    line-height: 1.65;
+    color: var(--text-primary);
+  }
+
+  /* The block spans the card; the prose inside it is what gets a measure, not
+     the controls. It used to be the other way round: a 46ch cap on the whole
+     block plus width:100% on the buttons stretched every control to 399px, so
+     three buttons wore a reading measure and the column hung at the left edge
+     of a 952px card looking arbitrary. Buttons now size to their labels, the
+     notes and the attestation keep the measure. */
+  .rx-acts { display: grid; gap: var(--s-xs); justify-items: start; }
+  .rx-acts .amd-button { width: auto; }
+  /* One measure, in rem rather than ch. 46ch resolved against each element own
+     font size, so the caption notes capped at 270px and the attestation at
+     335px and the column had two ragged edges. rem is root-relative, so both
+     share one edge: about 65 characters of caption and 52 of the attestation,
+     each inside a comfortable range. Same trap as the reviewer chrome, where
+     three ch caps produced three different reading edges. */
+  .rx-acts .rx-note,
+  .rx-acts .pattest { justify-self: stretch; max-width: 24rem; }
+  .pcommit .rx-note { font-size: var(--size-small); color: var(--text-tertiary); line-height: 1.5; }
+
+  /* The blocked specimen's own heading, one step under the act title. */
+  .pcommit .rx-spechead { margin: 0; font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); line-height: 1.35; }
+  .pcommit .rx-spechead span { font-weight: 400; color: var(--text-tertiary); font-size: var(--size-caption); }
+  /* --- one list, opt in, expandable (v3) ---------------------------------
+     Candidates and the note were two stacked sections, which rendered every
+     included item twice and left the reader matching them up by name. One row
+     per suggestion now: the checkbox decides whether it reaches the record, the
+     chevron opens it for editing. An unincluded row opens too, because the
+     rationale is what you read before deciding.
+
+     No rank badge and no QALY figure on a row. Aleron-Web puts ENG #1 and a
+     score on each item; the canonical build does not, and puts ranking on the
+     action map and in the reasoning trace instead. The list order is the
+     engine order, which carries the same information without inviting the
+     physician to defer to a number stamped on a clinical item. */
+  .v3-items { display: grid; gap: var(--s-xs); }
+  .v3-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-sm);
+    align-items: start;
+    padding: var(--s-xs) var(--s-sm);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-control);
+  }
+  .v3-item[data-included="true"] { background: var(--surface-selected); border-color: var(--border-strong); }
+  .v3-item[data-required] { background: var(--surface-tier2); }
+
+  /* The include control. Gold when on: inclusion is the decision this screen
+     exists to support, so it is where the surface spends its one gold. */
+  .v3-check {
+    display: grid;
+    place-items: center;
+    width: var(--s-lg);
+    height: var(--s-lg);
+    margin-top: var(--s-2xs);
+    padding: 0;
+    border: var(--line-thin) solid var(--border-strong);
+    border-radius: var(--radius-tile);
+    background: transparent;
+    cursor: pointer;
+  }
+  .v3-check svg { width: var(--s-sm); height: var(--s-sm); stroke: var(--ink); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  .v3-check[aria-pressed="true"] { background: var(--signal-forward); border-color: var(--signal-forward); }
+  .v3-check[aria-pressed="true"] svg { opacity: 1; }
+  .v3-check[aria-disabled="true"] { cursor: not-allowed; }
+
+  .v3-disc { min-width: 0; }
+  .v3-disc > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-sm);
+    align-items: start;
+    padding: var(--s-2xs) 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  .v3-disc > summary::-webkit-details-marker { display: none; }
+  .v3-disc > summary::marker { content: ""; }
+  .v3-disc > summary:focus-visible { outline: var(--line-focus) solid var(--p-focus-ring); outline-offset: var(--s-2xs); }
+  .v3-sum { display: grid; gap: var(--s-3xs); min-width: 0; }
+  /* The disposition sits at the head of a required item, above the clinical
+     fields, because it decides whether they are going anywhere. */
+  .v3-disp { padding: var(--s-sm); border: var(--line-thin) solid var(--border-base); border-radius: var(--radius-control); background: var(--surface-inset); }
+  .v3-disp__why[hidden] { display: none; }
+  .v3-item[data-disposition="defer"] .v3-check,
+  .v3-item[data-disposition="except"] .v3-check { background: transparent; border-color: var(--signal-advisory); color: var(--signal-advisory); }
+  .v3-sum__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs); }
+  .v3-sum__title { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); line-height: 1.3; }
+  .v3-sum__meta { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.45; }
+  .v3-item[data-included="false"] .v3-sum__title { color: var(--text-secondary); }
+  .v3-chev { display: grid; place-items: center; color: var(--text-tertiary); margin-top: var(--s-3xs); }
+  .v3-chev svg { width: var(--s-sm); height: var(--s-sm); stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--dur-fast) var(--ease); }
+  .v3-disc[open] .v3-chev svg { transform: rotate(90deg); }
+  .v3-disc > summary:hover .v3-chev { color: var(--text-primary); }
+
+  .v3-detail {
+    display: grid;
+    gap: var(--air-group);
+    padding: var(--air-row) 0 var(--s-xs);
+    border-top: var(--line-thin) solid var(--hairline);
+    margin-top: var(--air-row);
+  }
+  .v3-basis { font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); }
+  /* No measure on the item prose. The basis line used to be capped at 24rem
+     and was the only paragraph in the accordion that was, which is why it read
+     as a stranded half-width block. Uncapping it rather than extending the cap
+     to its neighbours is a deliberate call: the paragraphs now fill the detail
+     like everything else in it, at about 156 characters a line. */
+  .v3-addmore { display: grid; gap: var(--s-2xs); justify-items: start; margin-top: var(--air-tier); }
+  .v3-addmore .pbase { max-width: 24rem; }
+
+  /* --- running tally ------------------------------------------------------
+     Sized to its content rather than to a fixed bar. It was a full-width block
+     with three-across spacing that read as large and empty, which is worse at
+     an office screen size than at a review one. It now wraps, tightens its
+     vertical spend, and drops the secondary line below the rail hinge where the
+     count is the only part that still earns the space. */
+  .v3-dock {
+    /* Last child of .pmain, so its containing block ends at the desk floor and
+       the sticky never releases while any of the surface is still on screen.
+       The negative side margins pull it back over .pmain's own padding, so the
+       bar spans the surface rather than floating inside its gutters. */
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    margin: 0 calc(var(--s-2xl) * -1) calc(var(--s-2xl) * -1);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2xs) var(--s-sm);
+    padding: var(--air-row) var(--s-sm);
+    border-top: var(--line-thin) solid var(--border-base);
+    background: var(--surface-card);
+  }
+  .v3-dock__count { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .v3-dock__detail { font-size: var(--size-caption); color: var(--text-secondary); }
+  .v3-dock__right { display: flex; align-items: center; gap: var(--s-xs); margin-left: auto; }
+  /* No local button rule. The dock button already carries
+     data-density="row", so this override was fighting the proposed variant
+     and shrinking a control below the size the proposal argues for. */
+  @media (max-width: 1100px) {
+    /* Below the rail hinge the columns stack, so the dock is competing with the
+       document for a narrower measure. The count is the part that has to stay. */
+    .v3-dock__detail { display: none; }
+  }
+
+  .v3-axes { display: grid; gap: var(--air-row); }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v3</a> / <b>Care plan, opt in</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/care-plan.html">v0</a>
+    <a href="../v1/care-plan.html">v1</a>
+    <a href="../v2/care-plan.html">v2</a>
+    <span aria-current="page">v3</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/care-plan</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <!-- The chart rail. Seven sections in v2: the reference surface's six
+           plus Screening, which is where the preventive obligations that are
+           not ranked against opportunities get their own read. -->
+        <nav class="prail__nav">
+          <a class="prail__item" href="../v2/patient-data.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Patient Data
+          </a>
+          <a class="prail__item" href="../v2/risk-models.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+            Risk
+          </a>
+          <a class="prail__item" href="care-plan.html" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+            Care Plan
+          </a>
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <a class="prail__item" href="../v2/orders.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v13a2 2 0 0 0 4 0V3"/><path d="M10 11h4"/></svg>
+            Orders
+          </a>
+          <a class="prail__item" href="../v2/journal.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+            Journal
+          </a>
+          <a class="prail__item" href="../v2/aleron-ai.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+            Aleron AI
+          </a>
+        </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="../v2/emr.html">Open in Canvas &#8599;</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-56" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-56" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Care plan</h1>
+          <span class="phead__aside"><span class="pbase">Plan editing &middot; saved, revision 14</span></span>
+        </div>
+        <p>The note starts empty. The engine suggests in its own order; nothing enters the record until you add it.</p>
+      </header>
+
+      <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-55" aria-label="Wireframe explanation, not part of the product">i</button><div class="pbound pbound--quiet wf-scaffold wf-ex__bubble" id="wf-ex-55" role="note">
+        <b>Simulation</b>
+        <span>No order was transmitted, no patient release occurred, and no Canvas record was created.</span>
+      </div></div>
+
+      <!-- the four steps.
+           Plan, note lock, order authorization, patient release. Steps 2 and
+           3 are independent acts with no order between them, which is why the
+           rail is a tablist: selecting one is looking at it, never unlocking
+           it. The state line under each step is the work state and does not
+           change when you look elsewhere. -->
+      <nav class="cp-steps" aria-label="Care plan steps">
+        <ol class="amd-stepper" role="tablist" aria-label="Care plan steps">
+          <li class="amd-stepper__step" data-state="current" role="presentation">
+            <span class="amd-stepper__segment"></span>
+            <button class="cp-stepbtn" type="button" role="tab" id="tab-plan" aria-label="Step 1, Plan. Draft, revision 14, 3 of 6 added" aria-controls="pane-plan" aria-selected="true">
+              <b>Step 1</b>
+              <em>Plan</em>
+              <small>draft, revision 14 &middot; 3 of 6 added</small>
+            </button>
+          </li>
+          <li class="amd-stepper__step" role="presentation">
+            <span class="amd-stepper__segment"></span>
+            <button class="cp-stepbtn" type="button" role="tab" id="tab-note" aria-label="Step 2, Note lock. Open, ready to lock" aria-controls="pane-note" aria-selected="false" tabindex="-1">
+              <b>Step 2</b>
+              <em>Note lock</em>
+              <small>open, ready to lock</small>
+            </button>
+          </li>
+          <li class="amd-stepper__step" role="presentation">
+            <span class="amd-stepper__segment"></span>
+            <button class="cp-stepbtn" type="button" role="tab" id="tab-orders" aria-label="Step 3, Order authorization. 5 queued, unsent, 2 blockers" aria-controls="pane-orders" aria-selected="false" tabindex="-1">
+              <b>Step 3</b>
+              <em>Order authorization</em>
+              <small>5 queued, unsent &middot; 2 blockers</small>
+            </button>
+          </li>
+          <li class="amd-stepper__step" role="presentation">
+            <span class="amd-stepper__segment"></span>
+            <button class="cp-stepbtn" type="button" role="tab" id="tab-release" aria-label="Step 4, Patient release. Withheld, needs steps 2 and 3" aria-controls="pane-release" aria-selected="false" tabindex="-1">
+              <b>Step 4</b>
+              <em>Patient release</em>
+              <small>withheld, needs steps 2 and 3</small>
+            </button>
+          </li>
+        </ol>
+        <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-54" aria-label="Wireframe explanation, not part of the product">i</button><p class="cp-stepnote wf-scaffold wf-ex__bubble" id="wf-ex-54" role="note">Steps 2 and 3 are independent. An order can transmit before the note is
+        locked and a note can be locked with orders still pending; both are legitimate. Only step 4
+        needs both. Every step is reachable from here at any time.</p></div>
+      </nav>
+
+      <div class="cp-wrap cp-pane" id="pane-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="0">
+
+        <!-- ── the document ─────────────────────────────────────────────── -->
+        <article class="pmod pmod--tier1 ap-doc">
+          <div class="ap-dhead">
+            <span class="ap-dstate">Draft</span>
+            <span class="ap-dtitle">Baseline review, cycle 1</span>
+            <span class="ap-dmeta">31 Aug 2026 &middot; Dr. A. Okafor</span>
+          </div>
+
+          <div class="ap-body">
+
+            <section class="ap-sec">
+              <div class="ap-sechead">
+                <span class="ap-seclabel">Indication</span>
+                <span class="pbase">membership programme &middot; no diagnosis code required</span>
+              </div>
+              <div class="ap-field">
+                <label class="wf-sr-only" for="cp-ind">Indication</label>
+                <textarea class="amd-input" id="cp-ind" rows="2">Proactive longevity screening under the membership programme. No diagnosis code is required; the indication is documented for clinical and medical-board defensibility.</textarea>
+              </div>
+            </section>
+
+            <!-- ONE LIST. Every candidate the engine surfaced, included or not,
+                 with its assessment, plan and orders behind a disclosure. The
+                 checkbox decides whether it reaches the record; the chevron
+                 opens it for editing. Candidates and the note used to be two
+                 stacked sections, which rendered every included item twice and
+                 left the reader to match them up by name. -->
+            <section class="ap-sec">
+              <div class="ap-sechead">
+                <span class="ap-seclabel">Assessment and plan</span>
+                <span class="pbase">6 suggestions in engine order &middot; 3 added &middot; open one to edit it</span>
+              </div>
+
+              <div class="v3-items">
+
+                <div class="v3-item" data-included="true" data-required="true">
+                  <button class="v3-check" type="button" aria-pressed="true" id="v3-req-check" aria-label="ATM pathogenic variant, included. A required channel: it can be set aside, but not silently. Use the disposition inside the item.">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <details class="v3-disc">
+                    <summary>
+                      <span class="v3-sum">
+                        <span class="v3-sum__head">
+                          <span class="v3-sum__title">ATM pathogenic variant, heterozygous</span>
+                          <span class="ap-pdx">Z15.09</span>
+                        </span>
+                        <span class="v3-sum__meta"><span class="padv">required channel</span> &middot; <span id="v3-req-state">must be dispositioned</span> &middot; assess existing <span class="ap-pdx">cnd-4471</span> &middot; 2 orders</span>
+                      </span>
+                      <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
+                    </summary>
+                    <div class="v3-detail">
+                      <p class="v3-basis">Reported P/LP on the MBTA 163-gene panel, resulted 23 Jun 2026, with no counseling encounter on file. An obligation from the genetics library, so it is not weighed against the scored suggestions below it.</p>
+                      <div class="ap-field v3-disp">
+                        <label class="amd-prose-heading" for="cp-disp1">Disposition</label>
+                        <div class="amd-select-wrap">
+                          <select class="amd-select" id="cp-disp1">
+                            <option value="include" selected>Include in this note</option>
+                            <option value="defer">Defer, with a reason</option>
+                            <option value="except">Document an exception</option>
+                          </select>
+                        </div>
+                        <p class="rl-dim">An obligation can be set aside. It cannot be set aside quietly: deferring or
+                        excepting it records the reason against your name, and the item stays outstanding on the chart
+                        until someone acts on it.</p>
+                        <div class="ap-field v3-disp__why" id="cp-disp1-why" hidden>
+                          <label class="amd-prose-heading" for="cp-disp1-reason">Reason</label>
+                          <textarea class="amd-input" id="cp-disp1-reason" rows="2" placeholder="Why this obligation is not being acted on now"></textarea>
+                          <p class="rl-dim">Required. Without it the note cannot be locked.</p>
+                        </div>
+                      </div>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-a1">Assessment</label>
+                        <textarea class="amd-input" id="cp-a1" rows="2" maxlength="2048">Pathogenic ATM variant on the MBTA 163-gene panel. One functional copy lost, so double-strand break repair capacity is reduced. Raises lifetime pancreatic and breast risk and makes radiosensitivity a treatment-planning consideration.</textarea>
+                      </div>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-p1">Plan</label>
+                        <textarea class="amd-input" id="cp-p1" rows="2">Refer to genetic counselling. Open the family-history gate for breast, pancreatic and prostate history; pancreatic surveillance is conditional on a first-degree finding.</textarea>
+                      </div>
+                      <div class="v3-axes">
+                        <div class="rl-axis">
+                        <span class="amd-prose-heading">Problem-list match</span>
+                        <p class="rl-src"><b>Matched existing.</b> <b>ATM-associated cancer susceptibility</b>, active since 12 Mar 2024 <span class="ap-pdx">cnd-4471</span>. Updating revises that entry; it does not add a second one.</p>
+                      </div>
+                        <div class="ap-field">
+                          <label class="amd-prose-heading" for="cmd-1">Command on signature</label>
+                          <div class="amd-select-wrap">
+                            <select class="amd-select" id="cmd-1">
+                              <option>Diagnose &middot; new problem-list entry</option>
+                              <option selected>Assess existing &middot; adds to the matched entry</option>
+                              <option>Past medical history &middot; resolved</option>
+                              <option>Encounter diagnosis only &middot; not on the problem list</option>
+                              <option>Health concern &middot; not a diagnosis</option>
+                            </select>
+                          </div>
+                          <p class="rl-dim">Adds an <b>Assess</b> to <span class="ap-pdx">cnd-4471</span> with a status and a note, up to 2048 characters. The existing entry is added to, never replaced.</p>
+                        </div>
+                        <div class="rl-axis">
+                          <span class="amd-prose-heading" id="ax-as-1">Status on the assessed condition</span>
+                          <div class="amd-segmented" role="radiogroup" aria-labelledby="ax-as-1">
+                            <button class="amd-button" role="radio" data-density="row" aria-checked="false" type="button">Improved</button>
+                            <button class="amd-button" role="radio" data-density="row" aria-checked="true" type="button">Stable</button>
+                            <button class="amd-button" role="radio" data-density="row" aria-checked="false" type="button">Deteriorated</button>
+                          </div>
+                          <p class="rl-dim">A trajectory, not a certainty. This is how the chart carries monitoring.</p>
+                        </div>
+                      </div>
+                      <div class="ap-orders" role="group" aria-labelledby="cp-o1-label">
+                        <span class="amd-prose-heading" id="cp-o1-label">Orders &middot; what it produces</span>
+                        <button class="ap-orow" data-order="o1" type="button" aria-pressed="true" aria-label="Select order, genetic counselling">
+                          <span class="ap-ohead"><span class="ap-otype">Refer</span><span class="ap-oname">Genetic counselling</span></span>
+                          <span class="ap-ometa">required</span>
+                          <span class="ap-odetail">Priority routine &middot; clinical question: ongoing management</span>
+                          <span class="ap-odx">Dx: Z15.09</span>
+                        </button>
+                        <button class="ap-orow" data-order="o2" type="button" aria-pressed="false" aria-label="Select order, family-history gate">
+                          <span class="ap-ohead"><span class="ap-otype">Task</span><span class="ap-oname">Family-history gate: breast, pancreatic, prostate</span></span>
+                          <span class="ap-ometa">required</span>
+                          <span class="ap-odetail">Cascade documentation &middot; pancreatic surveillance conditional on first-degree history</span>
+                          <span class="ap-odx">Dx: Z15.09</span>
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="v3-item" data-included="true">
+                  <button class="v3-check" type="button" aria-pressed="true" aria-label="Include prediabetes with insulin resistance">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <details class="v3-disc" open>
+                    <summary>
+                      <span class="v3-sum">
+                        <span class="v3-sum__head">
+                          <span class="v3-sum__title">Prediabetes with insulin resistance</span>
+                          <span class="ap-pdx">R73.03</span>
+                        </span>
+                        <span class="v3-sum__meta">diagnose &middot; new problem-list entry &middot; no existing match &middot; 2 orders</span>
+                      </span>
+                      <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
+                    </summary>
+                    <div class="v3-detail">
+                      <p class="v3-basis">HbA1c <span class="pval">6.0<span class="pval__u">%</span></span>, fasting glucose <span class="pval">110<span class="pval__u">mg/dL</span></span>, HOMA-IR <span class="pval">4.3</span>, waist <span class="pval">105<span class="pval__u">cm</span></span>. The dominant driver on this chart and the highest-net lever the action map prices.</p>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-a2">Assessment</label>
+                        <textarea class="amd-input" id="cp-a2" rows="2" maxlength="2048">HbA1c 6.0 %, fasting glucose 110 mg/dL, HOMA-IR 4.3; central adiposity, waist 105 cm. The dominant driver.</textarea>
+                      </div>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-p2">Plan</label>
+                        <textarea class="amd-input" id="cp-p2" rows="2">Start weekly incretin therapy with supervised resistance training as the lean-mass guardrail. Repeat HbA1c and fasting insulin at 12 weeks.</textarea>
+                      </div>
+                      <div class="v3-axes">
+                        <div class="rl-axis">
+                        <span class="amd-prose-heading">Problem-list match</span>
+                        <p class="rl-src"><b>No existing match.</b> Nothing on the active list corresponds to this. Signing creates a new entry.</p>
+                      </div>
+                        <div class="ap-field">
+                          <label class="amd-prose-heading" for="cmd-2">Command on signature</label>
+                          <div class="amd-select-wrap">
+                            <select class="amd-select" id="cmd-2">
+                              <option selected>Diagnose &middot; new problem-list entry</option>
+                              <option disabled>Assess existing &middot; adds to the matched entry</option>
+                              <option>Past medical history &middot; resolved</option>
+                              <option>Encounter diagnosis only &middot; not on the problem list</option>
+                              <option>Health concern &middot; not a diagnosis</option>
+                            </select>
+                          </div>
+                          <p class="rl-dim">Adds an active entry to the problem list. <b>Assess existing</b> is unavailable because there is no matched condition to assess.</p>
+                        </div>
+                        <div class="ap-field">
+                          <label class="amd-prose-heading" for="ons-2">Approximate date of onset</label>
+                          <input class="amd-input" id="ons-2" type="date" value="2026-06-23">
+                          <p class="rl-dim">Optional. An approximate date is fine.</p>
+                        </div>
+                      </div>
+                      <div class="ap-orders" role="group" aria-labelledby="cp-o2-label">
+                        <span class="amd-prose-heading" id="cp-o2-label">Orders &middot; what it produces</span>
+                        <button class="ap-orow" data-order="o3" type="button" aria-pressed="false" aria-label="Select order, tirzepatide">
+                          <span class="ap-ohead"><span class="ap-otype">Rx</span><span class="ap-oname">tirzepatide 2.5 mg/0.5 mL, subcutaneous auto-injector</span></span>
+                          <span class="ap-odetail">Sig: inject 2.5 mg subcutaneously once weekly &middot; days supply 28 &middot; refills 2</span>
+                          <span class="ap-odx">Dx: E66.01 &middot; R73.03</span>
+                        </button>
+                        <button class="ap-orow" data-order="o4" type="button" aria-pressed="false" aria-label="Select order, supervised resistance training">
+                          <span class="ap-ohead"><span class="ap-otype">Goal</span><span class="ap-oname">Supervised resistance training</span></span>
+                          <span class="ap-odetail">2 sessions/wk for 12 weeks &middot; lean-mass protection during weight loss</span>
+                          <span class="ap-odx">Dx: not required for a Goal</span>
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="v3-item" data-included="true">
+                  <button class="v3-check" type="button" aria-pressed="true" aria-label="Include hypertension stage 2 unconfirmed">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <details class="v3-disc">
+                    <summary>
+                      <span class="v3-sum">
+                        <span class="v3-sum__head">
+                          <span class="v3-sum__title">Hypertension, stage 2, unconfirmed</span>
+                          <span class="ap-pdx">I10</span>
+                        </span>
+                        <span class="v3-sum__meta">encounter diagnosis only &middot; not on the problem list &middot; match not checked &middot; 1 order</span>
+                      </span>
+                      <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
+                    </summary>
+                    <div class="v3-detail">
+                      <p class="v3-basis">One clinic reading of <span class="pval">142/90<span class="pval__u">mmHg</span></span>, untreated, with no home series. The confirmation gate reclassifies at about <span class="pval">65<span class="pval__u">%</span></span> and changes both the medication threshold and the sequencing behind it.</p>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-a3">Assessment</label>
+                        <textarea class="amd-input" id="cp-a3" rows="2" maxlength="2048">142/90 mmHg in clinic, untreated, single setting. Confirm before committing to lifelong pharmacotherapy.</textarea>
+                      </div>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-p3">Plan</label>
+                        <textarea class="amd-input" id="cp-p3" rows="2">Fourteen days of home readings, twice daily, then decide. The same series sequences the sleep-apnea question and exercise clearance.</textarea>
+                      </div>
+                      <div class="v3-axes">
+                        <div class="rl-axis">
+                        <span class="amd-prose-heading">Problem-list match</span>
+                        <p class="rl-src"><b>Not checked.</b> <span class="pna">The list was not searched for this problem.</span> Not the same as no match, and it is why <b>Update existing</b> is unavailable rather than merely unselected.</p>
+                      </div>
+                        <div class="ap-field">
+                          <label class="amd-prose-heading" for="cmd-3">Command on signature</label>
+                          <div class="amd-select-wrap">
+                            <select class="amd-select" id="cmd-3">
+                              <option>Diagnose &middot; new problem-list entry</option>
+                              <option disabled>Assess existing &middot; adds to the matched entry</option>
+                              <option>Past medical history &middot; resolved</option>
+                              <option selected>Encounter diagnosis only &middot; not on the problem list</option>
+                              <option>Health concern &middot; not a diagnosis</option>
+                            </select>
+                          </div>
+                          <p class="rl-dim">Recorded in the signed note and not on the problem list. Withholding the problem-list entry is the statement.</p>
+                        </div>
+                      </div>
+                      <div class="ap-orders" role="group" aria-labelledby="cp-o3-label">
+                        <span class="amd-prose-heading" id="cp-o3-label">Orders &middot; what it produces</span>
+                        <button class="ap-orow" data-order="o5" type="button" aria-pressed="false" aria-label="Select order, home blood pressure monitoring">
+                          <span class="ap-ohead"><span class="ap-otype">Task</span><span class="ap-oname">Home blood pressure monitoring, 14 days</span></span>
+                          <span class="ap-odetail">Twice daily, morning and evening &middot; patient device &middot; review next cycle</span>
+                          <span class="ap-odx">Dx: I10</span>
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="v3-item" data-included="false">
+                  <button class="v3-check" type="button" aria-pressed="false" aria-label="Include health maintenance">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <details class="v3-disc">
+                    <summary>
+                      <span class="v3-sum">
+                        <span class="v3-sum__head">
+                          <span class="v3-sum__title">Health maintenance</span>
+                          <span class="ap-pdx">Z12.11</span>
+                        </span>
+                        <span class="v3-sum__meta">not added &middot; deferred: no modality chosen &middot; 1 order</span>
+                      </span>
+                      <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
+                    </summary>
+                    <div class="v3-detail">
+                      <p class="v3-basis">Colorectal screening is due and no modality has been chosen. A care gap rather than a condition, so including it records a health concern rather than a diagnosis, plus a screening order. No diagnosis is asserted and no certainty is stated, because there is nothing to be certain about.</p>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-r4">Reason not carried</label>
+                        <textarea class="amd-input" id="cp-r4" rows="2">Deferred: the patient has not chosen a modality, and a colonoscopy referral and an annual FIT are different commitments. Revisit once the choice is made.</textarea>
+                      </div>
+                      <p class="pbase">Adding it would queue 1 order: colorectal cancer screening, colonoscopy or FIT. <span class="wf-scaffold">The reason above has no field in Canvas FHIR; it needs a Custom Data Model to persist.</span></p>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="v3-item" data-included="false">
+                  <button class="v3-check" type="button" aria-pressed="false" aria-label="Include MASLD risk">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <details class="v3-disc">
+                    <summary>
+                      <span class="v3-sum">
+                        <span class="v3-sum__head">
+                          <span class="v3-sum__title">MASLD risk, metabolic context</span>
+                          <span class="ap-pdx">K76.0</span>
+                        </span>
+                        <span class="v3-sum__meta">not added &middot; deferred: behind the metabolic lever &middot; 1 order</span>
+                      </span>
+                      <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
+                    </summary>
+                    <div class="v3-detail">
+                      <p class="v3-basis">FIB-4 has not been calculated and no imaging is on file, so fibrosis stage is unknown. The action map prices the staging gate as real but behind the two levers above it this cycle.</p>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-r5">Reason not carried</label>
+                        <textarea class="amd-input" id="cp-r5" rows="2">Deferred: real, and behind the metabolic lever this cycle. FIB-4 rides along with the next draw rather than opening a hepatic workup now.</textarea>
+                      </div>
+                      <p class="pbase">Adding it would queue 1 order: FIB-4, then FibroScan if indicated.</p>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="v3-item" data-included="false">
+                  <button class="v3-check" type="button" aria-pressed="false" aria-label="Include nocturnal bradycardia">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <details class="v3-disc">
+                    <summary>
+                      <span class="v3-sum">
+                        <span class="v3-sum__head">
+                          <span class="v3-sum__title">Nocturnal bradycardia, incidental</span>
+                          <span class="ap-pdx">R00.1</span>
+                        </span>
+                        <span class="v3-sum__meta">not added &middot; <span class="punmod">unscored</span> &middot; deferred pending the BP series &middot; 1 order</span>
+                      </span>
+                      <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
+                    </summary>
+                    <div class="v3-detail">
+                      <p class="v3-basis">Overnight resting heart rate <span class="pval">38<span class="pval__u">bpm</span></span> against a measured VO&#8322;max of <span class="pval">28<span class="pval__u">mL/kg/min</span></span>, which is discordant. A genuine library gap: no reclassification probability and no burden model, so it carries no score, and none is invented for it.</p>
+                      <div class="ap-field">
+                        <label class="amd-prose-heading" for="cp-r6">Reason not carried</label>
+                        <textarea class="amd-input" id="cp-r6" rows="2">Deferred pending the home blood-pressure series, which will show whether the overnight pattern is isolated.</textarea>
+                      </div>
+                      <p class="pbase">Adding it would queue 1 order: 12-lead ECG, then patch or Holter if persistent.</p>
+                    </div>
+                  </details>
+                </div>
+
+              </div>
+
+              <p class="v3-addmore">
+                <button class="amd-button" data-variant="secondary" data-density="row" type="button">Add a problem not suggested</button>
+                <span class="pbase">A problem you add carries no score. The action map prices what the library has modelled, and nothing is invented to fill the gap.</span>
+              </p>
+            </section>
+
+            <section class="ap-sec">
+              <div class="ap-sechead">
+                <span class="ap-seclabel">Narrative</span>
+                <span class="pbase">re-drafts from assessment and plan</span>
+              </div>
+              <div class="ap-field">
+                <label class="wf-sr-only" for="cp-narr">Narrative</label>
+                <textarea class="amd-input" id="cp-narr" rows="4">Baseline review for a 47-year-old man on the longevity membership. Three problems carried into this note from six suggestions; the three not carried each record their reason above, and the engine will surface them again next cycle unless new data changes their basis.</textarea>
+              </div>
+            </section>
+
+          </div>
+
+          <p class="ap-docsig">
+            <b>Unsigned.</b> On signature Canvas runs <b>3 commands</b>: one Diagnose, one Assess against
+            <span class="ap-pdx">cnd-4471</span>, and one encounter-diagnosis Condition that stays off the
+            problem list. <b>5 orders</b> release through their own channels. <span class="wf-scaffold">Three suggestions were not
+            carried; their reasons have no field in Canvas FHIR and are noted above as a gap.</span>
+            e-Rx sign-off stays native and prescriber-only.
+          </p>
+        </article>
+
+        <!-- ── the workbench rail ───────────────────────────────────────── -->
+        <aside class="cp-rail" aria-label="Workbench">
+
+          <!-- One detail slot, driven by whatever is selected in the document.
+               Its content comes from the CARE_PLAN fixture at the foot of this
+               file rather than from markup, per AGENTS.md: data-bearing text
+               belongs in a visible fixture object. Selecting a problem shows its
+               three disposition axes; selecting an order shows its basis. Only
+               one thing is ever selected, so only one card is ever rendered. -->
+          <div class="rl-card" id="rl-detail" role="region" aria-live="polite" aria-label="Selected item"></div>
+
+          <div class="rl-card">
+            <span class="rl-k">Act on this draft</span>
+
+            <div class="rl-acts">
+              <button class="amd-button" data-density="row" data-variant="secondary" type="button">Add problem not listed</button>
+            </div>
+            <div class="rl-acts">
+              <button class="amd-button" data-density="row" data-variant="secondary" type="button">Order something not listed</button>
+            </div>
+            <p class="rl-dim">A physician-added order needs a diagnosis association before it can join the draft. If nothing matches, adding the order creates the problem.</p>
+            <p class="rl-src"><a href="../v2/journal.html">View as the journal entry it will become</a></p>
+          </div>
+
+          <div class="rl-card">
+            <span class="rl-k">Off-list, already weighed</span>
+            <p class="rl-src"><b>Oral glucose tolerance test, 75 g, 2-hour.</b> In the library and already scored: reclassification about <span class="pval">4<span class="pval__u">%</span></span> for him, clinically defensible, low value of information. Your call stands; the context rides along.</p>
+            <p class="rl-src"><b>12-lead ECG, then patch or Holter if persistent.</b> A genuine library gap: no reclassification probability, no burden model. Carried physician-originated and <span class="punmod">unscored</span>, and no value is invented for it.</p>
+          </div>
+
+        </aside>
+      </div>
+
+      <!-- the progressive commitment workflow.
+           Three acts, each with its own attestation, each now its own step.
+           They are not a chain. The note lock and the order authorization are
+           independent and either can go first; only the release needs both.
+           The matrix numbers the acts 1, 2 and 3 and the rail numbers the
+           steps 1 to 4, so the headings here carry the act name and no
+           ordinal, and the mapping is stated under "Why three acts". -->
+      <section class="pmod pmod--flat cp-pane" id="pane-note" role="tabpanel" aria-labelledby="tab-note" tabindex="0" hidden>
+        <div class="pmod__head">
+          <h2>Note lock</h2>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-53" aria-label="Wireframe explanation, not part of the product">i</button><span class="pmod__sub wf-scaffold wf-ex__bubble" id="wf-ex-53" role="note">One of three acts, each with its own attestation. Nothing here collapses into one button, and nothing here sends you to another screen. This act does not wait on the orders and does not send them.</span></span>
+        </div>
+        <div class="pmod__body">
+          <div class="pcommit">
+
+            <article class="pcommit__card" data-state="ready">
+              <span class="pcommit__step">Ready physician act <span class="wf-scaffold">&middot; matrix act 1, sign plan</span></span>
+              <h3>Note lock</h3>
+              <p>Locks the exact derived Preview note and the problem-list decisions. This act does not send an order and does not release anything to the patient.</p>
+
+              <dl class="pfacts">
+                <dt>Problems</dt><dd><span class="pval">4</span> included, <span class="pval">0</span> removed</dd>
+                <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> update existing, <span class="pval">2</span> note only</dd>
+                <dt>Orders</dt><dd><span class="pval">5</span> intents, all unsent. Authorizing them is step 3, and it neither waits on this act nor follows from it.</dd>
+                <dt>Preview note</dt><dd>Current with the fields above &middot; hash <span class="pval">note 7a41 c0d9 be52 3f8e</span></dd>
+                <dt>On lock</dt><dd>Immutable note snapshot, Note PDF, and the legal-record DocumentReference in Canvas</dd>
+              </dl>
+
+              <label class="pattest">
+                <input type="checkbox">
+                <span>I reviewed the exact Preview note and the problem-list mutation set above.</span>
+              </label>
+              <label class="pattest">
+                <input type="checkbox">
+                <span>I understand that <b>5 pending orders remain unsent</b> after this act, and that locking the note is not what sends them.</span>
+              </label>
+
+              <div class="pcommit__acts">
+                <button class="amd-button" data-variant="primary" type="button">Review and lock Preview note</button>
+                <span class="pbase">Both attestations required &middot; the 5 queued orders are unaffected either way</span>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat cp-pane" id="pane-orders" role="tabpanel" aria-labelledby="tab-orders" tabindex="0" hidden>
+        <div class="pmod__head">
+          <h2>Order authorization</h2>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-52" aria-label="Wireframe explanation, not part of the product">i</button><span class="pmod__sub wf-scaffold wf-ex__bubble" id="wf-ex-52" role="note">One of three acts, each with its own attestation. It does not wait on the note lock: an order can transmit while the note is still an open draft, and locking the note is not what sends it.</span></span>
+        </div>
+        <div class="pmod__body">
+          <div class="pcommit">
+
+            <article class="pcommit__card" data-state="pending">
+              <span class="pcommit__step">Independent physician act <span class="wf-scaffold">&middot; matrix act 2, create lab order request</span></span>
+              <h3>Order authorization</h3>
+              <p>Authorizes the exact enumerated order set. A separate act with a separate attestation, because signing a note and transmitting an order are separate clinical commitments.</p>
+              <p>The state of the note is not one of its conditions. Step 2 can be open, locked, or never taken this cycle, and this act reads the same in all three cases. What blocks it below is about the orders themselves.</p>
+
+              <div class="preason">
+                <strong>Withheld until all of these clear</strong>
+                <ul>
+                  <li>Colorectal screening has no modality chosen, so no catalog entry resolves. Colonoscopy is a referral, FIT is a lab, and the patient picks.</li>
+                  <li>Entra step-up re-authentication is older than 15 minutes. Authorizing an order requires a fresh identity confirmation.</li>
+                </ul>
+              </div>
+              <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-51" aria-label="Wireframe explanation, not part of the product">i</button><p class="pbase wf-scaffold wf-ex__bubble" id="wf-ex-51" role="note">Neither blocker is the note. The note lock was removed from this list: it was never a condition of a valid order request, and CLIA asks for an authenticated request from an authorized person, not a locked document.</p></div>
+              <p class="pbase">Tirzepatide is not in this set and never will be. e-Rx sign-off stays a native, prescriber-only act.</p>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat cp-pane" id="pane-release" role="tabpanel" aria-labelledby="tab-release" tabindex="0" hidden>
+        <div class="pmod__head">
+          <h2>Patient release</h2>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-50" aria-label="Wireframe explanation, not part of the product">i</button><span class="pmod__sub wf-scaffold wf-ex__bubble" id="wf-ex-50" role="note">The last of the three acts, and the only one the patient ever sees. This is the one act that does need the other two, in either order.</span></span>
+        </div>
+        <div class="pmod__body">
+          <div class="pcommit">
+
+            <article class="pcommit__card" data-state="ready">
+              <span class="pcommit__step">Needs steps 2 and 3, in either order <span class="wf-scaffold">&middot; matrix act 3, release plan</span></span>
+              <h3>Patient release</h3>
+              <p>Generates the exact release preview, takes the attestation against its hash, and makes the package patient-visible. The final act, and the only one the patient ever sees. It completes here, in the card: there is no screen to navigate to between attesting to a document and releasing it.</p>
+              <p>Withheld until the Preview note is locked, the order set is authorized and a preview has been generated. It asks for both, not for a sequence: whichever of the two happened first, this opens once both are done. All three have cleared below, so the act is open. Order authorization stays a separate physician act with its own attestation; nothing on this card re-performs it.</p>
+
+              <div class="rx-release">
+
+                <ol class="amd-stepper rx-steps" aria-label="Release progress">
+                  <li class="amd-stepper__step" data-state="complete">
+                    <span class="amd-stepper__segment"></span>
+                    <b>1</b><span>Review</span><small>started 30 Aug</small>
+                  </li>
+                  <li class="amd-stepper__step" data-state="complete">
+                    <span class="amd-stepper__segment"></span>
+                    <b>2</b><span>Exact preview</span><small>generated and hashed</small>
+                  </li>
+                  <li class="amd-stepper__step" data-state="current">
+                    <span class="amd-stepper__segment"></span>
+                    <b>3</b><span>Attest</span><small>pending</small>
+                  </li>
+                  <li class="amd-stepper__step">
+                    <span class="amd-stepper__segment"></span>
+                    <b>4</b><span>Release</span><small>pending</small>
+                  </li>
+                </ol>
+
+                <!-- The complete release preview. P8: the merged screen is long,
+                     so the longest block collapses rather than being elevated or
+                     shortened. It opens by default because a physician who is
+                     about to attest to it has to have read it. -->
+                <details class="pdisc" open>
+                  <summary>Complete release preview &middot; package REL-47M-0001 &middot; not yet released</summary>
+                  <div class="pdisc__body rx-release">
+
+                    <p>The exact package the patient app will receive, shown before it is sent. What you read here is what he reads, and the hash proves the two are the same object.</p>
+
+                    <div class="pspine">
+
+                      <section class="pspine__group">
+                        <h3>Patient-safe doctor message</h3>
+                        <p class="rx-msg">Ethan, I have been through everything. The short version: your metabolism is the thing worth working on this year, your blood pressure needs a fortnight of home readings before I decide anything about it, and the genetics result is one I want you to hear from a counsellor rather than read here. Nothing on this list is urgent this week. Four things follow, in the order I would do them.</p>
+                      </section>
+
+                      <section class="pspine__group">
+                        <h3>Exact patient-visible actions</h3>
+
+                        <div class="rx-act">
+                          <p class="rx-act__title">1. Start the weekly injection</p>
+                          <dl class="rx-parts">
+                            <dt>Why it matters</dt><dd>Your fasting insulin and HbA1c put you on the path to type 2 diabetes, and this is the single change with the largest effect on that path.</dd>
+                            <dt>What to do</dt><dd>Inject <b>2.5 mg</b> once a week, same day each week. The pharmacy will call you.</dd>
+                            <dt>Provenance</dt><dd>Aleron action library <span class="pval">v2.4.1</span>, scored against your packet of 24 Jun 2026</dd>
+                            <dt>Evidence</dt><dd>Randomised trial evidence, high certainty</dd>
+                            <dt>Next step</dt><dd>Repeat HbA1c and fasting insulin at <span class="pval">12<span class="pval__u">weeks</span></span></dd>
+                            <dt>Status</dt><dd><span class="pval">not_started</span></dd>
+                          </dl>
+                        </div>
+
+                        <div class="rx-act">
+                          <p class="rx-act__title">2. Two strength sessions a week</p>
+                          <dl class="rx-parts">
+                            <dt>Why it matters</dt><dd>Losing weight costs you muscle unless you train against it. This protects the muscle while the injection does its work, and it raises your fitness, which is low for your age.</dd>
+                            <dt>What to do</dt><dd>Two supervised sessions a week for <b>12 weeks</b>, full body, progressive load.</dd>
+                            <dt>Provenance</dt><dd>Aleron action library <span class="pval">v2.4.1</span>, sequenced with action 1</dd>
+                            <dt>Evidence</dt><dd>Randomised trial evidence, moderate certainty</dd>
+                            <dt>Next step</dt><dd>Repeat the fitness estimate at <span class="pval">12<span class="pval__u">weeks</span></span></dd>
+                            <dt>Status</dt><dd><span class="pval">not_started</span></dd>
+                          </dl>
+                        </div>
+
+                        <div class="rx-act">
+                          <p class="rx-act__title">3. Fourteen days of home blood pressure readings</p>
+                          <dl class="rx-parts">
+                            <dt>Why it matters</dt><dd>Your clinic reading was high. One reading in one room is not enough to put you on a medication for the rest of your life, so we measure properly first.</dd>
+                            <dt>What to do</dt><dd>Twice a day, morning and evening, for <b>14 days</b>. Sit five minutes first, feet flat, cuff on bare skin at heart height.</dd>
+                            <dt>Provenance</dt><dd>Aleron action library <span class="pval">v2.4.1</span>, gate with reclassification probability <span class="pval">65<span class="pval__u">%</span></span></dd>
+                            <dt>Evidence</dt><dd>Guideline recommendation, high certainty</dd>
+                            <dt>Next step</dt><dd>Send the readings; the result decides whether anything is started</dd>
+                            <dt>Status</dt><dd><span class="pval">not_started</span></dd>
+                          </dl>
+                        </div>
+
+                        <div class="rx-act">
+                          <p class="rx-act__title">4. Choose how you want your bowel screening done</p>
+                          <dl class="rx-parts">
+                            <dt>Why it matters</dt><dd>You are 47 and have never been screened. Both options find the same thing; they differ in how often and how invasive they are.</dd>
+                            <dt>What to do</dt><dd>Pick one: a colonoscopy every <b>10 years</b>, or a stool test every <b>year</b>.</dd>
+                            <dt>Provenance</dt><dd>Preventive-care rule, USPSTF age threshold. Required channel, not ranked against the others.</dd>
+                            <dt>Evidence</dt><dd>Guideline recommendation, high certainty</dd>
+                            <dt>Next step</dt><dd>Your choice books the referral or the lab. Nothing is ordered until you pick.</dd>
+                            <dt>Status</dt><dd><span class="pval">not_started</span></dd>
+                          </dl>
+                        </div>
+                      </section>
+
+                      <section class="pspine__group">
+                        <h3>Required-item disposition</h3>
+                        <div class="pledger__scroll">
+                          <table class="pledger">
+                            <thead>
+                              <tr>
+                                <th scope="col">Required item</th>
+                                <th scope="col">Disposition</th>
+                                <th scope="col">Patient sees</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>Genetic counselling referral
+                                  <small class="pledger__prov">Genetics library obligation &middot; Z15.09</small>
+                                </td>
+                                <td>Referred 31 Aug 2026, appointment pending</td>
+                                <td>Named as an appointment to expect. The finding itself is not named.</td>
+                              </tr>
+                              <tr>
+                                <td>Family-history gate: breast, pancreatic, prostate
+                                  <small class="pledger__prov">Cascade documentation &middot; Z15.09</small>
+                                </td>
+                                <td>Documented 31 Aug 2026, cascade pending</td>
+                                <td>Described as questions the counsellor will ask.</td>
+                              </tr>
+                              <tr>
+                                <td>Colorectal cancer screening
+                                  <small class="pledger__prov">Preventive-care rule &middot; Z12.11</small>
+                                </td>
+                                <td>Offered as a choice, no modality selected</td>
+                                <td>Action 4 above.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <p class="pbase">3 of 3 required items disposed. An undisposed required item fails release validation.</p>
+                      </section>
+
+                      <section class="pspine__group">
+                        <h3>Hidden and excluded items</h3>
+                        <div class="pledger__scroll">
+                          <table class="pledger">
+                            <thead>
+                              <tr>
+                                <th scope="col">Item</th>
+                                <th scope="col">State</th>
+                                <th scope="col">Patient visibility reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>ATM heterozygous P/LP, named finding</td>
+                                <td>Hidden</td>
+                                <td>Genetics display policy: counselled first. The variant is not named in the plan; it is disclosed in the counselling session and released afterwards.</td>
+                              </tr>
+                              <tr>
+                                <td>Oral glucose tolerance test, 75 g</td>
+                                <td>Excluded</td>
+                                <td>Physician rejected, low value of information for this patient. The override reason is stored for audit and is not patient-safe copy.</td>
+                              </tr>
+                              <tr>
+                                <td>Sleep apnea concern, SpO2 nadir 89 %</td>
+                                <td>Hidden</td>
+                                <td>Provisional and not diagnosis-grade. Naming it would be a hint that a serious result exists without approved hold copy.</td>
+                              </tr>
+                              <tr>
+                                <td>Action map coordinates and QALY derivation</td>
+                                <td>Never patient-facing</td>
+                                <td>Internal derivation tables. Releasable only once translated and explicitly included, and neither has been translated for this package.</td>
+                              </tr>
+                              <tr>
+                                <td>Raw lab values, 27 fields</td>
+                                <td>Hidden</td>
+                                <td>Released as explanations only, as this package permits. The values themselves stay in the chart.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <p class="pbase">5 items withheld, each with a stored reason. Hidden items are retained for audit and are not sent to the patient app.</p>
+                      </section>
+
+                      <section class="pspine__group">
+                        <h3>Provenance and lineage</h3>
+                        <dl class="pfacts">
+                          <dt>Action library</dt><dd><span class="pval">v2.4.1</span> &middot; hash <span class="pval">lib 3ce8 55f1 a904 7b2d</span></dd>
+                          <dt>Packet</dt><dd><span class="pval">PKT-47M-0001</span> &middot; frozen 24 Jun 2026 &middot; hash <span class="pval">pkt 08bb 41d7 c26a 9f30</span></dd>
+                          <dt>Engine run</dt><dd><span class="pval">RUN-47M-0003</span> &middot; 29 Aug 2026</dd>
+                          <dt>Action map state</dt><dd><span class="pval">AMS-47M-0003</span></dd>
+                          <dt>Source plan</dt><dd><span class="pval">PLAN-47M-0001</span> &middot; signed 31 Aug 2026, 11:48</dd>
+                          <dt>Physician actor</dt><dd>Dr. A. Okafor &middot; NPI <span class="pval">1487520394</span> &middot; signature <span class="pval">SIG-47M-0001</span></dd>
+                          <dt>Genetics policy</dt><dd>ATM heterozygous P/LP: counselled first, then released</dd>
+                          <dt>Validation</dt><dd><span class="pval">6</span> checks passed, <span class="pval">0</span> failed</dd>
+                        </dl>
+                      </section>
+
+                    </div>
+
+                    <div class="pbound">
+                      <b>Patient-safe boundary</b>
+                      <span>Projection is patient-safe only. No raw internal artefact, no AI candidate output, no
+                      draft override reason and no vendor payload is present in this package.</span>
+                    </div>
+
+                    <details class="pdisc">
+                      <summary>Preview hash and what it covers</summary>
+                      <div class="pdisc__body">
+                        <p>The hash is taken over the serialized package: the doctor message, the four visible actions
+                        with every field above, the required-item dispositions, the hidden-item list with its reasons,
+                        the genetics policy and the lineage ids. Editing any one of them produces a different hash and
+                        invalidates the attestation, which is the point of attesting to a hash rather than to a screen.</p>
+                        <dl class="pfacts">
+                          <dt>Preview hash</dt><dd><span class="pval">prev b6d4 2a17 e80c 5931</span></dd>
+                          <dt>Generated</dt><dd>31 Aug 2026, 11:52 &middot; Dr. A. Okafor</dd>
+                          <dt>Covers</dt><dd>Package id, plan id, engine run id, action map state id, actor id, doctor message, visible actions, required items, hidden items, genetics policy</dd>
+                          <dt>Excludes</dt><dd>The release timestamp, which is written at the moment of release and re-hashed into the released package</dd>
+                          <dt>On release</dt><dd>The package hash is appended to the audit log and linked to the Canvas note id, per section 7</dd>
+                        </dl>
+                      </div>
+                    </details>
+
+                  </div>
+                </details>
+
+                <!-- Preview, attest, release. Three controls, each enabled by
+                     the one above it, and none of them the note lock or the
+                     order authorization: those are steps 2 and 3, taken in
+                     whatever order the physician took them. -->
+                <div class="rx-acts">
+                  <button class="amd-button" data-variant="secondary" type="button">Generate release preview</button>
+                  <p class="rx-note">Done at 11:52. Regenerating replaces the hash and clears the attestation.</p>
+
+                  <label class="pattest">
+                    <input type="checkbox">
+                    <span>I attest that I reviewed this exact preview and gating evidence.</span>
+                  </label>
+                  <p class="rx-note">Attesting binds your actor id to preview hash <span class="pval">prev b6d4 2a17 e80c 5931</span>, not to this screen.</p>
+
+                  <button class="amd-button" data-variant="secondary" type="button" aria-disabled="true">Authorize release</button>
+                  <p class="rx-note">Enabled by the attestation above. <span class="wf-scaffold">Authorization is not release; it is the permission to release.</span></p>
+
+                  <button class="amd-button" data-variant="primary" type="button" aria-disabled="true">Release to patient</button>
+                  <p class="rx-note">Enabled by authorization. <span class="wf-scaffold">Publishing happens after authorization, never with it.</span></p>
+                </div>
+
+                <details class="pdisc">
+                  <summary>Canvas linkage</summary>
+                  <div class="pdisc__body">
+                    <p>Section 7: patient visibility opens only after both the Aleron release authorization and the
+                    required Canvas linkage are satisfied. The note is locked and the DocumentReference is written;
+                    the Canvas note id links back on release.</p>
+                    <dl class="pfacts">
+                      <dt>Note</dt><dd>Locked 31 Aug, 11:48</dd>
+                      <dt>Canvas note</dt><dd><span class="pna">links on release</span></dd>
+                      <dt>Signing path</dt><dd>Aleron authorization, Canvas linkage</dd>
+                    </dl>
+                  </div>
+                </details>
+
+                <details class="pdisc">
+                  <summary>What a release package must contain</summary>
+                  <div class="pdisc__body">
+                    <p>Role and Release Matrix v1 section 6 lists ten required parts. The preview above renders all ten,
+                    in this order, and shows an empty one as empty rather than dropping the heading.</p>
+                    <dl class="pfacts">
+                      <dt>1</dt><dd>Package id, source plan id, source engine run id, source action map state id</dd>
+                      <dt>2</dt><dd>Physician actor id and signature or release authorization id</dd>
+                      <dt>3</dt><dd>Release timestamp</dd>
+                      <dt>4</dt><dd>Patient-safe doctor message</dd>
+                      <dt>5</dt><dd>Visible actions, status initialized to <span class="pval">not_started</span> unless the physician sets otherwise</dd>
+                      <dt>6</dt><dd>Per visible recommendation: why it matters, what to do, provenance summary, units for all values, evidence label, next step</dd>
+                      <dt>7</dt><dd>Required items and holds</dd>
+                      <dt>8</dt><dd>Hidden items with patient visibility reason, stored for audit, not sent</dd>
+                      <dt>9</dt><dd>Genetics display policy for each genetics finding</dd>
+                      <dt>10</dt><dd>Audit validation result</dd>
+                    </dl>
+                  </div>
+                </details>
+
+                <!-- Second specimen: the same act when the gating checks fail. -->
+                <p class="wf-note" data-kind="new" style="margin: var(--air-section) 0 var(--air-tier);"><span class="wf-note__tag">new</span>
+                  <span>Second specimen. Only one state of the release renders at a time: withheld behind a
+                  reason list while either of steps 2 and 3 is still open, ready as above once both have
+                  cleared in whichever order they cleared, or blocked as below when the release gating fails.
+                  Steps 2 and 3 are shown in their own states on their own panes so the three acts stay
+                  legible as three; a live chart renders one moment, not three.</span></p>
+
+                <div class="rx-release">
+                  <h4 class="rx-spechead">Authorization blocked <span>Priya Raghunathan &middot; AL-44F &middot; the same act when the gating checks fail</span></h4>
+
+                  <div class="pbound">
+                    <b>Authorization blocked</b>
+                    <span>Required-item dispositions, provenance, patient-safe boundary and lineage not emitted. No
+                    package can be produced, so nothing was sent and nothing was hashed.</span>
+                  </div>
+
+                  <ol class="amd-stepper rx-steps" aria-label="Release progress, blocked case">
+                    <li class="amd-stepper__step" data-state="complete">
+                      <span class="amd-stepper__segment"></span>
+                      <b>1</b><span>Review</span><small>started 28 Aug</small>
+                    </li>
+                    <li class="amd-stepper__step" data-state="current">
+                      <span class="amd-stepper__segment"></span>
+                      <b>2</b><span>Exact preview</span><small>not ready</small>
+                    </li>
+                    <li class="amd-stepper__step">
+                      <span class="amd-stepper__segment"></span>
+                      <b>3</b><span>Attest</span><small>pending</small>
+                    </li>
+                    <li class="amd-stepper__step">
+                      <span class="amd-stepper__segment"></span>
+                      <b>4</b><span>Release</span><small>pending</small>
+                    </li>
+                  </ol>
+
+                  <div class="preason">
+                    <strong>Four checks, four failures</strong>
+                    <ul>
+                      <li><b>Required-item dispositions.</b> 2 of 3 required items have no disposition: the genetic
+                      counselling referral and the family-history gate. The matrix fails validation on any unresolved
+                      required hold.</li>
+                      <li><b>Provenance.</b> 2 visible recommendations carry no provenance summary. Any visible
+                      recommendation without provenance fails validation, whatever else is right about it.</li>
+                      <li><b>Patient-safe boundary.</b> The projection is not patient-safe only: a draft override reason
+                      is present in the visible copy, and draft override reasons that are not patient-safe copy are
+                      never patient-facing.</li>
+                      <li><b>Lineage.</b> <span class="pval">source_action_map_state_id</span> is
+                      <span class="pna">not emitted</span>, so the package cannot be traced back to the run that
+                      produced it.</li>
+                    </ul>
+                  </div>
+
+                  <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-49" aria-label="Wireframe explanation, not part of the product">i</button><p class="pbase wf-scaffold wf-ex__bubble" id="wf-ex-49" role="note">No control on this specimen is greyed out with no explanation, and none is hidden.
+                  The three act buttons are absent because there is nothing to act on: a preview was never produced.
+                  The blockers are the card.</p></div>
+
+                  <details class="pdisc">
+                    <summary>The six conditions that fail release validation</summary>
+                    <div class="pdisc__body">
+                      <p>Role and Release Matrix v1 section 6 names them, and any one of them is enough:</p>
+                      <ul class="wf-notelist">
+                        <li>Any visible recommendation lacks provenance.</li>
+                        <li>Any visible clinical value lacks a unit.</li>
+                        <li>Any visible item is not present in the reviewed clinical plan.</li>
+                        <li>Any draft or raw AI field is included.</li>
+                        <li>Any required hold is unresolved.</li>
+                        <li>Physician actor or signature semantics are missing.</li>
+                      </ul>
+                      <p>The second condition is the reason every value in the preview above carries its unit. It is the
+                      same P4 rule the instrument follows everywhere else, promoted here into a release gate.</p>
+                    </div>
+                  </details>
+                </div>
+
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-48" aria-label="Wireframe explanation, not part of the product">i</button><details class="pdisc wf-scaffold wf-ex__bubble" id="wf-ex-48" role="note">
+        <summary>Why three acts instead of one Sign and release</summary>
+        <div class="pdisc__body">
+          <p>Role and Release Matrix v1 section 3 lists <em>Sign plan</em>, <em>Create lab order request</em>
+          and <em>Release plan</em> as three separate permissions with three different rows, and one of them
+          (<em>Release plan</em>) carries a delegation clause the other two do not. Collapsing them into one
+          control would make the surface claim an authority model the backend does not have.</p>
+          <p>It also matters clinically. An order can transmit before the note is locked, and a note can be
+          locked with orders still pending; both are legitimate and both happen. A single button forces one
+          ordering onto every case and silently performs two acts the physician only consented to one of.</p>
+          <p>The rail above numbers four steps and the matrix numbers three acts, so the two do not
+          line up and the act headings carry no ordinal. Step 1 is the plan and is not an act at all.
+          Step 2 is matrix act 1, step 3 is matrix act 2, step 4 is matrix act 3. Steps 2 and 3 have
+          no order between them; step 4 needs both, in either order.</p>
+          <dl class="pfacts">
+            <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> section 3</dd>
+            <dt>Act 1</dt><dd>Sign plan. Physician only. No delegation.</dd>
+            <dt>Act 2</dt><dd>Create lab order request. Physician approves if required; ops coordinate; the service worker submits the adapter call.</dd>
+            <dt>Act 3</dt><dd>Release plan. Physician only, or delegated only if legal approves. Publishing happens after authorization, not with it.</dd>
+            <dt>Lifecycle</dt><dd>Plan editing to Plan ready for signature to Plan signed to Plan released. Release is allowed only from Plan signed.</dd>
+          </dl>
+        </div>
+      </details></div>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-47" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-47" role="note">
+        Synthetic staging draft &middot; problems, dispositions and order intents come from the AL-47M action-map
+        state &middot; every field records its own lineage, and a physician edit replaces the drafted value without
+        erasing where the draft came from &middot; release hashes are shortened for reading, and the attestation binds
+        to the preview hash, so any edit after attesting invalidates it and the release returns to its own
+        second stage, the exact preview.
+      </p></div>
+
+    </div>
+
+      <!-- Running tally, and the foot of the surface.
+           It used to be a grid item inside .cp-wrap, sticky against that grid.
+           .cp-wrap ends 44px of margin plus 48px of main padding above the desk
+           floor, so on reaching the bottom the dock unstuck 200px early and sat
+           in the middle of empty ground with nothing under it, which read as a
+           floating bar rather than as the foot of the work. As the last child of
+           .pmain its containing block ends at the desk floor, so it stays put
+           and there is no surface below it to scroll to.
+
+           Now that it is screen level rather than column level it carries the
+           step act as well. Its text follows the selected step, read from the
+           step rail so nothing is duplicated between the two. -->
+      <div class="v3-dock" id="v3-dock">
+        <span class="v3-dock__count" id="v3-dock-count">3 of 6 added</span>
+        <span class="v3-dock__detail" id="v3-dock-detail">5 orders will queue &middot; 2 required and not declinable</span>
+        <span class="v3-dock__right">
+          <button class="amd-button" data-variant="secondary" data-density="row" type="button" id="v3-dock-clear">Clear all</button>
+          <button class="amd-button" data-variant="primary" data-density="row" type="button" id="v3-dock-next">Next: Note lock</button>
+        </span>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What v3 asks, and what it changes</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Typography audit across every step.</b> The screen had prose at two sizes with no rule
+    deciding which: <code>.v3-basis</code>, <code>.rl-body</code>, <code>pfacts dd</code> and a commit
+    card's own paragraphs at 13px, and <code>.rl-src</code>, <code>.rl-dim</code>, <code>.rx-note</code>,
+    <code>.ap-docsig</code> and the step note at <span class="pval">10.5<span
+    class="pval__u">px</span></span>, the chart-annotation tier. Sentences do not belong there; units,
+    chips, eyebrows and metadata do. All running prose is <code>--size-small</code> now, and the ladder
+    reads in one direction:
+    <span class="pval">26</span> page title, <span class="pval">19</span> document and act titles,
+    <span class="pval">18</span> note sections, <span class="pval">15.5</span> at emphasis for peer
+    sub-headings and the note's own editable prose, <span class="pval">13</span> supporting prose,
+    <span class="pval">10.5</span> annotation. Verified on the rendered page with all four steps and
+    every disclosure open: <span class="pval">49</span> headings checked,
+    <span class="pval">0</span> cases of a heading smaller than the block it heads.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>One 10.5px heading is deliberately left: <code>.pspine__group &gt; h3</code> in the release
+    preview, which runs tracked uppercase. Small tracked caps are a heading device, which is why it reads
+    as one at a size that would otherwise be a footnote, and the chrome calls it the single sanctioned
+    P5 scan-clause use on a physician surface. It is the opposite case to the section labels that were
+    fixed earlier: those were 10.5px with no caps, no tracking and a dimmer colour, so nothing marked them
+    as headings at all.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Every peer sub-heading now takes the canonical <code>.amd-prose-heading</code>.</b> The tier
+    was ratified upstream after this screen proved it was missing, so the local <code>.ap-flabel</code>
+    is deleted rather than aliased: a silent dialect is the thing AGENTS.md forbids, and the point of the
+    upstream change was to stop every surface inventing its own.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The first pass at this drew the line in the wrong place. It keyed on the control below the
+    label, promoting the ones over a textarea and leaving <code>.amd-field__label</code> on the ones over
+    a select or an input, on the argument that a form label is what the canonical component is for. That
+    is true of a form and wrong here: inside one item, <em>Assessment</em>, <em>Plan</em>,
+    <em>Disposition</em>, <em>Problem-list match</em>, <em>Command on signature</em> and <em>Orders</em>
+    are peers at the same depth, and whether a paragraph or a select sits under one is an implementation
+    detail, not a rank. The rule is depth, not control type. Eight labels in one detail were rendering in
+    two treatments.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><code>Problem-list match</code> was the case the first pass missed outright. It heads a
+    paragraph, not a control, so it was the original defect exactly, a heading at
+    <span class="pval">13<span class="pval__u">px</span></span> and 400 weight in a dimmed colour over
+    prose, and it was wearing <code>.rl-axislabel</code>, a class the selector never looked at. The four
+    in-detail uses are promoted; the rail keeps its own, because there the label sits in a 250px column
+    where the compact treatment is right and the class is generated by the script rather than
+    written in the markup.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span><b>The basis line is uncapped, by decision.</b> It carried a 24rem measure, which measured out
+    at <span class="pval">65</span> characters against the real sentences, inside the 62 to 71 the
+    chrome's own measure comment calls comfortable. It looked stranded because it was the only paragraph
+    in the accordion that had a measure at all. Extending the measure to its neighbours was the other
+    option and was not taken: the paragraphs now fill the detail like everything else in it, at about
+    <span class="pval">156</span> characters a line.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The basis line was the only paragraph in the item with a reading measure.</b> It read as a
+    stranded half-width block against full-width neighbours, so the obvious diagnosis was that its
+    <code>max-width</code> was wrong. Measured against the real sentences at 13px, the opposite is true:
+    <span class="pval">384<span class="pval__u">px</span></span> is <span class="pval">65</span>
+    characters, inside the 62 to 71 the chrome's own measure comment calls comfortable, and the uncapped
+    prose beside it was running <span class="pval">156</span>. The cap is now shared by every paragraph in
+    the item detail, so the measure reads as a column rather than as one element that forgot to
+    stretch.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The textareas are the same problem one tier up and are left alone, because changing the width of
+    the note's own fields is a layout decision rather than a typographic one. At
+    <span class="pval">986<span class="pval__u">px</span></span> and 15.5px the indication runs about
+    <span class="pval">138</span> characters a line and the assessment and plan fields about
+    <span class="pval">131</span>. A physician reads these back before locking the note, so the measure
+    matters as much as it does for the prose above them. The fix is either a measure on the field or a
+    narrower document column, and the second is the one the register would have an opinion
+    about.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The type hierarchy was upside down.</b> A section heading was <span class="pval">10.5<span
+    class="pval__u">px</span></span> over <span class="pval">15.5<span class="pval__u">px</span></span>
+    prose, at lighter weight and in a dimmer colour: three signals all inverted, so the heading read as a
+    footnote to the paragraph it was heading. The document is a clinical note and should behave like one.
+    The ladder now descends and nothing that heads a block is smaller than the block:
+    <span class="pval">19</span> document title, <span class="pval">18</span> section,
+    <span class="pval">15.5</span> at emphasis for the note's own prose headings,
+    <span class="pval">15.5</span> regular for the prose. <code>--size-caption</code> is the
+    chart-annotation tier and belongs to marks on an instrument, not to the headings of a
+    document.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The type error sat on top of a category error. Assessment, Plan, Indication, Narrative and Reason
+    were wearing <code>.amd-field__label</code>, which is sized for a label above a short input. They are
+    sections of a document that happen to be editable, and they head paragraphs. They now use
+    <code>.ap-flabel</code>, and the canonical label is left to the things it is for: the disposition and
+    command selects, the onset date, the orders group. That also means no canonical component was
+    restyled to fix this.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Indication and Narrative each carried the same label twice.</b> The section heading said
+    <em>Indication</em> and the field label immediately under it said <em>Indication</em> again, and the
+    same for <em>Narrative</em>: both are single-textarea sections, so the section heading already was the
+    field heading. v2 had this right, using a <code>wf-sr-only</code> label so the control keeps an
+    accessible name while the heading does the visible work; v3 had drifted. Matched to v2. Assessment and
+    Plan repeating inside <em>Assessment and plan</em> is not the same thing, that is one pair per problem
+    and correct nesting.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Upstream: <code>.amd-field__label</code> at <code>--size-small</code> is right for a form and
+    wrong for a document, and <code>components.json</code> offers nothing between a field label and an
+    <code>h3</code>. Every screen that needs a heading for a block of prose has to invent one, which is how
+    this screen ended up putting the annotation tier on a section heading. A document sub-heading tier
+    would close it.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The scoring queue came off the surface, the honesty stayed on it.</b>
+    <em>Logged for scoring review</em> described a back-office queue the physician cannot see, gets no
+    feedback from and takes no action on, and it raised a question the screen never answered: reviewed by
+    whom, and does that change this patient's plan? What a physician does act on is that their own problem
+    carries no score, so the helper now reads <em>a problem you add carries no score; the action map prices
+    what the library has modelled, and nothing is invented to fill the gap</em>. The second half is P7 said
+    out loud and is worth keeping. Four places carried the phrasing: this helper, the bradycardia basis,
+    the workbench rail card here and on v2.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The worst instance was not a label. <em>Logged unscored for library review either way</em> sat
+    inside the <b>Reason not carried</b> textarea, which is the physician's own clinical justification. No
+    clinician writes that sentence. A fixture that puts our vocabulary in the doctor's mouth is not just
+    leaking copy, it is misrepresenting how the field would be used, and it would have shipped as the
+    example everyone copied.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The <code>api-on-product-surface</code> rule would not have caught any of this, and no reasonable
+    regex would. It matches API vocabulary; this was a process leak in ordinary English. Lint can hold the
+    line on field names and enums. Whether a sentence describes something the physician acts on is a
+    reading, so it is now a question in <code>BRIEF.md</code> rather than a rule pretending to
+    settle it.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>A required item can be set aside, but never silently.</b> The obligation's checkbox was
+    <code>aria-disabled</code> and labelled <em>cannot be declined</em>, which claimed an authority over
+    clinical judgement that the system of record does not itself claim. Canvas puts
+    <code>can_be_snoozed</code> on each protocol rather than having one global rule, records a set-aside in
+    <code>ProtocolOverride</code> with the committer and the narrative, and carries action, author and date
+    in <code>DetectedIssue.mitigation</code>. Nothing in Canvas disables a clinician: an obligation stays
+    outstanding until it is dispositioned. The item now offers include, defer with a reason, or document an
+    exception, and the reason field is required for the latter two. What cannot happen is a P/LP finding
+    leaving the note with no author and no reason, which was the only thing the carve-out was ever
+    protecting.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The Custom Data Model gap was overstated and is now scoped. Declining a <b>scored suggestion</b>
+    still has no Canvas field. Declining an <b>obligation</b> does:
+    <code>DetectedIssue</code> is one of the few resources with full create, read, update and search over
+    the FHIR API, and its <code>mitigation</code> array takes <code>accepted</code>,
+    <code>deferred</code> and <code>refuted</code> with an author and a date. The exception button was
+    never a gap.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Billing copy removed. Aleron is a membership programme and no physician billing happens, so
+    <em>cash-pay, no billing dx captured</em> and <em>no payer diagnosis code required</em> named a
+    reimbursement model that does not exist here. The indication is still captured, because a documented
+    indication is what makes an order defensible, and that was always the real reason for the field rather
+    than anything to do with a payer.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Verification status is gone from all three problems.</b> It sat in the accordion as a data
+    axis beside <em>Problem-list match</em> and <em>Command on signature</em>, so it read as a fact about
+    the patient, but the physician cannot set it: it named the field, its writability and the list of
+    values Canvas permits. That is integration documentation, and it is available on the journal and in
+    Canvas for anyone who needs it. The one clinically load-bearing part, why an unconfirmed hypertension
+    stays note-only, already sat with the command that causes it and is untouched.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The command help says what happens, not what is written. <code>category: problem-list-item</code>
+    and <code>clinicalStatus: active</code> became <em>adds an active entry to the problem list</em>;
+    <code>category: health-concern</code> became <em>records a health concern rather than a diagnosis</em>;
+    the note on Canvas having no revise operation became <em>the existing entry is added to, never
+    replaced</em>. Same facts, in the vocabulary of the person reading them.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>This is the leak the scaffold pass missed, and it is worth naming why. The red marking caught
+    staging footers and design arguments because they read as argument. This read as clinical data: it was
+    a labelled axis in a row of axes, in the same voice as the values around it. A surface can leak
+    implementation detail most convincingly when it dresses it as a field.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The dock stopped sticking 200px early.</b> It was a grid item inside
+    <code>.cp-wrap</code>, sticky against that grid, and <code>.cp-wrap</code> ends 44px of margin plus
+    48px of main padding above the desk floor. Scrolling to the bottom released it into the middle of
+    empty ground with nothing underneath, which read as a floating bar rather than as the foot of the
+    work. It is now the last child of <code>.pmain</code>, so its containing block ends at the desk floor
+    and there is no surface left to scroll to. Measured at every step: the gap below it is 0px, was
+    200px.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Being screen level rather than column level, the dock now carries the act that leaves the step:
+    <code>Next: Note lock</code>, then <code>Next: Order authorization</code>, then
+    <code>Next: Patient release</code>, and nothing on the last step because there is nowhere further to
+    go. Its text follows the selected step and is read out of the step rail rather than restated, so the
+    bar and the rail cannot disagree. <code>Clear all</code> shows on the plan step only: clearing the
+    list is an act on the plan, not on a commit act.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><code>.v3-dock .amd-button</code> restyled a canonical component, which BRIEF forbids outright,
+    and it was fighting the chrome: the dock button already carried
+    <code>data-density="row"</code>, so the local rule was shrinking a control below the size the
+    row-density proposal argues for. The override is gone and the proposed variant applies.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>A Goal is not an API write. <code>Dx: not required for a Goal</code> now also says the Goal is
+    set by a Goal command, because <code>Goal</code> is read and search only in the Canvas FHIR API. The
+    rest of this screen's Canvas claims survived the check: <code>verificationStatus</code> really is not
+    writable, Canvas really carries only confirmed, provisional and entered in error,
+    <code>category: encounter-diagnosis</code> is a supported category, and e-Rx staying native is
+    corroborated by <code>MedicationRequest</code> being read only rather than merely by
+    policy.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Order authorization no longer waits on the note lock. The card listed
+    <code>The Preview note is not locked. Act 1 comes first.</code> as a blocker, which contradicted
+    this screen's own <em>Why three acts</em> disclosure two screens down: "an order can transmit
+    before the note is locked, and a note can be locked with orders still pending; both are
+    legitimate and both happen." <code>v0/care-plan-note.html</code> already had it right, and says
+    so in its documentation rules: signing orders and locking the note are separate acts. The
+    blocker is gone, the card is labelled an independent physician act, and the two blockers that
+    remain are about the orders themselves, a missing colorectal modality and a stale step-up
+    re-authentication. Release still needs both, because it genuinely does.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Four steps instead of one scroll. Plan, note lock, order authorization, patient release
+    were stacked on one page at roughly 9,800px; the plan pane, the one a physician works every
+    visit, is now about 2,800px. The separation is v0's two-step wizard idea, carried into this
+    register and extended to four, but it stays one file and one URL: the acts complete in their
+    own cards and nothing navigates, which is the property v2 and v3 were built to keep.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>It is a tablist, not a wizard. A numbered rail implies each step unlocks the next, and
+    two of these do not: the note lock and the order authorization have no order between them.
+    Every step is reachable from every other, no step disables another, and the line under the rail
+    says so. Selecting a step is looking at it, never taking it.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Two numbering schemes now sit on one screen. The rail counts four steps, the Role and
+    Release Matrix counts three acts, and step 1 is not an act at all. The act headings dropped
+    their ordinals and the mapping is stated in the disclosure, but a surface that has to explain
+    its own numbering is a naming problem upstream, not a layout one.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Two golds can be on screen at once. The step rail marks the selected step with the
+    canonical <code>amd-stepper</code> forward-gold segment, and the release pane carries its own
+    four-stage stepper with the same treatment. P2 allows one gold as the selection focus on an
+    instrument; a navigation rail and a progress readout are not the same instrument, but nothing
+    in the register says which one yields. Held rather than fixed locally.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>A <code>role="tab"</code> button whose children are elements rather than a text node
+    computes no accessible name in at least one tree walker, and name-from-content ran the three
+    label tiers together as <code>Step 3Order authorization5 queued</code> besides. Each tab now
+    states its own <code>aria-label</code>, repeating the visible text so 2.5.3 Label in Name
+    holds. <code>components.json</code> declares no tab or stepper anatomy that would have caught
+    this, which is the same undeclared-component gap the rail has.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The panes need script. Steps 2 to 4 ship <code>hidden</code> and only the switcher
+    reveals them, so with script off this screen is its plan step and nothing else. The set already
+    depends on script for the workbench rail, whose detail card renders empty without it, so this
+    does not add a dependency; it does widen one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The note-lock card counted <span class="pval">6</span> order intents. The fixture carries
+    five, the running dock says five and the signature line says five. Corrected to five in both
+    places it appeared, the fact list and the attestation.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The note starts empty and every suggestion is opt in. This is v0's model, the one the
+    shipped portal uses, carried into the canonical register. v2 does the opposite: the engine
+    drafts everything into the note and the physician prunes it. Under opt out an engine draft is
+    the default content of a document that becomes a signed legal record, and it stays there unless
+    a physician intervenes; under opt in it cannot be, but the physician does more work on every
+    patient and a correct suggestion can be lost to omission rather than rejected on purpose. Both
+    are defensible and the sources disagree, which is why this is a screen and not a decision
+    already taken.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>One list, not two sections. Each suggestion is a row: the checkbox decides whether it
+    reaches the record, the chevron opens it to edit the assessment, the plan, the disposition and
+    the orders. An excluded row opens too, because its rationale is what you read before deciding.
+    The first build of this screen had candidates above and the note below, which rendered every
+    included item twice and left the reader matching them up by name.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>No rank badge and no QALY figure on a row. <code>Aleron-Web</code> stamps
+    <code>ENG #1 &middot; 8.42</code> and a <b>TOP 3</b> marker on each care-plan item, and the
+    first build of v3 copied that. The canonical build does not: searching
+    <code>carePlanView.js</code> for rank, score, qaly or priority returns nothing, and ranking
+    lives on the action map and in the reasoning trace instead. The list is in engine order, which
+    carries the same information without inviting deference to a number printed on a clinical
+    item.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Problem disposition is edited in the row that owns it. Both axes come from
+    <code>apps/physician/src/carePlanView.js</code>, which renders them as two selects per
+    problem: <code>diagnostic_certainty</code> over confirmed, provisional, monitoring and
+    not applicable, and <code>problem_list_disposition</code> over note only, add to active
+    problem list and update existing problem. They are closed-key fields, asserted in
+    <code>aiColleague.js</code> and <code>carePlanWorkflow.js</code>. They are segmented
+    controls inside the accordion here rather than selects in a rail, so opening an item gives
+    you everything about it in one place, and the workbench rail is the order-basis pane and
+    nothing else on this screen.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Each problem states its <b>problem-list match</b>, and a matched one names the entry it
+    will revise. This is the source's fourth control, <code>carePlanView.js:75</code>, a disabled
+    field reading the match state and <code>matched_problem_id</code>; it was dropped when the
+    axes moved into the accordion, which left <b>Update existing</b> asserting that a record
+    exists without ever saying which. The match is read from the record, not chosen, so it is
+    stated as a fact above the control it constrains.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Three match states, not two. <code>displayState</code> distinguishes <b>Not
+    checked</b> from <b>No existing match</b>, which is P7: the instrument confesses that it has
+    not looked rather than reporting an absence it did not verify. Problem 3 carries the
+    unchecked state so the difference is visible on the screen.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The controls name the Canvas command, not an Aleron disposition. Checked against
+    <code>docs.canvasmedical.com/api/condition/</code> and <code>/sdk/commands/</code>.
+    <b>Diagnose</b> writes a Condition with <code>category: problem-list-item</code> and
+    <code>clinicalStatus: active</code>; <b>Past medical history</b> is the same resource with
+    <code>clinicalStatus</code> not active, which is how Canvas picks between the two commands;
+    <b>Encounter diagnosis only</b> is <code>category: encounter-diagnosis</code>;
+    <b>Health concern</b> is <code>category: health-concern</code>; and <b>Assess existing</b> is
+    not a category at all but the SDK <code>AssessCommand</code> against a
+    <code>condition_id</code>. Five outcomes, one control, because the physician is choosing what
+    gets written and the old three-value disposition could not say it. It is a select rather than
+    a segmented group for the same reason the source uses one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Certainty is no longer an editable control, because it is not writable.
+    <code>Condition.verificationStatus</code> is documented read and search only, carries just
+    confirmed, provisional and entered in error, and Canvas glosses <code>provisional</code> as
+    added as indication rather than as diagnostically uncertain. So each problem now states the
+    verification status as a fact and says who owns it. Problem 3 is the case that matters: an
+    unconfirmed hypertension cannot be marked provisional, so it states its uncertainty by
+    staying off the problem list, which is a real Canvas write and not a label.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Monitoring is gone and its work is done by
+    <code>AssessCommand.status</code>, which is improved, stable or deteriorated. That is a
+    trajectory on an existing condition, so it appears only on the matched problem and only when
+    the command is Assess. The old three-value certainty control offered monitoring on every
+    problem, including ones with no condition to have a trajectory.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The care gap has a category after all. <b>Health maintenance</b> (Z12.11) was the item
+    that broke the old certainty control, since a screening gap has no certainty to state. Canvas
+    carries <code>health-concern</code> alongside <code>problem-list-item</code>, which is
+    precisely it, so the earlier request for a fourth certainty value was the wrong fix to the
+    right problem.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Field-level fidelity where it constrains the physician. Assessment textareas carry
+    <code>maxlength="2048"</code>, the documented cap on
+    <code>AssessCommand.narrative</code> and <code>DiagnoseCommand.today_assessment</code>. The
+    onset date on problem 2 is the Diagnose command's <code>approximate_date_of_onset</code>, and
+    it appears only under Diagnose because that is the only command that takes it. The basis
+    prose at the top of each problem is the natural source for the commands' <code>background</code>
+    field. Plan stays a separate <code>PlanCommand</code> and takes no cap, because none is
+    documented and one should not be invented.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Two things on this screen still have no home in Canvas FHIR, and Aleron intends to keep zero patient
+    data of its own. The reason not carried on each <b>scored suggestion</b> that is declined, and the
+    suppression that should stop a declined item returning unchanged next cycle. Obligations are the
+    exception and were wrongly lumped in here: setting one aside has a native home in
+    <code>ProtocolOverride</code>, which carries the committer and the narrative, and in
+    <code>DetectedIssue.mitigation</code>, which carries the action, the author and the date and is one of
+    the few resources with full create, read, update and search over the FHIR API. The gap is declining a
+    suggestion, not declining an obligation. Canvas
+    Custom Data Models are the path that holds the intent: a plugin namespace, persisted inside
+    Canvas, linkable to a patient, read through the Data module and written through Effects. What
+    is not available is an Aleron-side table, so if custom data is rejected these two features go
+    away rather than moving.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The gating is asymmetric and probably wrong. The source disables <b>Update
+    existing</b> without a match but leaves <b>Add</b> enabled with one, so a physician looking
+    at a matched problem can file a duplicate in one click. No fixture in
+    <code>apps/physician/</code> or the reference surface sets
+    <code>matched_problem_id</code> at all, so that path was never exercised. Deciding it needs
+    the EMR contract, not a wireframe: <b>Add</b> on a matched problem is either an error, or a
+    deliberate act that should say what it is doing.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Update existing</b> is unselectable on a problem with no Canvas match, because
+    there is nothing to update. The source enforces this, disabling the option unless
+    <code>matched_problem_id</code> is set; the earlier build offered it on all three problems
+    and would have let a physician stage an update against no record.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The fourth certainty value, <b>not applicable</b>, is missing and this screen needs it.
+    It is the source's default for a non-diagnosis entry, and <b>Health maintenance</b> (Z12.11)
+    is exactly that case: a care gap, not a diagnosis, so it has no certainty to state.
+    <code>carePlanWorkflow.js</code> seeds the same pairing for preventive immunization review,
+    <code>problem_kind: 'care_gap'</code> with <code>not_applicable</code> and
+    <code>note_only</code>. Include that item and the three-segment control cannot express its
+    certainty. Four segments fit the accordion measure here but not v2's rail, so the fix is
+    probably a select rather than a segmented group, which is what the source uses.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The running tally, from <code>v0/care-plan.html</code>. In an opt-in model the count of
+    what is actually in the record is the number a physician has to keep in view, which is what
+    makes the model workable rather than merely safer in principle. It is one line at every width,
+    and below the rail hinge it drops the secondary detail and keeps the count.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Declining is recorded, not silent. An excluded row carries an editable
+    <b>Reason not carried</b>, so the note documents what was considered and set aside. Neither v0
+    nor v2 does this: in v0 an unchecked suggestion never appears, and in v2 a removed one leaves
+    no trace.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The required channel is checked on arrival and cannot be declined. A genetics obligation
+    is not ranked against opportunities and is not the physician's to omit, so opt in applies to
+    the scored suggestions and not to obligations. Without that carve-out an opt-in model would
+    make it possible to sign a note that silently drops a P/LP finding.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's two-step wizard, <em>1 Select actions</em> then <em>2 Review and sign note</em>. One
+    list does both jobs here, because the compression pass that took the core loop from three
+    navigation clicks to one should not be spent again on a wizard step.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Everything below the document is identical to v2 and is not what v3 is asking about: the
+    three commit acts, the release surface and its attestations. If v3 wins, only the top of this
+    screen changes.</span></p>
+</div>
+
+<script>
+/* Care-plan selection, client only. There is no backend behind these
+   wireframes, so this holds the selection in the DOM and re-renders one card.
+   Nothing is persisted and nothing is sent anywhere.
+
+   The fixture below is the data model for the workbench rail. AGENTS.md:
+   "Data-bearing text comes from the data model. Example patient data belongs
+   in a visible fixture object, not hardcoded in markup." The rail used to be
+   one problem hardcoded as four paragraphs, which is what that rule forbids
+   and is also why only one of the four problems had a rail state at all. */
+
+const CARE_PLAN = {
+  orders: {
+    o1: {
+      name: "Genetic counselling",
+      source: "Required channel, from the genetics library. Not ranked against scored opportunities.",
+      dxAssoc: "problem 1, ATM pathogenic variant, Z15.09.",
+      body: "An obligation triggered by the P/LP result, not an opportunity weighed against other actions.",
+      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+    },
+    o2: {
+      name: "Family-history gate: breast, pancreatic, prostate",
+      source: "Required channel, from the genetics library.",
+      dxAssoc: "problem 1, ATM pathogenic variant, Z15.09.",
+      body: "Cascade documentation. Pancreatic surveillance is conditional on a first-degree history, so this gate decides whether that pathway opens at all.",
+      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+    },
+    o3: {
+      name: "tirzepatide 2.5 mg/0.5 mL",
+      source: "Aleron-scored, from the final action-map state of 29 Aug 2026.",
+      dxAssoc: "problem 2, prediabetes with insulin resistance, E66.01 and R73.03.",
+      body: "Highest-net lever for the dominant phenotype, about <span class=\"pval\">+1.9<span class=\"pval__u\">QALY</span></span>, prevention plus capacity. The resistance-training order below it is its lean-mass guardrail: part of safe use, not a second recommendation.",
+      carveOut: "e-Rx sign-off is a native, prescriber-only act. It is never authorized from this screen."
+    },
+    o4: {
+      name: "Supervised resistance training",
+      source: "Aleron-scored, from the final action-map state of 29 Aug 2026.",
+      dxAssoc: "problem 2, prediabetes with insulin resistance, R73.03.",
+      body: "About <span class=\"pval\">+1.1<span class=\"pval__u\">QALY</span></span> on its own, and the lean-mass guardrail for the incretin above it. Tracked as a Goal, so it produces no lab or referral traffic."
+    },
+    o5: {
+      name: "Home blood pressure monitoring, 14 days",
+      source: "Gate, from the action map. Reclassification about <span class=\"pval\">65<span class=\"pval__u\">%</span></span>.",
+      dxAssoc: "problem 3, hypertension stage 2 unconfirmed, I10.",
+      body: "The highest-value gate on this chart. A persistent stage-2 reading changes both the medication threshold and the sequencing of everything downstream of it, which is why problem 3 stays provisional until this returns."
+    }
+  }
+};
+
+(function () {
+  var slot = document.getElementById("rl-detail");
+  if (!slot) return;
+
+  function esc(s) {
+    return String(s).replace(/&(?![a-z#]+;)/g, "&amp;").replace(/</g, "&lt;");
+  }
+
+  function seg(label, id, options, checked) {
+    return '<div class="rl-axis"><span class="rl-axislabel" id="' + id + '">' + label + "</span>" +
+      '<div class="amd-segmented" role="radiogroup" aria-labelledby="' + id + '">' +
+      options.map(function (o) {
+        return '<button class="amd-button" role="radio" data-density="row" aria-checked="' +
+          (o === checked ? "true" : "false") + '" type="button">' + o + "</button>";
+      }).join("") + "</div></div>";
+  }
+
+  function orderCard(o) {
+    return '<span class="rl-k">Selected order &middot; basis</span>' +
+      '<div class="rl-name">' + esc(o.name) + "</div>" +
+      '<p class="rl-src">' + o.source + "</p>" +
+      '<p class="rl-src"><b>Dx association:</b> ' + esc(o.dxAssoc) + "</p>" +
+      '<p class="rl-body">' + o.body + "</p>" +
+      (o.carveOut ? '<p class="rl-src"><b>Prescription carve-out:</b> ' + esc(o.carveOut) + "</p>" : "") +
+      (o.obligation ? '<p class="rl-src"><b>Required channel:</b> ' + esc(o.obligation) + "</p>" : "") +
+      '<div class="rl-acts">' +
+      (o.obligation
+        ? '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Document exception</button>'
+        : '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Reject</button>') +
+      '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Modify</button>' +
+      "</div>";
+  }
+
+  function all() {
+    /* v3 only. Problem disposition is edited inside the accordion, so the rail
+       is the order-basis pane and nothing else. */
+    return document.querySelectorAll(".ap-orow[data-order]");
+  }
+
+  function select(el) {
+    all().forEach(function (b) { b.setAttribute("aria-pressed", String(b === el)); });
+    var oid = el.getAttribute("data-order");
+    slot.innerHTML = orderCard(CARE_PLAN.orders[oid]);
+  }
+
+  all().forEach(function (b) {
+    b.addEventListener("click", function () { select(b); });
+  });
+
+  /* Open on whatever the markup already marks selected, so the rendered card
+     and the document agree before anyone clicks. */
+  var initial = document.querySelector('[data-order][aria-pressed="true"]') || document.querySelector("[data-order]");
+  if (initial) select(initial);
+})();
+
+/* Step switching, client only. The four steps are panes on one screen, so
+   nothing navigates and nothing is persisted.
+
+   It is a tablist and not a wizard on purpose. No step is gated by the one
+   before it, because the note lock and the order authorization are
+   independent acts: a physician can authorize the orders first, lock the note
+   first, or lock the note and never authorize anything this cycle. Only the
+   release needs both, and it says so on its own card rather than by being
+   unreachable.
+
+   aria-selected on the tab is the single source of truth. The panes follow it
+   and the stepper state follows it; neither ever disagrees with it. */
+(function () {
+  var rail = document.querySelector(".cp-steps");
+  var tabs = [].slice.call(document.querySelectorAll(".cp-steps [role=tab]"));
+  if (!tabs.length) return;
+
+  /* The panes are wildly different heights, about 2,800px for the plan and
+     about 500px for either commit act, so switching while scrolled down used
+     to leave you below the end of the new pane looking at nothing. Selecting a
+     step puts the rail back at the top of the view. Not on first paint: that
+     would scroll the page on load. */
+  function show(tab, moveView) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      if (on) t.parentNode.setAttribute("data-state", "current");
+      else t.parentNode.removeAttribute("data-state");
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+    dressDock(tabs.indexOf(tab));
+    /* After the panes have swapped, never before: scroll anchoring undoes a
+       scroll taken against the outgoing pane's height.
+
+       scrollTo and not scrollIntoView. The desk frame this whole surface sits
+       in is overflow-y: clip, and scrollIntoView treats a clipped ancestor as
+       a container it cannot scroll, so it does nothing at all here. */
+    if (moveView) {
+      window.scrollTo(0, rail.getBoundingClientRect().top + window.scrollY - 12);
+    }
+  }
+
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { show(t, true); });
+    t.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var next = tabs[(i + d + tabs.length) % tabs.length];
+      show(next, true);
+      next.focus();
+    });
+  });
+
+  /* A required item can be set aside, and the surface has to make the reason
+     mandatory rather than the inclusion mandatory. Canvas models it the same
+     way: nothing is disabled, the obligation just stays outstanding until it is
+     dispositioned, and the override carries who and why. */
+  (function () {
+    var sel = document.getElementById("cp-disp1");
+    if (!sel) return;
+    var item = sel.closest(".v3-item");
+    var why = document.getElementById("cp-disp1-why");
+    var check = document.getElementById("v3-req-check");
+    var state = document.getElementById("v3-req-state");
+    var WORD = {
+      include: "included",
+      defer: "deferred, reason recorded",
+      except: "exception documented"
+    };
+    sel.addEventListener("change", function () {
+      var v = sel.value;
+      item.setAttribute("data-disposition", v);
+      item.setAttribute("data-included", String(v === "include"));
+      why.hidden = v === "include";
+      check.setAttribute("aria-pressed", String(v === "include"));
+      state.textContent = WORD[v];
+      if (v !== "include") document.getElementById("cp-disp1-reason").focus();
+    });
+  })();
+
+  /* The dock is the foot of the surface, so it reports the step you are on and
+     carries the act that leaves it. Its text is read out of the step rail
+     rather than restated here: one source, and it cannot fall out of step with
+     the rail it describes. Step 1 keeps its own tally, because a count of what
+     is in the record is not the same statement as a step's status. */
+  var dock = {
+    count: document.getElementById("v3-dock-count"),
+    detail: document.getElementById("v3-dock-detail"),
+    clear: document.getElementById("v3-dock-clear"),
+    next: document.getElementById("v3-dock-next")
+  };
+  var PLAN = { count: dock.count.textContent, detail: dock.detail.innerHTML };
+
+  function dressDock(i) {
+    var tab = tabs[i];
+    if (i === 0) {
+      dock.count.textContent = PLAN.count;
+      dock.detail.innerHTML = PLAN.detail;
+    } else {
+      dock.count.textContent = tab.querySelector("em").textContent;
+      dock.detail.textContent = tab.querySelector("small").textContent;
+    }
+    /* Clearing the list is an act on the plan, not on a commit act. */
+    dock.clear.hidden = i !== 0;
+    var nxt = tabs[i + 1];
+    dock.next.hidden = !nxt;
+    if (nxt) dock.next.textContent = "Next: " + nxt.querySelector("em").textContent;
+  }
+
+  dock.next.addEventListener("click", function () {
+    var i = tabs.indexOf(document.querySelector('.cp-steps [aria-selected="true"]'));
+    if (i > -1 && tabs[i + 1]) { show(tabs[i + 1], true); tabs[i + 1].focus(); }
+  });
+
+  show(document.querySelector('.cp-steps [aria-selected="true"]') || tabs[0]);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Care Plan · Select actions</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The .cp-* vocabulary is in v0-tokens.css,
+     which transcribes resources/css/care-plan.css: Care Plan is a wholesale
+     port of a separate prototype, scoped under #cp so it cannot collide with
+     the .amd-* pages. What follows is only what this step needs. */
+  .cp-ghead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-md); margin: 0 0 var(--s-sm); }
+  .cp-ghead__r { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.03em; color: var(--text-tertiary); }
+  .cp-infowrap { position: relative; display: inline-flex; }
+  .cp-infobtn {
+    width: var(--s-md);
+    height: var(--s-md);
+    border-radius: 50%;
+    border: var(--line-thin) solid var(--border-base);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-family: var(--audit);
+    font-size: var(--size-caption);
+    line-height: 1;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+  }
+  .cp-infopop {
+    position: absolute;
+    top: calc(100% + var(--s-xs));
+    left: 0;
+    z-index: var(--z-raised);
+    width: 42ch;
+    max-width: 78vw;
+    padding: var(--s-sm) var(--s-md);
+    border-radius: var(--radius-control);
+    background: var(--surface-tier1);
+    border: var(--line-thin) solid var(--border-subtle);
+    box-shadow: var(--shadow-tier1);
+    font-family: var(--voice);
+    font-size: var(--size-small);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .cp-sev[data-sev="low"] { color: var(--sev-low); }
+  .cp-sev[data-sev="mod"] { color: var(--sev-mod); }
+  .cp-sev[data-sev="high"] { color: var(--sev-high); }
+  .cp-wline { width: var(--s-lg); height: var(--line-thin); flex: none; align-self: center; background: var(--border-base); }
+  .cp-cnt { margin-left: var(--s-2xs); font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>Care Plan &middot; Select actions</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <a href="../v1/risk-actions.html">v1</a>
+    <a href="../v2/risk-actions.html">v2</a>
+    <a href="../v3/care-plan.html" title="v3 is a single-screen alternative: the same care plan with an opt-in model instead of opt-out">v3</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/care-plan</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       Care Plan is a port of a separate prototype with its own class
+       vocabulary, its own type scale and its own navigation, mounted inside
+       the same Blade layout as the .amd-* pages. Step 1 of a two-step
+       wizard: choose which engine-ranked actions become the note. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow" style="margin-bottom: var(--s-xs);">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+        </div>
+
+        <!-- Tab strip variant 4 of 4: card surface holder, subtle border,
+             radius-tier2, active item on --surface-selected. -->
+        <nav class="v0-tabs" data-variant="card" aria-label="Patient sections">
+          <span aria-current="page">Care Plan</span>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <a href="risk-models.html">Risk Models</a>
+          <a href="lab-orders.html">Lab Orders</a>
+          <a href="standing-orders.html">Standing Orders</a>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <div class="cp">
+
+        <!-- Run provenance band -->
+        <div class="cp-band">
+          <p>
+            Care plan &rarr; progress note
+            <span style="margin: 0 var(--s-xs); color: var(--text-tertiary);">&middot;</span>5 selected
+            <span style="margin: 0 var(--s-xs); color: var(--text-tertiary);">&middot;</span>6 actions
+            <span style="margin: 0 var(--s-xs); color: var(--text-tertiary);">&middot;</span>2 pinned
+          </p>
+          <div class="cp-runmeta">
+            Run #7c1a9f04 &middot; Action Layer v2.1.0<br>
+            Dr. A. Okafor &middot; 2026-08-31
+          </div>
+        </div>
+
+        <!-- Patient-scoped nav plus a practice-level link, all in one strip -->
+        <nav class="cp-pagenav" aria-label="Patient documentation">
+          <a href="care-plan.html" aria-current="page">Compose note</a>
+          <a href="care-plan-note.html">Notes history <span class="cp-cnt">3</span></a>
+          <span class="cp-pagenav__right">
+            <a href="standing-orders.html">
+              <!-- non-nav icon, drawn to match canonical stroke grammar; not yet ratified -->
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg>
+              Practice &middot; Standing orders <span class="cp-cnt">2</span>
+            </a>
+          </span>
+        </nav>
+
+        <!-- Two-step wizard rail -->
+        <nav class="cp-wizard" aria-label="Progress note steps">
+          <span class="cp-wizard__step" data-state="current">
+            <span class="cp-wizard__b">1</span>
+            <span>Select actions</span>
+          </span>
+          <span class="cp-wline"></span>
+          <a class="cp-wizard__step" href="care-plan-note.html" style="text-decoration: none;">
+            <span class="cp-wizard__b">2</span>
+            <span>Review &amp; sign note</span>
+          </a>
+        </nav>
+
+        <div>
+          <div class="cp-ghead">
+            <span class="ds-audit" style="display: inline-flex; align-items: center; gap: var(--s-xs);">
+              Ranked actions
+              <span class="cp-infowrap">
+                <button class="cp-infobtn" type="button" aria-expanded="true" aria-label="What is this?">i</button>
+                <span class="cp-infopop">
+                  Everything you check is folded into one progress note. Each action carries an
+                  assessment (the why) and a plan (what you&rsquo;ll do), and its orders queue for
+                  sign &amp; send.
+                  <br><br>
+                  <b style="color: var(--text-primary);">TIER 1 &middot; RULE</b> marks rule-triggered
+                  entries, flagged by a guideline rule rather than engine-ranked and pre-selected for
+                  you. Every item, including these, is yours to include or drop.
+                </span>
+              </span>
+            </span>
+            <span class="cp-ghead__r">all 6 shown &middot; engine pre-selected</span>
+          </div>
+
+          <div class="cp-acts" role="group" aria-label="Engine-ranked actions">
+
+            <article class="cp-act" data-sev="high" data-mandatory="true" role="checkbox" aria-checked="true" tabindex="0">
+              <span class="cp-box" aria-checked="true" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="cp-act__body">
+                <h3 class="cp-act__title">Refer to genetic counseling and start the ATM carrier surveillance protocol. Track annual pancreatic MRI/MRCP completion.</h3>
+                <div class="cp-act__meta">
+                  <span class="cp-sev" data-sev="high">Tier 1 flag</span>
+                  <span style="color: var(--text-tertiary);">ATM heterozygous carrier</span>
+                  <span style="color: var(--text-tertiary);">This cycle</span>
+                </div>
+                <p class="cp-act__why">Pathogenic ATM variant reported on the 160-gene panel with no counseling encounter recorded. Loss of one functional ATM copy reduces double-strand break repair capacity, which raises lifetime pancreatic and breast risk and makes radiosensitivity a treatment-planning consideration.</p>
+              </div>
+              <span class="cp-act__eng">
+                <span class="cp-act__rank">TIER 1 &middot; RULE</span>
+              </span>
+            </article>
+
+            <article class="cp-act" data-sev="mod" data-mandatory="true" role="checkbox" aria-checked="true" tabindex="0">
+              <span class="cp-box" aria-checked="true" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="cp-act__body">
+                <h3 class="cp-act__title">Confirm and treat stage 2 hypertension against the 2017 ACC/AHA threshold. Track home systolic average.</h3>
+                <div class="cp-act__meta">
+                  <span class="cp-sev" data-sev="mod">Tier 1 flag</span>
+                  <span style="color: var(--text-tertiary);">Stage 2 hypertension, untreated</span>
+                  <span style="color: var(--text-tertiary);">This cycle</span>
+                </div>
+                <p class="cp-act__why">Clinic BP 142/90 mmHg on a single untreated reading with no ambulatory series on file. Sustained pressure at this level is the largest single modifiable term in both the cardiovascular and the neurodegenerative models for this patient.</p>
+              </div>
+              <span class="cp-act__eng">
+                <span class="cp-act__rank">TIER 1 &middot; RULE</span>
+              </span>
+            </article>
+
+            <article class="cp-act" data-sev="high" role="checkbox" aria-checked="true" tabindex="0">
+              <span class="cp-box" aria-checked="true" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="cp-act__body">
+                <h3 class="cp-act__title">Start moderate-intensity statin therapy and repeat a lipid panel with ApoB at 12 weeks.</h3>
+                <div class="cp-act__meta">
+                  <span class="cp-sev" data-sev="high">High</span>
+                  <span style="color: var(--text-tertiary);">Preventive Cardiovascular (CVD)</span>
+                  <span style="color: var(--text-tertiary);">this visit</span>
+                </div>
+                <p class="cp-act__why">ApoB 112 mg/dL with LDL-C 132 mg/dL and hs-CRP 3.0 mg/L at age 47. Apolipoprotein-B-containing particles cross the endothelium in proportion to their number, and inflammation raises the retention rate, so particle burden and CRP compound rather than add.</p>
+                <div class="cp-ochips">
+                  <span class="cp-ochip">ApoB</span>
+                  <span class="cp-ochip">Lipid panel</span>
+                </div>
+              </div>
+              <span class="cp-act__eng">
+                <span class="cp-act__top">TOP 3</span>
+                <span class="cp-act__rank">ENG #1 &middot; 8.42</span>
+              </span>
+            </article>
+
+            <article class="cp-act" data-sev="high" role="checkbox" aria-checked="true" tabindex="0">
+              <span class="cp-box" aria-checked="true" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="cp-act__body">
+                <h3 class="cp-act__title">Initiate metformin, titrated over four weeks, and recheck HbA1c with fasting insulin at 12 weeks.</h3>
+                <div class="cp-act__meta">
+                  <span class="cp-sev" data-sev="high">High</span>
+                  <span style="color: var(--text-tertiary);">Preventive Metabolic</span>
+                  <span style="color: var(--text-tertiary);">this visit</span>
+                </div>
+                <p class="cp-act__why">HbA1c 6.0 % with fasting glucose 110 mg/dL and HOMA-IR 4.3, giving a 34 % ten-year incident T2D estimate. Hepatic glucose output is the dominant contributor at this stage, and suppressing it lowers both the fasting glucose and the insulin that is driving the lipid picture.</p>
+                <div class="cp-ochips">
+                  <span class="cp-ochip">HbA1c</span>
+                  <span class="cp-ochip">Fasting insulin</span>
+                </div>
+              </div>
+              <span class="cp-act__eng">
+                <span class="cp-act__top">TOP 3</span>
+                <span class="cp-act__rank">ENG #2 &middot; 7.90</span>
+              </span>
+            </article>
+
+            <article class="cp-act" data-sev="mod" role="checkbox" aria-checked="true" tabindex="0">
+              <span class="cp-box" aria-checked="true" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="cp-act__body">
+                <h3 class="cp-act__title">Order a home sleep apnea test before escalating antihypertensive therapy.</h3>
+                <div class="cp-act__meta">
+                  <span class="cp-sev" data-sev="mod">Moderate</span>
+                  <span style="color: var(--text-tertiary);">Preventive Systemic</span>
+                  <span style="color: var(--text-tertiary);">as appropriate</span>
+                </div>
+                <p class="cp-act__why">Overnight SpO2 nadir 89 % with an overnight resting heart rate of 38 bpm on 82 % wearable coverage. If sleep-disordered breathing is present it sits upstream of the pressure, the insulin resistance and part of the inflammation, and treating it first would move four domain tiers at once.</p>
+              </div>
+              <span class="cp-act__eng">
+                <span class="cp-act__top">TOP 3</span>
+                <span class="cp-act__rank">ENG #3 &middot; 6.55</span>
+              </span>
+            </article>
+
+            <article class="cp-act" data-sev="mod" role="checkbox" aria-checked="false" tabindex="0">
+              <span class="cp-box" aria-checked="false" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="cp-act__body">
+                <h3 class="cp-act__title">Repeat hs-CRP on a second draw at least two weeks apart with infection excluded, and add a urine albumin/creatinine ratio.</h3>
+                <div class="cp-act__meta">
+                  <span class="cp-sev" data-sev="mod">Standard</span>
+                  <span style="color: var(--text-tertiary);">Preventive Cardiovascular (CVD)</span>
+                  <span style="color: var(--text-tertiary);">30 d</span>
+                </div>
+                <p class="cp-act__why">Every inflammatory and renal value on file is a single draw. The group A modifier for persistent inflammation requires two measurements, so the current composite is a floor rather than an estimate.</p>
+                <div class="cp-ochips">
+                  <span class="cp-ochip">hs-CRP</span>
+                  <span class="cp-ochip">UACR</span>
+                </div>
+              </div>
+              <span class="cp-act__eng">
+                <span class="cp-act__rank">ENG #4 &middot; 5.18</span>
+              </span>
+            </article>
+
+          </div>
+        </div>
+
+        <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-2" aria-label="Wireframe explanation, not part of the product">i</button><p class="cp-footnote wf-scaffold wf-ex__bubble" id="wf-ex-2" role="note">
+          Aleron MD design system v0.4 &middot; care plan to
+          <code>problem &rarr; note &rarr; order</code>. Standing orders are illustrative fixtures.
+        </p></div>
+
+        <!-- Sticky dock, step 1 only -->
+        <div class="cp-dock">
+          <div>
+            <span class="cp-dock__count">5 actions selected &middot; 4 orders will queue</span><br>
+            <span class="cp-dock__domains">ATM heterozygous carrier &middot; Stage 2 hypertension, untreated &middot; CVD</span>
+          </div>
+          <div class="cp-dock__right">
+            <button class="amd-button" data-variant="tertiary" type="button">Clear</button>
+            <a class="amd-button" data-variant="primary" href="care-plan-note.html" style="text-decoration: none;">Continue to note &rarr;</a>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The checked checkbox is filled with <code>--signal-forward</code>. Gold is the surface&rsquo;s
+    one signal and it is spent here on six selection boxes, so the page has no gold left for anything
+    that matters and the selection reads as decoration.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Third navigation mechanism on one page: a segmented section strip, an underline page nav,
+    and a two-step wizard rail, stacked in 100px of vertical space. The page nav also carries a
+    practice-level link out of the patient chart, so patient scope and practice scope share one
+    strip.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Card titles are the <i>plan</i> text, not the action title. The engine derives a short title
+    and it is used in the step 2 manifest and nowhere here, so the same action is named two different
+    ways on two consecutive screens.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Severity is carried three times over on each card and never with a legend: a 3px left rail,
+    the colour of the urgency word, and the word itself. Tier 1 pins show
+    <code>Tier 1 flag</code> where ranked candidates show <code>High</code> or
+    <code>Standard</code>, so the two vocabularies sit in the same column.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The dock&rsquo;s domain line prints <code>a.domain</code> raw and uppercased, so a
+    guideline syndrome name and the internal key <code>CVD</code> appear in the same list. Everywhere
+    else on the card <code>domainLabel()</code> expands it to
+    <code>Preventive Cardiovascular (CVD)</code>.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The rule that mandatory entries cannot be rejected is stated only inside a popover behind a
+    16px lowercase <code>i</code>, and the popover then contradicts it: <i>every item, including
+    these, is yours to include or drop</i>. The pins are pre-checked and look identical to the ranked
+    cards apart from a surface tint.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Order chips are the audit face in tracked caps and carry no unit, no quantity and no
+    indication of which are transmittable. Two of the six actions produce no chips at all, which is
+    indistinguishable from an action whose orders were removed.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Engine score is printed as a bare number (<code>ENG #1 &middot; 8.42</code>) with no scale,
+    no unit and no interval. It is the only quantitative ranking signal on the page and it is
+    unreadable without the engine source.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>This whole route runs a second class vocabulary (<code>#cp</code>) with its own type
+    ramp, its own card, its own buttons and its own tab strip, ported wholesale from a prototype.
+    Nothing here uses <code>.amd-card</code>, and the footnote still calls the system v0.4.</span></p>
+</div>
+
+</body>
+</html>

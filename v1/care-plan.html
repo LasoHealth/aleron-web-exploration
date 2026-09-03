@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v1 — Care plan</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Everything reusable is in physician-chrome.css.
+
+     The workbench is two columns because the document and its basis are two
+     different kinds of thing. The left column is the bounded document: what
+     will be signed, and nothing else. The right column is everything the
+     physician needs in order to sign it, and none of it enters the note. */
+  .cp-wrap { display: grid; grid-template-columns: minmax(0, 1.58fr) minmax(260px, 0.92fr); gap: var(--air-section); align-items: start; }
+
+  /* The bounded document. It is drawn as a document, with an edge, because
+     the edge is the claim: this is what the signature covers. */
+  .ap-doc {
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier1);
+    background: var(--surface-card);
+    overflow: hidden;
+  }
+  .ap-dhead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-xs) var(--s-md);
+    padding: var(--s-sm) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--border-subtle);
+  }
+  .ap-state { font-size: var(--size-caption); font-weight: var(--w-emphasis); color: var(--signal-advisory); }
+  .ap-title { margin: 0; font-size: var(--size-h3); font-weight: var(--w-h3); }
+  .ap-meta { margin-left: auto; font-size: var(--size-small); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .ap-inputs {
+    margin: 0;
+    padding: var(--air-row) var(--s-md);
+    background: var(--surface-tier2);
+    border-bottom: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-small);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .ap-inputs b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+  .ap-body { padding: var(--s-md); }
+  .ap-seclabel { margin: 0 0 var(--air-group); font-size: var(--size-caption); color: var(--text-tertiary); }
+
+  .ap-prob { padding-bottom: var(--air-group); margin-bottom: var(--air-group); border-bottom: var(--line-thin) solid var(--hairline); }
+  .ap-prob:last-of-type { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+  .ap-phead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs) var(--s-sm); }
+  .ap-pnum { font-size: var(--size-small); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .ap-pname { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+  .ap-pdx { font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .ap-pmeta { margin: var(--s-2xs) 0 0 var(--s-lg); font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ap-assess { margin: var(--air-row) 0 0 var(--s-lg); max-width: 72ch; font-size: var(--size-small); line-height: 1.55; }
+
+  /* Order rows. A left rail rather than a fill, so the selected row can take
+     the wash without two treatments fighting. */
+  .ap-orow {
+    margin: var(--air-row) 0 0 var(--s-lg);
+    padding: var(--air-row) var(--s-sm);
+    border-left: var(--line-focus) solid var(--border-base);
+  }
+  .ap-orow[aria-selected="true"] {
+    background: var(--p-goldwash);
+    border-left-color: var(--signal-forward);
+  }
+  .ap-oname { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+  .ap-ometa, .ap-odetail, .ap-odx { display: block; margin-top: var(--s-3xs); font-size: var(--size-caption); line-height: 1.5; color: var(--text-secondary); }
+  .ap-odetail { color: var(--text-secondary); }
+
+  .ap-docsig {
+    padding: var(--air-row) var(--s-md);
+    background: var(--surface-tier2);
+    border-top: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-small);
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .ap-docsig b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  /* The basis rail. Sticky, because the physician reads the document top to
+     bottom and the basis has to stay beside whatever is selected. */
+  .cp-rail { position: sticky; top: var(--air-tier); display: grid; gap: var(--s-md); }
+  .rl-card {
+    display: grid;
+    gap: var(--air-row);
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+    background: var(--surface-tier2);
+  }
+  .rl-k { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rl-name { font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.35; }
+  .rl-src { font-size: var(--size-small); line-height: 1.5; color: var(--text-secondary); }
+  .rl-src b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+  .rl-body { font-size: var(--size-small); line-height: 1.55; }
+  .rl-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
+  .cp-add {
+    display: block;
+    width: 100%;
+    padding: var(--s-sm);
+    border: var(--line-thin) dashed var(--border-base);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--size-small);
+    text-align: left;
+    cursor: pointer;
+  }
+  .cp-add:hover { border-color: var(--border-strong); color: var(--text-primary); }
+  .cp-jump { font-size: var(--size-small); color: var(--text-secondary); text-underline-offset: var(--s-3xs); }
+
+  @media (max-width: 1100px) {
+    .cp-wrap { grid-template-columns: minmax(0, 1fr); }
+    .cp-rail { position: static; }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<!-- ── reviewer chrome ─────────────────────────────────────────────────── -->
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v1 flow</a> / <b>Care plan</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/care-plan.html">v0</a>
+    <span aria-current="page">v1</span>
+    <a href="../v2/care-plan.html">v2</a>
+    <a href="../v3/care-plan.html" title="v3 is a single-screen alternative: the same care plan with an opt-in model instead of opt-out">v3</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/care-plan</span>
+  </div>
+
+  <!-- ── product surface ───────────────────────────────────────────────── -->
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <!-- The chart rail. Six sections, fixed per surface family (register O4).
+           Icons are the canonical six at 16px, mapped by the aliases in
+           icons.json: your-data → Patient Data, quality-of-life → Vitality,
+           plan → Care Plan, appointments → Journal, chat → Aleron AI. -->
+      <nav class="prail__nav">
+        <a class="prail__item" href="patient-data.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Patient Data
+        </a>
+        <a class="prail__item" href="risk-models.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Risk
+        </a>
+        <a class="prail__item" href="vitality.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg>
+          Vitality
+        </a>
+        <a class="prail__item" href="care-plan.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          Care Plan
+        </a>
+        <a class="prail__item" href="journal.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+          Journal
+        </a>
+        <a class="prail__item" href="aleron-ai.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Aleron AI
+        </a>
+      </nav>
+
+      <div class="prail__foot">
+        <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-5" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-5" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+      </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Care plan</h1>
+        </div>
+        <p>The draft note. A care plan is a note before its signature; the bounded document is what will be signed, and basis lives beside it.</p>
+      </header>
+
+      <div class="cp-wrap">
+
+        <!-- The bounded document. The one elevated element on this screen
+             (P8) is the document itself, because the whole surface exists to
+             put an edge around what the signature covers. -->
+        <article class="ap-doc pmod--tier1" aria-label="Draft note">
+          <div class="ap-dhead">
+            <span class="ap-state">Draft</span>
+            <h2 class="ap-title">Synthesis &amp; plan &middot; Cycle 1</h2>
+            <span class="ap-meta">7/1/26 &middot; Aleron-drafted &middot; unsigned</span>
+          </div>
+
+          <p class="ap-inputs"><b>Inputs:</b> Packet re-frozen 6/24 after baseline results and genetics
+            &middot; risk + vitality models re-run &middot; action map assembled.</p>
+
+          <div class="ap-body">
+            <p class="ap-seclabel">Assessment &amp; Plan</p>
+
+            <section class="ap-prob">
+              <p class="ap-phead">
+                <span class="ap-pnum">1.</span>
+                <span class="ap-pname">Prediabetes with insulin resistance</span>
+                <span class="ap-pdx">R73.03</span>
+              </p>
+              <p class="ap-pmeta">confirmed &middot; will add to problem list &middot; new problem</p>
+              <p class="ap-assess">HbA1c <span class="pval">6.0<span class="pval__u">%</span></span>,
+                fasting glucose <span class="pval">110<span class="pval__u">mg/dL</span></span>,
+                HOMA-IR <span class="pval">4.3</span>; central adiposity, waist
+                <span class="pval">105<span class="pval__u">cm</span></span>. The dominant driver.</p>
+
+              <div class="ap-orow" aria-selected="true">
+                <span class="ap-oname">tirzepatide 2.5 mg/0.5 mL &middot; SC auto-injector</span>
+                <small class="ap-ometa">Rx</small>
+                <small class="ap-odetail">Sig: inject 2.5 mg subcutaneously once weekly &middot; Days supply: 28
+                  &middot; Disp: 2 auto-injectors &middot; Refills: 2 &middot; Substitutions: allowed</small>
+                <small class="ap-odx">Dx: E66.01 &middot; R73.03</small>
+              </div>
+
+              <div class="ap-orow">
+                <span class="ap-oname">Supervised resistance training</span>
+                <small class="ap-ometa">Goal</small>
+                <small class="ap-odetail">2 sessions/wk for 12 weeks &middot; lean-mass protection during
+                  weight loss &middot; tracked as a Goal</small>
+              </div>
+            </section>
+
+            <section class="ap-prob">
+              <p class="ap-phead">
+                <span class="ap-pnum">2.</span>
+                <span class="ap-pname">Hypertension, stage 2 &middot; unconfirmed</span>
+                <span class="ap-pdx">I10</span>
+              </p>
+              <p class="ap-pmeta">provisional &middot; signed note only &middot; new problem</p>
+              <p class="ap-assess"><span class="pval">142/90<span class="pval__u">mmHg</span></span> in clinic,
+                untreated, single setting. Confirm before committing to lifelong pharmacotherapy.</p>
+
+              <div class="ap-orow">
+                <span class="ap-oname">Home BP monitoring &middot; 14 days</span>
+                <small class="ap-ometa">Task</small>
+                <small class="ap-odetail">Twice daily, AM/PM &middot; patient device &middot; review next cycle</small>
+                <small class="ap-odx">Dx: I10</small>
+              </div>
+            </section>
+
+            <section class="ap-prob">
+              <p class="ap-phead">
+                <span class="ap-pnum">3.</span>
+                <span class="ap-pname">ATM pathogenic variant, heterozygous</span>
+                <span class="ap-pdx">Z15.09</span>
+              </p>
+              <p class="ap-pmeta">confirmed &middot; will update existing problem &middot; matches existing genetics condition</p>
+              <p class="ap-assess">Confirmed P/LP (163-gene panel). Moderate penetrance; management is
+                surveillance, not surgery.</p>
+
+              <div class="ap-orow">
+                <span class="ap-oname">Genetic counseling</span>
+                <small class="ap-ometa">Refer &middot; required</small>
+                <small class="ap-odetail">Priority: routine &middot; Clinical question: ongoing management
+                  &middot; visit note attached</small>
+                <small class="ap-odx">Dx: Z15.09</small>
+              </div>
+
+              <div class="ap-orow">
+                <span class="ap-oname">Family-history gate &middot; breast, pancreatic, prostate</span>
+                <small class="ap-ometa">Task &middot; required</small>
+                <small class="ap-odetail">Cascade documentation &middot; pancreatic surveillance conditional
+                  on first-degree history</small>
+                <small class="ap-odx">Dx: Z15.09</small>
+              </div>
+            </section>
+
+            <section class="ap-prob">
+              <p class="ap-phead">
+                <span class="ap-pnum">4.</span>
+                <span class="ap-pname">Health maintenance</span>
+                <span class="ap-pdx">Z12.11</span>
+              </p>
+              <p class="ap-pmeta">monitoring &middot; signed note only &middot; preventive gap</p>
+              <p class="ap-assess">Age 47; colorectal screening never done.</p>
+
+              <div class="ap-orow">
+                <span class="ap-oname">Colorectal cancer screening &middot; colonoscopy or FIT</span>
+                <small class="ap-ometa">Order &middot; required</small>
+                <small class="ap-odetail">Modality is the patient&rsquo;s choice: colonoscopy (referral, q10y)
+                  vs FIT (lab, annual)</small>
+                <small class="ap-odx">Dx: Z12.11</small>
+              </div>
+            </section>
+          </div>
+
+          <!-- The computed commitment sentence. Not prose: it is the count of
+               what the signature will actually do, recomputed from the draft. -->
+          <p class="ap-docsig"><b>Unsigned</b> &middot; on signature:
+            <span class="pval">4<span class="pval__u">problems in signed note</span></span> &middot;
+            <span class="pval">1<span class="pval__u">add to active list</span></span> &middot;
+            <span class="pval">1<span class="pval__u">update existing</span></span> &middot;
+            <span class="pval">2<span class="pval__u">note only</span></span> &middot;
+            <span class="pval">6<span class="pval__u">orders release</span></span> &middot;
+            e-Rx sign-off stays native and prescriber-only</p>
+        </article>
+
+        <!-- Basis rail. Nothing here enters the note. -->
+        <aside class="cp-rail" aria-label="Basis and actions">
+
+          <div class="rl-card">
+            <p class="rl-k">Selected order &middot; basis</p>
+            <p class="rl-name">tirzepatide 2.5 mg/0.5 mL &middot; SC auto-injector</p>
+            <p class="rl-src">Aleron-scored &middot; from the final action-map state.</p>
+            <p class="rl-src"><b>Dx association:</b> Associated to problem 1 &middot; Prediabetes with
+              insulin resistance (R73.03).</p>
+            <p class="rl-body">Highest-net lever for the dominant phenotype, about
+              <span class="pval">+1.9<span class="pval__u">QALY</span></span>, prevention plus capacity.
+              The resistance-training order below is its lean-mass guardrail &middot; part of safe use,
+              not a second recommendation.</p>
+            <p class="rl-src"><b>Prescription carve-out:</b> e-Rx sign-off is a native, prescriber-only act.</p>
+            <p class="rl-actions">
+              <button type="button" class="amd-button" data-variant="secondary">Reject</button>
+              <button type="button" class="amd-button" data-variant="tertiary">Modify</button>
+            </p>
+          </div>
+
+          <div class="rl-card">
+            <p class="rl-k">Act on this draft</p>
+            <button type="button" class="cp-add">+ Add problem not listed &middot; physician&rsquo;s call</button>
+            <button type="button" class="cp-add">+ Order something not listed &middot; physician&rsquo;s call</button>
+            <!-- Deliberately disabled. Releasing a plan is a separate act from
+                 signing the note and from authorizing orders, and none of the
+                 three is wired in a wireframe. Showing the control disabled is
+                 the honest state; hiding it would imply the act does not
+                 exist. See the annotation below. -->
+            <button type="button" class="amd-button" data-variant="primary" disabled>Sign &amp; release &middot; not wired</button>
+            <a class="cp-jump" href="journal.html">View as the journal entry it will become</a>
+          </div>
+
+          <div class="rl-card">
+            <p class="rl-k">Required channel</p>
+            <p class="rl-src">Required channel &middot; an obligation from the genetics library. Not ranked
+              against opportunities.</p>
+            <p class="rl-body">Genetic counseling, the family-history gate and colorectal screening cannot be
+              rejected. They can be addressed or documented, and nothing on the action map can out-rank them.</p>
+            <p class="rl-src"><span class="pbase">Obligation &middot; address or document; cannot be rejected.</span></p>
+          </div>
+
+        </aside>
+      </div>
+
+      <details class="pdisc">
+        <summary>Full proposal space &middot; by objective, everything scored, not just the chosen few</summary>
+        <div class="pdisc__body">
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Objective</th>
+                  <th scope="col">Lifestyle interventions</th>
+                  <th scope="col">Diagnostics</th>
+                  <th scope="col">Therapeutic / prescriptive</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" class="pledger__groupname">Risk reduction</th>
+                  <td><b>Supervised resistance training</b>
+                    <small class="pledger__prov"><span class="pval">1.1<span class="pval__u">QALY</span></span> &middot; double duty</small>
+                    Lean-mass protection while metabolic therapy and VO&#8322;max work start.</td>
+                  <td><b>7-day home BP protocol or ABPM</b>
+                    <small class="pledger__prov"><span class="pval">65<span class="pval__u">% odds</span></span> &middot; <span class="pval">0.63<span class="pval__u">QALY if reclassified</span></span></small>
+                    Decides whether long-term BP pharmacotherapy is real.</td>
+                  <td><b>GLP-1/GIP metabolic therapy</b>
+                    <small class="pledger__prov"><span class="pval">1.5<span class="pval__u">QALY</span></span> &middot; double duty</small>
+                    Targets central adiposity, insulin resistance, BP exposure, and diabetes risk.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="pledger__groupname">Vitality improvement</th>
+                  <td><b>Supervised resistance training</b>
+                    <small class="pledger__prov"><span class="pval">1.1<span class="pval__u">QALY</span></span> &middot; double duty</small>
+                    Protects function, body readiness, and training tolerance.</td>
+                  <td><b>Home sleep apnea test</b>
+                    <small class="pledger__prov"><span class="pval">35<span class="pval__u">% odds</span></span> &middot; <span class="pval">0.45<span class="pval__u">QALY if reclassified</span></span></small>
+                    Tests a likely upstream driver of low energy and clarity.</td>
+                  <td><b>GLP-1/GIP metabolic therapy</b>
+                    <small class="pledger__prov"><span class="pval">1.5<span class="pval__u">QALY</span></span> &middot; double duty</small>
+                    May improve body ease and energy indirectly through weight and metabolic load.</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="pledger__groupname">Safety context</th>
+                  <td><span class="pna">N/A</span>
+                    <small class="pledger__prov">No proposal for this cell.</small></td>
+                  <td><b>ECG then Holter if persistent</b>
+                    <small class="pledger__prov"><span class="pval">15<span class="pval__u">% odds</span></span> &middot; <span class="pval">0.40<span class="pval__u">QALY if reclassified</span></span></small>
+                    Safety check before escalating conditioning.</td>
+                  <td><span class="pna">N/A</span>
+                    <small class="pledger__prov">No proposal for this cell.</small></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details class="pdisc">
+        <summary>Genetic findings &middot; source detail behind the required channel</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Finding</dt><dd>ATM &middot; surveillance &middot; P/LP heterozygous &middot; moderate penetrance</dd>
+            <dt>Condition</dt><dd>ATM-associated hereditary breast and pancreatic cancer risk; biallelic is ataxia-telangiectasia</dd>
+            <dt>Source</dt><dd>MBTA 163-gene panel &middot; breast lifetime 20 to 30 %, pancreatic conditional, prostate possible</dd>
+            <dt>Sex-limited</dt><dd>Annual breast MRI with contrast added to annual mammography when lifetime breast risk is above 20 %. Not applicable for this patient. NCCN Genetic/Familial High-Risk Assessment: Breast, Ovarian, Pancreatic</dd>
+            <dt>Conditional</dt><dd>Consider pancreatic surveillance with MRI/MRCP or EUS only if a first- or second-degree relative has had pancreatic cancer. Annual when indicated, from about age 50. NCCN / CAPS consortium</dd>
+            <dt>Context</dt><dd>Risk-reducing mastectomy is generally not recommended; manage by surveillance. NCCN</dd>
+            <dt>Linked levers</dt><dd><code>breast_mri_screening</code>, <code>pancreatic_surveillance_if_family_history</code></dd>
+          </dl>
+        </div>
+      </details>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-4" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-4" role="note">
+        Synthetic draft &middot; narrative engine-generated from the final action-map state &middot; the
+        signature turns this draft into the newest journal entry &middot; prescriptions keep the native,
+        prescriber-only sign-off.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Notes for review</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><em>Linked levers</em> renders two raw identifiers, <code>breast_mri_screening</code> and
+    <code>pancreatic_surveillance_if_family_history</code>, on the product surface. They are library keys,
+    not clinical language, and a physician acts on neither. Left as it reads, because v1 recreates the
+    ratified reference surface rather than correcting it; this is a finding the reference would need to
+    absorb.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><code>tracked as a Goal</code> implies a write the Canvas FHIR API does not offer:
+    <code>Goal</code> is read and search only, and a Goal is created by the Goals command. Left as it
+    reads, because v1 recreates the ratified reference surface rather than correcting it. v2 and v3 carry
+    the correction; this is the finding the reference surface would need to absorb.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The bounded document. v0's care plan is a form; this is a note with an edge, and the edge is
+    the whole claim: everything inside it is what the signature covers, everything in the right rail
+    is why, and none of the rail enters the record.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The commitment sentence is computed, not written. Four problems, one added to the active
+    list, one updating an existing problem, two note-only, six orders released. A physician signing
+    a note should be able to read what the signature will do without opening anything.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><b>Sign &amp; release is disabled and says so.</b> That is the finding, not the placeholder.
+    The reference surface ships this control permanently disabled with <code>cursor: not-allowed</code>
+    and no explanation, on a screen whose whole subject is the signature. Three separate acts are
+    collapsed into one label: signing the note, authorizing the orders, and releasing the plan to the
+    patient. BRIEF.md's own terminology treats them as separate acts. v2 has to split them and wire
+    each one, or the surface is naming an act it cannot perform.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><code>.ap-doc</code> and the basis rail are screen-local. They are a strong candidate for
+    <code>PROPOSED domain.document</code> once care-plan-release exists in v2 and there are two
+    consumers, but one instance is not a component.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The selected order takes the gold wash and the gold left rail: the screen's one gold, spent
+    on selection focus per P2. The required-channel card underneath is deliberately not gold, because
+    an obligation is not a selection.</span></p>
+</div>
+
+</body>
+</html>

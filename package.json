@@ -1,0 +1,13 @@
+{
+  "name": "aleron-physician-portal-designs",
+  "private": true,
+  "description": "Static wireframe set for the Aleron MD physician portal.",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "check": "node scripts/check.js",
+    "build": "node scripts/build-offline.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

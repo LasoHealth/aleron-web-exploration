@@ -1,0 +1,1635 @@
+/* physician-chrome.css — shared chrome for the physician-portal wireframe set.
+ *
+ * Load order on every screen, after the two canonical stylesheets:
+ *   1. https://kito-laso.github.io/.../product-design-system/tokens.css
+ *   2. https://kito-laso.github.io/.../product-design-system/components.css
+ *   3. ../physician-chrome.css      <- this file
+ *   4. (v0 only) ../v0/v0-tokens.css
+ *
+ * Three sections, deliberately separated because they answer to different
+ * authorities:
+ *
+ *   A. REVIEWER CHROME. Not part of the simulated product. The breadcrumb,
+ *      the version switcher, the desk frame, the annotation callouts, the
+ *      flow-map nodes. The patient wireframe set duplicated its flow-map
+ *      styling into six separate <style> blocks and they drifted; everything
+ *      shared lives here instead, which is the one structural improvement
+ *      this set makes over aleron-wireframes/wireframe-chrome.css.
+ *
+ *   B. PROPOSED COMPONENTS. These DO govern app content. components.css v0.5.0
+ *      declares 28 components and none of them is a navigation rail, yet the
+ *      physician register (P1, and O4's "rails are fixed per surface family")
+ *      specifies one down to the pixel. Per AGENTS.md's missing-pattern rule
+ *      this is design, not application: each block below names the registry
+ *      entry it proposes, and every value traces to physician-register.html
+ *      section 02 rather than being invented here. On ratification these move
+ *      upstream into components.css and get deleted from this file.
+ *
+ *   C. UPSTREAM SHIMS. Carried forward from the patient set's own chrome file
+ *      because the same upstream gaps still apply to this surface family.
+ */
+
+
+/* ==========================================================================
+   A. REVIEWER CHROME
+   ========================================================================== */
+
+/* The reviewer chrome renders in the day register even when the screen inside
+   it is flight-deck, so it reads as a document frame around the instrument
+   rather than as part of it. Held as its own scope so a screen's own
+   [data-register] never leaks into the frame.
+   The one bare-px block in this file: these are page-scaffold measurements
+   for a reviewer's browser window, not product-surface values. */
+.wf {
+  --wf-desk-w: 1320px;     /* rail 188 + content 1020 + 2x 56 gutter, per register 02 */
+  --wf-frame-w: 1420px;    /* desk + the frame's own padding */
+  /* One reading measure for every run of prose in the reviewer chrome.
+     Declared in px rather than ch on purpose: ch resolves against the
+     element own font-size, so capping the lede at 62ch, body prose at 68ch
+     and the note list at 72ch produced three different right edges for what
+     is meant to be one column. 620px is about 71ch at body size and 62ch at
+     lede size, both inside the comfortable range. Structural elements, the
+     flow lanes, the capability matrix and the section rules, deliberately
+     ignore this and fill the document: a diagram and a 34-row table are not
+     prose. Two edges is the intent; three was an accident. */
+  --wf-measure: 620px;
+  --wf-paper: #FAF7F2;
+  --wf-ink: #1D1B18;
+  --wf-line: rgba(29, 27, 24, 0.14);
+  --wf-line-soft: rgba(29, 27, 24, 0.07);
+  --wf-dim: #6E6A63;
+  --wf-gold: #8A6A2F;
+}
+
+body.wf {
+  margin: 0;
+  background: var(--wf-paper);
+  color: var(--wf-ink);
+  font-family: var(--voice);
+  font-size: var(--size-text);
+  -webkit-font-smoothing: antialiased;
+}
+body.wf * { box-sizing: border-box; }
+body.wf ::selection { background: var(--gold); color: var(--ink); }
+
+/* --- Breadcrumb bar + version switcher -----------------------------------
+   The switcher is the reason this file exists: three parallel versions of the
+   same surface are only comparable if you can flip between them in place,
+   without going back to the hub and losing which screen you were reading.
+   Every screen that has a counterpart in another version carries all three
+   pills; a screen with no counterpart marks the missing ones as absent
+   rather than hiding them, so the gap is legible instead of silent. */
+.wf-bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--air-row) var(--air-group);
+  padding: var(--s-sm) var(--s-lg);
+  background: var(--wf-paper);
+  border-bottom: var(--line-thin) solid var(--wf-line);
+  font-size: var(--size-small);
+  color: var(--wf-dim);
+}
+.wf-bar a { color: var(--wf-ink); }
+.wf-bar__home { text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.wf-bar__path {
+  color: var(--wf-ink);
+  font-variant-numeric: tabular-nums;
+}
+.wf-bar__path b { font-weight: var(--w-emphasis); }
+.wf-bar__spacer { margin-left: auto; }
+
+.wf-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  padding: var(--s-2xs);
+  background: rgba(29, 27, 24, 0.05);
+  border-radius: var(--radius-control);
+}
+.wf-switch__label {
+  padding-left: var(--s-2xs);
+  padding-right: var(--s-2xs);
+  font-size: var(--size-caption);
+  color: var(--wf-dim);
+}
+.wf-switch a,
+.wf-switch span {
+  display: inline-block;
+  padding: var(--s-2xs) var(--s-sm);
+  border-radius: calc(var(--radius-control) - var(--s-2xs));
+  font-size: var(--size-small);
+  text-decoration: none;
+  color: var(--wf-dim);
+  white-space: nowrap;
+}
+.wf-switch a:hover { color: var(--wf-ink); }
+.wf-switch [aria-current="page"] {
+  background: #FFFFFF;
+  color: var(--wf-ink);
+  font-weight: var(--w-emphasis);
+  box-shadow: 0 1px 2px rgba(29, 27, 24, 0.08);
+}
+/* No counterpart in that version. Kept visible and struck through: a reviewer
+   asking "what does v0 look like here" deserves the answer "it has no such
+   screen", not a missing control. */
+.wf-switch [aria-disabled="true"] {
+  color: rgba(29, 27, 24, 0.32);
+  text-decoration: line-through;
+  cursor: default;
+}
+
+/* --- Desk frame ----------------------------------------------------------
+   The physician portal is a desktop surface, so the scaffold is a window,
+   not the phone frame the patient set used. The frame's own ring is chrome
+   and sits outside the one-shadow-per-screen budget, same exemption the
+   patient set's phone frame took. */
+.wf-stage {
+  padding: var(--s-2xl) var(--s-lg) var(--s-3xl);
+  display: flex;
+  justify-content: center;
+}
+.wf-desk {
+  width: 100%;
+  max-width: var(--wf-frame-w);
+  border-radius: var(--radius-panel);
+  /* clip, not hidden. Both clip the panel radius identically, but overflow:
+     hidden makes this element the scroll container for any position:sticky
+     descendant, and since the desk never scrolls, sticky silently stopped
+     working anywhere inside it. overflow: clip does not create a scroll
+     container, so a sticky child tracks the page as intended. Found when the
+     care-plan detail card would not stick despite having runway. */
+  overflow: clip;
+  background: var(--ground);
+  box-shadow: 0 1px 3px rgba(29, 27, 24, 0.10), 0 18px 50px rgba(29, 27, 24, 0.10);
+}
+/* Browser-chrome hint: three dots and the route. Enough to say "this is a
+   desktop web page" without drawing a fake browser nobody asked for. */
+.wf-desk__chrome {
+  display: flex;
+  align-items: center;
+  gap: var(--s-sm);
+  padding: var(--s-sm) var(--s-md);
+  background: rgba(29, 27, 24, 0.06);
+  border-bottom: var(--line-thin) solid rgba(29, 27, 24, 0.08);
+}
+.wf-desk__dots { display: flex; gap: var(--s-2xs); flex: 0 0 auto; }
+.wf-desk__dots i {
+  width: var(--s-xs);
+  height: var(--s-xs);
+  border-radius: 50%;
+  background: rgba(29, 27, 24, 0.20);
+}
+.wf-desk__url {
+  flex: 1;
+  min-width: 0;
+  padding: var(--s-2xs) var(--s-sm);
+  border-radius: var(--radius-tile);
+  background: rgba(255, 255, 255, 0.72);
+  /* Was #6E6A63, which measures 3.06:1 on the translucent bar over the frame
+     ground: this is the route a reviewer reads to know which screen they are on,
+     so it is content, not ornament. #4E4A44 measures 5.01:1 on the composited bar and still reads as chrome. */
+  color: #4E4A44;
+  font-size: var(--size-caption);
+  font-family: var(--audit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Annotation callouts -------------------------------------------------
+   v2 exists to show what moved. A screen that silently absorbs a v0 feature
+   proves nothing at a demo, so every absorbed feature carries a marker and
+   the marker says where it came from. Four kinds, and the kind is carried by
+   the word in the tag, never by color alone. */
+.wf-annotations {
+  max-width: var(--wf-frame-w);
+  margin: 0 auto;
+  padding: 0 var(--s-lg) var(--s-3xl);
+  display: grid;
+  gap: var(--air-row);
+}
+.wf-annotations__label {
+  padding-top: var(--air-tier);
+  border-top: var(--line-thin) solid var(--wf-line-soft);
+  margin-bottom: var(--air-row);
+  font-size: var(--size-small);
+  font-weight: var(--w-emphasis);
+  color: var(--wf-dim);
+}
+.wf-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-sm);
+  align-items: start;
+  font-size: var(--size-small);
+  line-height: 1.55;
+  color: var(--wf-ink);
+}
+.wf-note__tag {
+  padding: 2px var(--s-xs);
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--wf-line);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  color: var(--wf-dim);
+  white-space: nowrap;
+}
+.wf-note[data-kind="carried"] .wf-note__tag { border-color: var(--wf-gold); color: var(--wf-gold); }
+
+/* Product classes borrowed into annotation prose, re-tokened to the reviewer
+   palette. Scoped .wf .wf-annotations, one class deeper than the section-B
+   product rules, because those are equal specificity and declared later in the
+   file: without the extra class, [data-register="flight-deck"] .punmod wins on
+   source order and the note renders at 2.16:1. Authors naturally reference a state by its own class when writing a
+   note about it, but the annotation block renders on the day paper ground while
+   the page root is flight-deck, so a product token resolves to its navy value
+   and lands at 1.03:1. This is the mirror of the .pshell .wf-note rule above:
+   whichever way a class crosses the frame boundary, it adopts the palette of
+   the side it is drawn on. Found by widening the contrast audit past .pshell.
+   .pna is an absent value, .punmod is an unmodeled one, and both read as
+   quiet-neutral in the reviewer palette rather than borrowing a signal. */
+.wf .wf-annotations .pna { color: var(--wf-dim); }
+.wf .wf-annotations .pval { color: var(--wf-ink); }
+.wf .wf-annotations .pval__u { color: var(--wf-dim); }
+.wf .wf-annotations .punmod { border-color: rgba(29, 27, 24, 0.30); color: var(--wf-dim); }
+.wf .wf-annotations .amd-input {
+  background: rgba(29, 27, 24, 0.05);
+  color: var(--wf-ink);
+  min-height: 0;
+  padding: 0 var(--s-2xs);
+  width: auto;
+}
+.wf-note[data-kind="new"] .wf-note__tag { border-color: rgba(29, 27, 24, 0.45); color: var(--wf-ink); }
+.wf-note[data-kind="gap"] .wf-note__tag { border-style: dashed; border-color: var(--ember); color: var(--ember); }
+/* Was rgba(29,27,24,0.40), which measures 2.47:1 on the paper ground: dimmed
+   past quiet into unreadable. The kind is carried by the word, not the colour,
+   so "dropped" only needs to read as neutral rather than as absent. --wf-dim is
+   4.60:1 and is already the neutral in this palette; the dotted border is what
+   distinguishes it from the default tag, and it stays distinct from gap, which
+   is dashed ember. */
+.wf-note[data-kind="dropped"] .wf-note__tag {
+  color: var(--wf-dim);
+  border-style: dotted;
+  border-color: rgba(29, 27, 24, 0.30);
+}
+/* A defect this set found and corrected upstream in the shared chrome rather
+   than locally. Distinct from "new" because it records a repair, and the
+   reviewer wants to know which findings were acted on versus proposed. */
+.wf-note[data-kind="fixed"] .wf-note__tag { border-color: var(--wf-ink); color: var(--wf-ink); }
+
+/* A note placed INSIDE the product frame, which several screens need in order
+   to separate two specimens of the same surface ("only one of these renders in
+   the product"). The reviewer palette is day-only and would sit unreadable at
+   1.22:1 on a flight-deck ground, so inside .pshell the note re-resolves
+   through the product tokens and follows the register like everything else.
+   This is a supported placement, not a leak: the same exemption the desk frame
+   takes, scoped to the one thing that genuinely belongs in the frame. */
+.pshell .wf-note { color: var(--text-secondary); }
+.pshell .wf-note__tag { color: var(--text-tertiary); border-color: var(--border-base); }
+.pshell .wf-note[data-kind="carried"] .wf-note__tag { border-color: var(--signal-advisory); color: var(--signal-advisory); }
+.pshell .wf-note[data-kind="new"] .wf-note__tag { border-color: var(--border-strong); color: var(--text-primary); }
+.pshell .wf-note[data-kind="gap"] .wf-note__tag { border-color: var(--signal-hazard); color: var(--signal-hazard); }
+.pshell .wf-note[data-kind="fixed"] .wf-note__tag { border-color: var(--text-primary); color: var(--text-primary); }
+.pshell .wf-note[data-kind="dropped"] .wf-note__tag { color: var(--text-tertiary); border-style: dotted; border-color: var(--border-base); }
+.pshell .wf-notelist li { color: var(--text-secondary); }
+.pshell .wf-notelist li::before { background: var(--text-tertiary); }
+.pshell .wf-notelist strong { color: var(--text-primary); }
+
+
+/* .wf-scaffold: product-surface text that is wireframe explanation rather than
+   copy that would ship. It answers a reviewer's question about how the design
+   works; a physician mid-clinic would never be shown it.
+
+   Deliberately outside P2's five signals. This is reviewer chrome that happens
+   to sit inside the product frame, the same supported placement .pshell
+   .wf-note takes above, so it must not read as a product signal: a red that
+   was one of the five would make the scaffolding look like a hazard. It is not
+   ember and it is not a tile, so P3 is not in play either.
+
+   Off by default. Every screen still has to render as a clean product surface,
+   because that is what the register review measures, so the marks appear only
+   while the reviewer bar's toggle is on.
+
+   No script. The toggle is a checkbox at the top of <body> and the marks key
+   off a sibling combinator, so all 36 screens need markup and nothing else.
+   A script would have meant the same twelve lines pasted into every file, and
+   the set has already watched that go wrong once with the flow-map styling.
+
+   Two cues, never colour alone, per the annotation rule the note kinds follow:
+   the red and a dotted underline. The underline survives a greyscale print and
+   a red-green deficiency; the colour is what makes it scannable. */
+.wf-flagcb {
+  position: absolute;
+  width: var(--line-thin);
+  height: var(--line-thin);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold {
+  color: var(--wf-flag);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--wf-flag);
+  text-underline-offset: 0.22em;
+}
+/* A marked block that carries its own nested colours, a pbound or a details,
+   would otherwise keep them and read as unmarked. */
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold b,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold strong,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold summary,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold code,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold em,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold span,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold p,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold li,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold dt,
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold dd { color: var(--wf-flag); }
+
+/* Register-scoped because the reviewer palette is day-only and a single red
+   cannot clear 4.5:1 on both a warm paper and a navy ground. Same reasoning as
+   the .pshell .wf-note re-resolve above, but these are not product tokens, so
+   the two values are stated here rather than borrowed. Both wrappers: v1, v2
+   and v3 mount .pshell, v0 mounts .v0. */
+.pshell, .v0 { --wf-flag: #A81F11; }
+[data-register="flight-deck"] .pshell,
+[data-register="flight-deck"] .v0 { --wf-flag: #FF9C8E; }
+
+/* .wf-ex: a floated explanation. The block-level scaffold marks were the ones
+   distorting the read: the staging footer cost 146px with its own border and a
+   44px margin, and the Simulation advisory cost 67px across the full 1020px
+   measure, both of which change what a viewer thinks the product looks like.
+
+   So a block explanation is never in flow. It renders as a pin where the block
+   was, about 22px instead of 146px, and the text floats out of it on hover or
+   focus. Inline marks are left alone: a 14px run inside a line costs nothing
+   and reads fine as red text.
+
+   The pin is a real button, so hover is not the only way in: focus opens the
+   same bubble and aria-describedby puts the text on the pin for a screen
+   reader. That is why the closed bubble is opacity 0 and not
+   visibility: hidden, which would drop it out of the accessibility tree and
+   leave the description pointing at nothing.
+
+   The whole layer is absent until the reviewer bar's toggle is on, so the
+   default render carries neither the blocks nor the pins. */
+.wf-ex { display: none; }
+.wf-flagcb:checked ~ .wf-stage .wf-ex {
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+  line-height: 1;
+}
+.wf-ex__pin {
+  display: none;
+  place-items: center;
+  width: var(--s-lg);
+  height: var(--s-lg);
+  padding: 0;
+  border: var(--line-thin) solid var(--wf-flag);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--wf-flag);
+  font: inherit;
+  font-size: var(--size-caption);
+  font-style: italic;
+  line-height: 1;
+  cursor: help;
+}
+.wf-flagcb:checked ~ .wf-stage .wf-ex__pin { display: inline-grid; }
+.wf-ex__pin:hover { background: var(--wf-flag); color: var(--surface-page); }
+.wf-ex__pin:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+/* The same pointer: coarse guard section B proposes for dense row actions. A
+   22px target is fine for a reviewer with a mouse and not fine for a thumb. */
+@media (pointer: coarse) {
+  .wf-ex__pin { width: var(--control-min-h); height: var(--control-min-h); }
+}
+
+/* The bubble. Absolute in every state, so it can never move the surface. */
+/* Child combinator, not a bare class. Several of the marked elements carry
+   their own geometry from section B at the same specificity, and section B
+   comes later in the file, so .pfoot's max-width was winning and rendering a
+   670px bubble. One step of specificity settles it for all of them. */
+.wf-ex > .wf-ex__bubble {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + var(--s-2xs));
+  left: 0;
+  width: max-content;
+  max-width: 22rem;
+  margin: 0;
+  padding: var(--s-xs) var(--s-sm);
+  border: var(--line-thin) solid var(--wf-flag);
+  border-radius: var(--radius-field);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-tier1);
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease-out;
+}
+/* Opens upward where a downward bubble would be cut off: .wf-desk is
+   overflow-y: clip, so a bubble on the staging footer at the foot of the desk
+   would lose its bottom half. */
+.wf-ex--up > .wf-ex__bubble { top: auto; bottom: calc(100% + var(--s-2xs)); }
+/* The pointer. Two stacked triangles, border colour behind fill colour, so the
+   hairline reads continuously around the bubble. */
+.wf-ex__bubble::before,
+.wf-ex__bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--s-xs);
+  border: var(--s-2xs) solid transparent;
+}
+.wf-ex__bubble::before { bottom: 100%; border-bottom-color: var(--wf-flag); }
+.wf-ex__bubble::after { bottom: 100%; border-bottom-color: var(--surface-card); margin-bottom: -1.5px; }
+.wf-ex--up > .wf-ex__bubble::before,
+.wf-ex--up > .wf-ex__bubble::after { bottom: auto; top: 100%; border-bottom-color: transparent; }
+.wf-ex--up > .wf-ex__bubble::before { border-top-color: var(--wf-flag); }
+.wf-ex--up > .wf-ex__bubble::after { border-top-color: var(--surface-card); margin-top: -1.5px; margin-bottom: 0; }
+
+.wf-ex:hover > .wf-ex__bubble,
+.wf-ex:focus-within > .wf-ex__bubble { opacity: 1; pointer-events: auto; }
+
+/* Inside a bubble the dotted underline is noise: the red border and the red
+   text already say what this is, and the rule only exists so an inline mark
+   never relies on colour alone. Written at the toggle's own specificity
+   because the mark rule is (0,4,0) and a bare .wf-ex > .wf-ex__bubble is
+   (0,2,0), so text-decoration: none in the geometry block lost on
+   specificity rather than on order. */
+.wf-flagcb:checked ~ .wf-stage .wf-ex > .wf-ex__bubble { text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { .wf-ex__bubble { transition: none; } }
+
+/* The toggle, in the reviewer bar. A label rather than a button because the
+   control is the checkbox above: Space toggles it, focus order is free and no
+   key handler is needed, which is the same reasoning BRIEF gives for using
+   real buttons where a script IS involved. */
+.wf-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  min-height: var(--control-min-h);
+  padding: 0 var(--s-xs);
+  border: var(--line-thin) solid var(--wf-line);
+  border-radius: var(--radius-control);
+  color: var(--wf-dim);
+  font-size: var(--size-caption);
+  cursor: pointer;
+  user-select: none;
+}
+.wf-flag:hover { color: var(--wf-ink); }
+/* A screen with nothing to mark does not offer the control. Eight v0 screens
+   are in that position and it is a fact about them, not an omission: v0
+   replicates the shipped app, so its copy IS production copy and it carries no
+   staging chrome outside the two care-plan footers. Written as :has() rather
+   than by stripping the markup from those eight files, so the control appears
+   by itself the first time one of them gains a mark. */
+body:not(:has(.wf-scaffold)) .wf-flag { display: none; }
+.wf-flag i {
+  width: var(--s-xs);
+  height: var(--s-xs);
+  border-radius: 50%;
+  border: var(--line-thin) solid currentColor;
+}
+.wf-flagcb:checked ~ .wf-bar .wf-flag { border-color: #A81F11; color: #A81F11; }
+.wf-flagcb:checked ~ .wf-bar .wf-flag i { background: #A81F11; }
+.wf-flagcb:focus-visible ~ .wf-bar .wf-flag { outline: var(--line-focus) solid var(--wf-gold); outline-offset: var(--s-2xs); }
+
+/* Inline marker for annotating a live element in place, keyed to the list
+   below the frame. Sits in the flow rather than floating, so it can never
+   cover the thing it points at. */
+.wf-pin {
+  display: inline-grid;
+  place-items: center;
+  width: var(--s-md);
+  height: var(--s-md);
+  margin-left: var(--s-2xs);
+  border-radius: 50%;
+  border: var(--line-thin) solid currentColor;
+  font-size: 9px;
+  font-weight: var(--w-emphasis);
+  font-variant-numeric: tabular-nums;
+  vertical-align: super;
+  opacity: 0.65;
+}
+
+/* --- Hub + flow maps ----------------------------------------------------- */
+.wf-doc {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--s-2xl) var(--s-lg) var(--s-3xl);
+}
+/* The wide document grows with the viewport; the reading column inside it does
+   not. Flow forks are auto-fit minmax(200px, 1fr) and the capability matrix has
+   five columns, so both convert extra width into more nodes per row and less
+   wrapping. Prose stays at --wf-measure because it already runs about 71
+   characters, the top of the comfortable 45-75 range: widening it would trade a
+   readability regression for a tidier right edge. min() rather than a media
+   query so it tracks continuously instead of stepping at one breakpoint. */
+.wf-doc--wide { max-width: min(1400px, 92vw); }
+.wf-eyebrow {
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  color: var(--wf-gold);
+  margin: 0 0 var(--s-xs);
+}
+.wf-title {
+  font-size: var(--size-display);
+  font-weight: var(--w-display);
+  letter-spacing: var(--track-display);
+  line-height: var(--lh-display);
+  margin: 0 0 var(--s-sm);
+}
+.wf-lede {
+  font-size: var(--size-lede);
+  line-height: 1.5;
+  color: var(--wf-dim);
+  max-width: var(--wf-measure);
+  margin: 0 0 var(--air-section);
+}
+.wf-h2 {
+  font-size: var(--size-h2);
+  font-weight: var(--w-h2);
+  margin: 0 0 var(--s-sm);
+}
+.wf-sectionlabel {
+  margin: var(--air-section) 0 var(--air-tier);
+  padding-top: var(--air-tier);
+  border-top: var(--line-thin) solid var(--wf-line-soft);
+  font-size: var(--size-small);
+  font-weight: var(--w-emphasis);
+  color: var(--wf-dim);
+}
+.wf-sectionlabel:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+.wf-prose {
+  font-size: var(--size-text);
+  line-height: 1.6;
+  color: var(--wf-ink);
+  max-width: var(--wf-measure);
+  margin: 0 0 var(--air-tier);
+}
+.wf-prose--dim { color: var(--wf-dim); }
+.wf-prose code,
+.wf-note code {
+  font-family: var(--audit);
+  font-size: 0.92em;
+}
+
+.wf-notelist { display: grid; gap: var(--air-row); padding: 0; margin: 0 0 var(--air-tier); list-style: none; max-width: var(--wf-measure); }
+.wf-notelist li {
+  position: relative;
+  padding-left: var(--s-lg);
+  font-size: var(--size-text);
+  line-height: 1.55;
+  color: var(--wf-dim);
+}
+.wf-notelist li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: var(--s-xs);
+  height: var(--line-thin);
+  background: rgba(29, 27, 24, 0.32);
+}
+.wf-notelist strong { color: var(--wf-ink); font-weight: var(--w-emphasis); }
+
+/* Version cards on the hub. */
+.wf-versions {
+  display: grid;
+  gap: var(--s-lg);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-bottom: var(--air-section);
+}
+.wf-vcard {
+  display: grid;
+  gap: var(--s-xs);
+  align-content: start;
+  padding: var(--s-lg);
+  border-radius: var(--radius-tier1);
+  border: var(--line-thin) solid var(--wf-line);
+  background: #FFFFFF;
+  color: inherit;
+  text-decoration: none;
+}
+.wf-vcard:hover { border-color: rgba(29, 27, 24, 0.38); }
+.wf-vcard--baseline { background: transparent; border-style: dashed; }
+.wf-vcard__v {
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  color: var(--wf-gold);
+  font-variant-numeric: tabular-nums;
+}
+.wf-vcard--baseline .wf-vcard__v { color: var(--wf-dim); }
+.wf-vcard__title { font-size: var(--size-h3); font-weight: var(--w-h3); }
+.wf-vcard__count { font-size: var(--size-small); color: var(--wf-dim); line-height: 1.5; }
+
+/* Flow-map nodes. Shared here rather than re-declared in each _flow.html —
+   the patient set's six copies of these rules drifted apart within a month. */
+.wf-lane { display: grid; gap: var(--air-row); margin-bottom: var(--air-tier); }
+.wf-fork { display: grid; gap: var(--s-md); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.wf-connector { width: var(--line-thin); height: var(--s-lg); margin: 0 auto; background: var(--wf-line); }
+.wf-node {
+  display: grid;
+  gap: var(--s-2xs);
+  align-content: start;
+  padding: var(--s-sm) var(--s-md);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--wf-line);
+  background: #FFFFFF;
+  color: inherit;
+  text-decoration: none;
+}
+.wf-node:hover { border-color: rgba(29, 27, 24, 0.38); }
+.wf-node__step { font-size: var(--size-caption); color: var(--wf-dim); }
+.wf-node__title { font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.35; }
+.wf-node__route { font-size: var(--size-caption); color: var(--wf-dim); font-family: var(--audit); }
+.wf-node[data-state="new"] { border-color: rgba(29, 27, 24, 0.38); }
+.wf-node[data-state="carried"] { border-left: var(--line-signal) solid var(--wf-gold); }
+.wf-node[data-state="gap"] { border-style: dashed; border-color: var(--ember); }
+.wf-node[data-state="absent"] { opacity: 0.5; pointer-events: none; }
+
+/* Legend, shared by the hub and every flow map. */
+.wf-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm) var(--s-lg);
+  font-size: var(--size-caption);
+  color: var(--wf-dim);
+}
+.wf-legend span { display: inline-flex; align-items: center; gap: var(--s-xs); }
+.wf-legend i {
+  width: var(--s-md);
+  height: var(--s-sm);
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--wf-line);
+  flex: 0 0 auto;
+}
+.wf-legend i.is-carried { border-left: var(--line-signal) solid var(--wf-gold); }
+.wf-legend i.is-new { border-color: rgba(29, 27, 24, 0.45); }
+.wf-legend i.is-gap { border-style: dashed; border-color: var(--ember); }
+.wf-legend i.is-absent { opacity: 0.4; }
+
+/* Comparison table used by the hub's feature matrix. */
+.wf-matrix { width: 100%; border-collapse: collapse; font-size: var(--size-small); }
+.wf-matrix th,
+.wf-matrix td {
+  padding: var(--s-xs) var(--s-sm);
+  text-align: left;
+  border-bottom: var(--line-thin) solid var(--wf-line-soft);
+  vertical-align: top;
+}
+.wf-matrix thead th {
+  font-weight: var(--w-emphasis);
+  color: var(--wf-dim);
+  font-size: var(--size-caption);
+  border-bottom-color: var(--wf-line);
+}
+.wf-matrix td[data-mark] { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wf-matrix td[data-mark="yes"] { color: var(--wf-ink); font-weight: var(--w-emphasis); }
+/* Was rgba(29,27,24,0.34) at 2.11:1 across 27 cells of the capability matrix.
+   The mark is carried by the word yes/no/part, so "no" only needs to read as
+   unemphasised, not as absent. --wf-dim is 4.60:1. */
+.wf-matrix td[data-mark="no"] { color: var(--wf-dim); }
+.wf-matrix td[data-mark="part"] { color: var(--wf-gold); }
+.wf-matrix__scroll { overflow-x: auto; }
+/* Group header inside the matrix. The scan clause (P5) sanctions tracked caps
+   for exactly this: a waypoint for the scanning eye inside a dense table,
+   not prose. Extra top padding so the group reads as a new band rather than
+   another row. */
+.wf-matrix__group {
+  padding-top: var(--air-tier);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-dim);
+  border-bottom-color: var(--wf-line);
+}
+.wf-matrix tbody tr:first-child .wf-matrix__group { padding-top: var(--s-xs); }
+
+
+/* --- Block-margin reset ------------------------------------------------
+   Browsers apply their own margins to block text before any of this loads: a
+   <p> gets one em above and below, headings and lists get their own. Nothing
+   in this set ever turned that off, so two systems were setting space at once
+   and the second was invisible. A measured example: a caption-sized paragraph
+   in the care plan sat in a grid with a 9px gap and rendered at 20px, because
+   the browser was contributing 10.5px that no rule here asked for. Across the
+   set, 173 of 297 block elements inside the product surface were carrying
+   spacing nobody had written.
+
+   The register fixes spacing to four values and calls them the only legal
+   vertical spends. That is only true if they are the only ones in play, so
+   the defaults are zeroed here and every gap comes from a token. Scoped to
+   the product surface and the reviewer document; the annotation blocks and
+   flow maps set their own margins deliberately and keep them.
+
+   Three zones, for three reasons. The product surface, because the register's
+   four spacing values are only the only ones in play if nothing else is. The
+   annotation blocks, where .wf-note is a <p> and was carrying 13px of UA
+   margin on top of the list's own 9px grid gap, 292 instances across the set.
+   And v0, which is the surprising one: the shipped app imports Tailwind v4,
+   whose Preflight zeroes these margins, so the replica having them made v0
+   less faithful rather than more. The hub and the flow maps already measured
+   clean and are left alone.
+
+   Deliberately not a universal reset: this names the elements whose UA
+   margins were actually interfering, so it cannot silently change something
+   that was never affected. */
+.pshell :where(p, h1, h2, h3, h4, h5, h6, ul, ol, dl, dd, figure, blockquote, pre),
+.wf-annotations :where(p, ul, ol, dl, dd),
+.v0 :where(p, h1, h2, h3, h4, h5, h6, ul, ol, dl, dd, figure, blockquote, pre) {
+  margin: 0;
+}
+
+/* ==========================================================================
+   B. PROPOSED COMPONENTS — these govern app content
+   ==========================================================================
+   Every value below is quoted from physician-register.html section 02
+   ("The numbers"). Nothing here is a new design decision; the decision was
+   made in that document and simply has no implementation yet. */
+
+/* PROPOSED domain.chart-rail — the physician shell.
+   Register: "Rail width 188px · icons 16 from the house set",
+   "Selection: inset field · radius 10 · weight 500",
+   "Content measure: wrap 1020px". --nav-w is already 188px in tokens.css,
+   so the rail width is a token read, not a literal.
+   O4 confirms rails are fixed per surface family, which is why the rail is a
+   component with two declared item sets (chart / inbox) rather than a
+   free-form nav. */
+.pshell {
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  min-height: 720px;
+  background: var(--ground);
+  color: var(--text-primary);
+  font-family: var(--voice);
+  font-size: var(--size-text);
+}
+.prail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--air-group);
+  padding: var(--air-tier) var(--s-sm);
+  background: var(--surface-sunken);
+  border-right: var(--line-thin) solid var(--border-subtle);
+}
+[data-register="flight-deck"] .prail { background: var(--surface-sunken); }
+
+/* Wordmark. P4 retires the audit face from product surfaces and keeps it for
+   the wordmark tag, which is exactly and only what this is. */
+.prail__brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2xs);
+  padding: 0 var(--s-xs);
+  font-size: var(--size-h3);
+  font-weight: 400;
+  letter-spacing: -0.0275em;
+  color: var(--text-primary);
+}
+.prail__brand span {
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.04em;
+  color: var(--signal-advisory);
+}
+
+/* Patient context. Not a top bar: the register gives the physician surface no
+   header band, so identity rides in the rail where the patient switcher is. */
+.prail__patient {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-xs);
+  align-items: center;
+  padding: 0 var(--s-xs);
+}
+.prail__avatar {
+  display: grid;
+  place-items: center;
+  width: var(--s-xl);
+  height: var(--s-xl);
+  border-radius: 50%;
+  background: var(--surface-inset);
+  color: var(--text-secondary);
+  font-size: var(--size-small);
+  font-weight: var(--w-emphasis);
+}
+.prail__who { display: grid; gap: 2px; min-width: 0; }
+.prail__name {
+  font-size: var(--size-small);
+  font-weight: var(--w-emphasis);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prail__code {
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.prail__rule { height: var(--line-thin); background: var(--hairline); }
+
+.prail__nav { display: grid; gap: 2px; }
+.prail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-sm);
+  min-height: var(--control-min-h);
+  padding: var(--s-xs) var(--s-sm);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--size-small);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.prail__item:hover { color: var(--text-primary); }
+/* Register: selection is the inset field, radius 10, weight 500. Never gold —
+   P2 spends the surface's one gold on the instrument's own selection focus. */
+.prail__item[aria-current="page"] {
+  background: var(--surface-selected);
+  color: var(--text-primary);
+  font-weight: var(--w-emphasis);
+}
+.prail__item svg {
+  width: var(--s-md);
+  height: var(--s-md);
+  flex: 0 0 auto;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Count badge for the inbox rail. Tabular, no fill, so a queue depth never
+   competes with a hazard tile for attention. */
+.prail__count {
+  margin-left: auto;
+  font-size: var(--size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.prail__foot { margin-top: auto; display: grid; gap: var(--air-row); padding: 0 var(--s-xs); }
+.prail__foot small { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.45; }
+
+/* An outbound or cross-family destination in the rail foot, deliberately not a
+   rail item. Register O4 fixes each rail to a closed set, so the two surfaces
+   that are neither a chart section nor a queue section live here instead:
+   the Canvas chart, which is a link out of the product, and the practice-wide
+   standing-order registry, which v0's own eyebrow calls "not patient-specific"
+   and therefore does not belong in a patient's chart. Styled as a link rather
+   than a nav item so it never reads as a seventh section. */
+/* PROPOSED domain.chart-rail addition: the signed-in actor and the way out.
+
+   Neither rail had either. .prail__patient names the patient, so on 21 screens
+   nothing said whose session this was, and there was no way to end it. v0 has
+   both in its header, "Dr. A. Okafor" beside a Log out button, and the
+   proposals dropped them when the header became a rail. A clinical surface that
+   cannot say who is signed in cannot be handed to a second physician at the
+   same workstation, which is the ordinary case in a clinic.
+
+   It sits at the foot under a rule, because it is the least frequent act on the
+   rail and the one that must never be hit by accident on the way to a section.
+   The rail foot already carries a non-section action, per register O4's note on
+   `Open in Canvas`, so this is that same exemption rather than a new one. */
+.prail__acct {
+  display: grid;
+  gap: var(--s-2xs);
+  padding-top: var(--s-xs);
+  border-top: var(--line-thin) solid var(--hairline);
+}
+.prail__actor { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+.prail__signout {
+  /* A text link is the sanctioned shape for an action that cannot take a
+     filled control, per register O5's fallback, but the hit area still has to
+     be real: as bare text this was 15px tall for the one act that ends the
+     session. The label keeps its size; the target grows around it, and the
+     same pointer: coarse guard the row-density variant uses restores the full
+     floor on touch. */
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: var(--s-xl);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--size-small);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: var(--s-3xs);
+  text-decoration-thickness: var(--line-thin);
+  text-decoration-color: var(--border-strong);
+  cursor: pointer;
+}
+.prail__signout:hover { color: var(--text-primary); text-decoration-color: currentColor; }
+.prail__signout:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+@media (pointer: coarse) {
+  .prail__signout { min-height: var(--control-min-h); }
+}
+
+.prail__out {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  padding: var(--s-2xs) 0;
+  color: var(--text-secondary);
+  font-size: var(--size-small);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: var(--line-thin);
+  text-decoration-color: var(--border-base);
+}
+.prail__out:hover { color: var(--text-primary); text-decoration-color: currentColor; }
+
+/* Main pane. Register: content measure wrap 1020px. */
+.pmain { min-width: 0; padding: var(--s-xl) var(--s-2xl) var(--s-2xl); }
+.pwrap { max-width: 1020px; margin: 0 auto; }
+
+/* PROPOSED domain.screen-head — every physician screen opens the same way:
+   an h1 and one sentence saying what the screen answers first. Taken from the
+   reference surface's .shead/.sdef, which every one of its six screens uses. */
+.phead {
+  display: grid;
+  gap: var(--air-row);
+  padding-bottom: var(--air-tier);
+  margin-bottom: var(--air-section);
+  border-bottom: var(--line-thin) solid var(--hairline);
+}
+.phead__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-sm) var(--air-group); }
+.phead h1 {
+  margin: 0;
+  font-size: var(--size-h2);
+  font-weight: var(--w-h2);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.phead p {
+  margin: 0;
+  max-width: 82ch;
+  font-size: var(--size-text);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.phead__aside { margin-left: auto; }
+
+/* PROPOSED domain.module — the section container the reference surface calls
+   .sec: a labelled band over content. P8's "one elevated card per screen"
+   means this is flat by default and elevation is spent deliberately. */
+.pmod {
+  border-radius: var(--radius-tier1);
+  border: var(--line-thin) solid var(--border-subtle);
+  background: var(--surface-card);
+  overflow: hidden;
+  margin-bottom: var(--air-section);
+}
+.pmod--flat { background: transparent; }
+.pmod--tier1 { box-shadow: var(--shadow-tier1); border-color: transparent; }
+.pmod__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-xs) var(--air-group);
+  padding: var(--s-sm) var(--s-md);
+  background: var(--surface-tier2);
+  border-bottom: var(--line-thin) solid var(--border-subtle);
+}
+.pmod__head h2,
+.pmod__head h3 {
+  margin: 0;
+  font-size: var(--size-h3);
+  font-weight: var(--w-h3);
+  line-height: 1.3;
+}
+.pmod__sub {
+  font-size: var(--size-small);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.pmod__meta { margin-left: auto; font-size: var(--size-small); color: var(--text-tertiary); }
+.pmod__body { padding: var(--s-md); }
+.pmod__body--flush { padding: 0; }
+
+/* PROPOSED domain.value — P4: "Values in the voice face, tabular, weight 500,
+   with units, on charts and ledgers too." components.css has .amd-value for
+   this but no unit-suffix layout, so the pairing is declared here. */
+.pval {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-emphasis);
+  white-space: nowrap;
+}
+.pval__u {
+  margin-left: var(--s-2xs);
+  font-size: var(--size-caption);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+.pval--lg { font-size: var(--size-h2); }
+.pval--xl { font-size: var(--size-display); line-height: 1; }
+
+/* PROPOSED domain.hazard-tile — P3: "Hazard is a tile. Ember never runs as
+   text on the night ground. Band words and status hazards sit in filled ember
+   tiles with cream text at radius 4, in both registers." components.css has
+   .amd-annunciator__hazard, which is this pattern but only inside an
+   annunciator; .ptile is the same treatment usable inline in a row or cell. */
+.ptile {
+  display: inline-block;
+  padding: 2px var(--s-xs);
+  border-radius: var(--radius-tile);
+  background: var(--signal-hazard);
+  color: var(--cream);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  white-space: nowrap;
+}
+/* Advisory and baseline are words in their signal color, never tiles — a tile
+   is reserved so true hazards outrank quiet advisories by construction (P3). */
+.padv { color: var(--signal-advisory); font-weight: var(--w-emphasis); font-size: var(--size-caption); }
+.pbase { color: var(--text-tertiary); font-weight: var(--w-emphasis); font-size: var(--size-caption); }
+/* P7: unmodeled is indigo and dashed. */
+.punmod {
+  display: inline-block;
+  padding: 2px var(--s-xs);
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) dashed var(--signal-unmodeled);
+  color: var(--signal-unmodeled);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+}
+/* The register's section 02 gives flight-deck unmodeled as 8CA6D8, "lightened
+   for navy". Measured on the rendered screens it clears 4.5 on both navy
+   grounds (5.74 on --ground, 6.17 on --surface-sunken) but reads 4.45 on
+   --surface-card gunmetal, which is where the panel and care-plan chips
+   actually sit. 93ABDB is the smallest lift that clears gunmetal (4.73) and is
+   visually indistinguishable at chip size. Same standing as the two token
+   corrections in section C: a ratified value that one ground breaks, recorded
+   rather than silently kept or silently changed. */
+[data-register="flight-deck"] .punmod { border-color: #93ABDB; color: #93ABDB; }
+
+/* PROPOSED domain.data-spine — the patient-data pattern: a label on the left,
+   a value on a right-hand spine, notes as reading text, signal only when
+   earned. P5's scan clause is scoped to the group header and nowhere else. */
+.pspine { display: grid; gap: var(--air-section); }
+.pspine__group { display: grid; gap: var(--air-row); }
+/* The one sanctioned tracked-caps use on a physician surface (P5). */
+.pspine__group > h3 {
+  margin: 0 0 var(--s-2xs);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.pspine__row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(200px, auto);
+  gap: var(--s-md) var(--s-xl);
+  align-items: baseline;
+  padding: var(--air-row) 0;
+  border-top: var(--line-thin) solid var(--hairline);
+}
+.pspine__row:first-of-type { border-top: 0; }
+.pspine__k { font-size: var(--size-text); }
+.pspine__note {
+  display: block;
+  max-width: 52ch;
+  margin-top: 2px;
+  font-size: var(--size-small);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.pspine__m { display: flex; align-items: baseline; justify-content: flex-end; gap: var(--s-xs); text-align: right; }
+
+/* PROPOSED domain.value secondary reading.
+   A unit conversion is a value, not a note. Height sat as "178 cm" on the
+   value spine with "5 ft 10 in" in the reading-text slot on the far left,
+   which put a number and its own restatement at opposite ends of the row and
+   spent the reasoning slot on arithmetic. The alternate reading belongs under
+   the value it converts, quieter than it and sharing its alignment. P4 still
+   applies to both: voice face, tabular, unit always present. Weight drops to
+   400 so the primary reading stays the one the eye lands on. */
+.pval__alt {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--size-caption);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* PROPOSED domain.data-spine companion values.
+   The reference surface already combines three same-unit lipid values on one
+   row while keeping triglycerides separate, because triglycerides carries a
+   flag. That is the rule, made explicit: a flag has to bind to exactly one
+   value, so a flagged value keeps its own row, and unflagged companions that
+   are always read together share one. Companions are separated by a middot
+   and each keeps its own unit, so combining never costs a unit. */
+.pspine__m--pair { flex-wrap: wrap; gap: var(--s-2xs) var(--s-sm); }
+.pspine__m--pair .pval { display: inline-block; }
+.pspine__m--pair .pval + .pval::before {
+  content: "\00B7";
+  margin-right: var(--s-sm);
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* PROPOSED domain.ledger — square data-table specimen. P8: "Data tables stay
+   square specimens", so no radius, and selection is the inset field. */
+.pledger { width: 100%; border-collapse: collapse; font-size: var(--size-small); }
+.pledger th,
+.pledger td {
+  padding: var(--s-xs) var(--s-sm);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--line-thin) solid var(--hairline);
+}
+.pledger thead th {
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  color: var(--text-tertiary);
+  border-bottom-color: var(--border-subtle);
+  white-space: nowrap;
+}
+.pledger td[data-role="value"],
+.pledger th[data-role="value"] { text-align: right; font-variant-numeric: tabular-nums; }
+.pledger td[data-role="value"] { font-weight: var(--w-emphasis); }
+.pledger tbody tr[aria-selected="true"] { background: var(--surface-selected); }
+.pledger tbody tr[data-clickable]:hover { background: var(--surface-inset); }
+.pledger__prov {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+.pledger__scroll { overflow-x: auto; }
+/* Group header inside a ledger. The scan clause's second and last sanctioned
+   home; anything that reads as a sentence stays sentence case. */
+.pledger tbody th[scope="rowgroup"],
+.pledger__groupname {
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* PROPOSED domain.disclosure — the instrument confesses its limits (P7) and
+   the reference surface does it with <details> everywhere: evidence traces,
+   provenance, lineage, audit. One treatment, used everywhere. */
+.pdisc {
+  border-top: var(--line-thin) solid var(--hairline);
+  font-size: var(--size-small);
+}
+.pdisc > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+  padding: var(--air-row) 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.pdisc > summary::-webkit-details-marker { display: none; }
+.pdisc > summary::marker { content: ""; }
+.pdisc > summary::after { content: "\203A"; color: var(--text-tertiary); }
+.pdisc[open] > summary::after { content: "\2039"; }
+.pdisc > summary:hover { color: var(--text-primary); }
+.pdisc > summary:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+.pdisc__body {
+  padding: 0 0 var(--air-group);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.pdisc__body code { font-family: var(--audit); font-size: var(--size-caption); word-break: break-all; }
+
+/* PROPOSED domain.keyfacts — the dl the reference surface uses for lineage,
+   provenance and metadata blocks. Tabular so ids and dates align. */
+.pfacts {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  gap: var(--air-row) var(--s-md);
+  margin: 0;
+  font-size: var(--size-small);
+}
+.pfacts dt { color: var(--text-tertiary); }
+.pfacts dd { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pfacts--cols { grid-template-columns: minmax(96px, auto) minmax(0, 1fr) minmax(96px, auto) minmax(0, 1fr); }
+
+/* PROPOSED domain.boundary — the simulation and provenance banners. Loudest
+   thing allowed on the surface, so it is a filled tile per P3 and it is used
+   only for a real boundary: this is not a record, no order was sent.
+
+   Contract, because it has already caught one build: this is display:grid, so
+   every child becomes its own row. Pass it element children, not mixed inline
+   content, or a sentence will break apart at each <b> and <span>. The usual
+   shape is <div class="pbound"><b>Label</b><span>prose</span></div>.
+   Also: .pbound already IS the P3 filled hazard tile, so never nest a .ptile
+   inside it. Ember on ember is invisible. */
+.pbound {
+  display: grid;
+  gap: var(--s-2xs);
+  padding: var(--s-sm) var(--s-md);
+  border-radius: var(--radius-tile);
+  background: var(--signal-hazard);
+  color: var(--cream);
+  font-size: var(--size-small);
+  line-height: 1.5;
+  margin-bottom: var(--air-tier);
+}
+.pbound--quiet {
+  background: var(--surface-tier2);
+  color: var(--text-secondary);
+  border-left: var(--line-signal) solid var(--signal-advisory);
+  border-radius: 0 var(--radius-tile) var(--radius-tile) 0;
+}
+.pbound b { font-weight: var(--w-emphasis); }
+
+/* PROPOSED domain.screen-foot — the provenance line every reference-surface
+   screen closes with. P7 again: state the frame in place. */
+.pfoot {
+  margin: var(--air-section) 0 0;
+  padding-top: var(--air-tier);
+  border-top: var(--line-thin) solid var(--hairline);
+  font-size: var(--size-small);
+  line-height: 1.55;
+  color: var(--text-tertiary);
+  max-width: 92ch;
+}
+
+/* PROPOSED domain.empty — honest absence. The reference surface never hides a
+   gap; "Not emitted" stays visible where a value would be. */
+.pempty {
+  padding: var(--air-group) var(--s-md);
+  text-align: center;
+  font-size: var(--size-small);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.pna { color: var(--text-tertiary); font-style: normal; }
+
+/* PROPOSED domain.commit-card - the progressive commitment workflow.
+   carePlanView.js renders note lock, order authorization and patient release
+   as three separately revealed numbered cards, and Role and Release Matrix v1
+   section 3 lists Sign plan, Release plan and Create lab order request as
+   three distinct permissions. No canonical component carries a numbered act
+   whose later steps are withheld until the earlier one completes, so this
+   proposes one. Values from the register's air ladder and tier-2 radius; the
+   pending card is dashed and transparent because a withheld act must not read
+   as an available one. */
+.pcommit { display: grid; gap: var(--air-tier); }
+.pcommit__card {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-md);
+  border: var(--line-thin) solid var(--border-base);
+  border-radius: var(--radius-tier2);
+  background: var(--surface-card);
+}
+.pcommit__card[data-state="pending"] {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-subtle);
+}
+.pcommit__step { font-size: var(--size-caption); color: var(--text-tertiary); }
+/* Scoped to direct children. As bare descendant selectors these reached into
+   anything nested inside a commit card and, being (0,1,1) and declared later
+   than .pspine__group > h3 and .pbase, outranked them on source order alone:
+   a P5 tracked-caps group header nested in a card came out at act-title size,
+   and a .pbase caption came out at --size-small. The child combinator keeps
+   the card styling its own title and prose and nothing deeper. Found while
+   merging the release act into the care plan. */
+.pcommit__card > h3 {
+  margin: 0;
+  font-size: var(--size-h3);
+  font-weight: var(--w-h3);
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.pcommit__card[data-state="pending"] > h3 { color: var(--text-secondary); }
+.pcommit__card > p { margin: 0; font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); }
+.pcommit__acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
+
+/* PROPOSED domain.readiness - the blocker reason list. P7: the instrument
+   confesses its limits. A disabled control with no stated reason is the
+   politest possible lie, so wherever an act is withheld the surface prints
+   the list of conditions that withhold it. Inset field, same selection
+   treatment the register gives a focused region. */
+.preason {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-sm) var(--s-md);
+  border-radius: var(--radius-control);
+  background: var(--surface-inset);
+}
+.preason > strong { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+.preason ul {
+  display: grid;
+  gap: var(--s-2xs);
+  margin: 0;
+  padding-left: var(--s-md);
+  font-size: var(--size-small);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* PROPOSED domain.attestation - a physician affirmation of fact. BRIEF.md and
+   interaction.consent agree that consent is never a checkbox, and equally that
+   an attestation is not a consent: it is a statement the physician makes about
+   what they reviewed. Both the reference app and v0 render it as a checkbox
+   with the sentence beside it, so the pattern is carried rather than invented;
+   what it needs is a shared class instead of four local ones. */
+.pattest {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-xs);
+  align-items: start;
+  font-size: var(--size-small);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.pattest input { margin: 0; accent-color: var(--signal-forward); }
+.pattest b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+/* PROPOSED token.instrument-furniture — two values the instrument screens need
+   that tokens.css v0.5.0 does not declare.
+
+   --p-ladder is the reference surface's --act: a russet reserved for the
+   VO2max ladder, the one forward-curve geometry on the action map. P2 fixes
+   five signals and russet is not among them, so either the ladder gives up
+   its own colour and rides on shape alone, or the palette gains a sixth. The
+   reference surface chose russet and swapped it per register; that decision
+   is carried here verbatim so it stays visible for ratification rather than
+   being smuggled into a screen's <style> block. Same containment as the
+   .punmod flight-deck shim above.
+
+   --p-goldwash is the reference-band wash P6 names ("the gold wash"). It is
+   derived from --signal-forward with color-mix rather than written as a hex,
+   so the register flip carries it and it can never drift from the gold. */
+:root {
+  --p-ladder: #8A5A4A;
+  --p-goldwash: color-mix(in srgb, var(--signal-forward) 8%, transparent);
+}
+[data-register="flight-deck"] {
+  --p-ladder: #C77B63;
+  --p-goldwash: color-mix(in srgb, var(--signal-forward) 12%, transparent);
+}
+
+/* PROPOSED domain.chart-legend — the reference surface's .legend and
+   .rvars-legend. P2 puts category on shape and P7 makes the instrument state
+   its own frame in place; neither works unless the shape vocabulary is spelled
+   out beside the chart. components.css v0.5.0 declares no legend of any kind.
+   The swatch is one element and its shape rides on a data attribute, so a
+   circle, a square and a dashed ring stay one component rather than three. */
+.plegend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--air-row) var(--s-md);
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+}
+.plegend > span { display: inline-flex; align-items: center; gap: var(--s-2xs); }
+.plegend i {
+  width: var(--s-xs);
+  height: var(--s-xs);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+.plegend i[data-mark="diagnostic"] { border-radius: 0; background: var(--signal-baseline); }
+.plegend i[data-mark="gated"] { background: transparent; border: var(--line-thin) dashed var(--text-secondary); }
+.plegend i[data-mark="candidate"] { background: transparent; border: var(--line-thin) dashed var(--signal-unmodeled); }
+.plegend i[data-mark="harm"] { background: var(--signal-hazard); }
+.plegend i[data-mark="ladder"] { background: var(--p-ladder); }
+.plegend i[data-mark="range"] { background: var(--signal-baseline); }
+.plegend i[data-mark="band"] { border-radius: var(--radius-tile); background: var(--p-goldwash); border: var(--line-thin) solid var(--signal-forward); }
+
+/* PROPOSED domain.proportion-bar — the reference surface's .valbar and
+   .rvar-sbar: a single filled track showing one number as a share of the
+   column's largest. components.css has .amd-confidence, but that is a
+   three-segment discrete meter for an evidence level, not a continuous
+   proportion, so it cannot carry a QALY share or a sensitivity score.
+   [data-tone="harm"] is the only variant: a negative net is the one case where
+   a short bar means something different from a small number. */
+.pbar {
+  display: block;
+  height: var(--s-2xs);
+  margin-top: var(--s-2xs);
+  border-radius: var(--radius-tile);
+  background: var(--surface-inset);
+  overflow: hidden;
+}
+.pbar > i {
+  display: block;
+  height: 100%;
+  min-width: var(--line-focus);
+  border-radius: inherit;
+  background: var(--signal-baseline);
+}
+.pbar > i[data-tone="harm"] { background: var(--signal-hazard); }
+
+/* PROPOSED interaction.stepper, additional "complete" state.
+   components.css declares .amd-stepper__step[data-state="current"] and nothing
+   else, so a stepper can say where you are but not what you have already
+   finished. The release rail needs both: review and preview are done, attest is
+   current, release is pending, and a physician mid-sequence has to be able to
+   tell those three apart. A completed segment takes --signal-baseline rather
+   than the forward gold, because gold marks the live step and spending it on
+   every finished one would leave the current step with nothing of its own.
+   Text in a completed step lifts to primary for the same reason a current one
+   does: both are settled facts, unlike a pending step. */
+.amd-stepper__step[data-state="complete"] .amd-stepper__segment { background: var(--signal-baseline); }
+.amd-stepper__step[data-state="complete"],
+.amd-stepper__step[data-state="current"] { color: var(--text-primary); }
+
+/* PROPOSED core.button, additional density variant.
+   Nine screens in this set independently wrote the same three declarations to
+   shrink .amd-button for a dense row action: a ledger row's "Send to care
+   plan", an inbox row's "Start review", a rail card's "Reject". Nine silent
+   one-offs is exactly the dialect AGENTS.md's missing-pattern rule forbids, so
+   the variant is declared once here and proposed as an addition to
+   components.json's core.button entry.
+
+   This DOES reduce the control below the system's own --control-min-h (44px),
+   and that is the decision ratification has to make, not a detail to hide.
+   The 44px floor is a touch target; the physician portal is a pointer-only
+   desktop surface where a 44px control inside a 36px table row cannot fit
+   without breaking P8 ("air is never shrunk to fit more in") somewhere else.
+   The pointer:coarse guard below restores the full floor on any touch
+   hardware, so the reduction applies only where the premise holds. If
+   ratification rejects the variant, the answer is that dense row actions
+   become text links rather than that they become 44px. */
+/* PROPOSED space.3xs, a 2px step below --s-2xs.
+
+   The ratified ladder is 4, 8, 12, 16, 24, 32, 48, 64, and it has no value for
+   the gap inside a single label: a patient name over its code, a value over its
+   unit, a tab title over its caption. Thirteen screens needed one anyway and
+   wrote a raw 2px nineteen times, which is the same evidence the rail and the
+   row-density variant were proposed on. 4px is not a substitute: it reads as a
+   gap between two things rather than as one two-line label, and it narrows the
+   ratio against --air-row 9 that P8 depends on.
+
+   Held here rather than in a screen so the nineteen uses stop drifting. */
+.pshell, .v0 { --s-3xs: 2px; }
+
+
+.pshell .amd-button[data-density="row"] {
+  min-height: var(--s-xl);
+  padding: var(--s-2xs) var(--s-sm);
+  font-size: var(--size-small);
+}
+.pshell .amd-button[data-density="row"][data-wide] { padding: var(--s-2xs) var(--s-md); }
+@media (pointer: coarse) {
+  .pshell .amd-button[data-density="row"] {
+    min-height: var(--control-min-h);
+    padding: var(--s-xs) var(--s-md);
+  }
+}
+
+/* Focus + selection, themed off the palette rather than left to the browser.
+   --signal-forward is 2.26:1 on paper and fails WCAG 1.4.11's 3:1 floor for a
+   focus indicator, so day resolves to --text-gold (4.70:1) while flight-deck
+   keeps the gold, which reads fine on navy. Same reasoning and the same
+   single-variable containment as the patient set's --wf-focus-ring. */
+:root { --p-focus-ring: var(--text-gold); }
+[data-register="flight-deck"] { --p-focus-ring: var(--signal-forward); }
+.pshell :focus-visible,
+.wf :focus-visible {
+  outline: var(--line-focus) solid var(--p-focus-ring);
+  outline-offset: var(--s-2xs);
+}
+.pshell ::selection { background: var(--signal-forward); color: var(--ink); }
+
+
+/* ==========================================================================
+   C. UPSTREAM SHIMS
+   ==========================================================================
+   Carried forward from aleron-wireframes/wireframe-chrome.css. Same upstream
+   gaps, same reasoning; delete from both files when fixed upstream. */
+
+/* --- Two contrast corrections the canonical kit has not adopted yet ---------
+   Both were measured on the rendered screens in this set, and both turn out to
+   be already known: Aleron-Web's own resources/css/tokens.css carries the same
+   two corrections with the same measurements and a header comment asking that
+   they be taken upstream when the flight-deck register is ratified. So v0, the
+   surface everyone calls the old one, is currently the accessible one, and v1
+   and v2 inherited the failures by linking the canonical kit faithfully.
+
+   Reproduced here with the same values rather than re-derived, so all three
+   versions agree and the diff against upstream stays a two-line diff.
+
+   1. flight-deck --text-tertiary at 0.55 alpha reads 4.17:1 on --surface-card
+      (gunmetal), under WCAG 1.4.3's 4.5 floor. It carries every eyebrow, unit
+      suffix, table header, provenance line and order-status string on the
+      physician surface, so this is the single highest-count defect in the set:
+      roughly 350 elements across the 25 flight-deck screens. 0.62 reads 4.73:1.
+
+   2. day --signal-advisory resolves to --text-gold, which clears 4.5 only on
+      pure white. On the tinted card and inset surfaces it reads 4.45:1 and
+      4.30:1, and it carries the advisory band words (`gated`, `High`, `draft`)
+      and the wordmark tag. --gold-800 is an existing kit primitive, so this
+      adds no token, and it reads 6.52:1 on the worst day surface.
+
+   Correction 2 is DAY ONLY. This file loads after tokens.css, so a bare
+   :root override also wins inside the flight-deck block and would replace lit
+   gold with a near-black gold on navy (1.43:1). The flight-deck value is
+   restated below for that reason, which is also how v0-tokens.css scopes it.
+
+   Delete both when tokens.css adopts them. */
+:root { --signal-advisory: var(--gold-800); }
+[data-register="flight-deck"] {
+  --signal-advisory: var(--lit-gold);
+  --text-tertiary: rgba(245, 241, 232, 0.62);
+}
+
+/* A bare <a href> inside the product surface inherits the user agent's link
+   blue, which is 1.16:1 on the flight-deck ground. The design system declares
+   no link component, and the reference surface styles its cross-links locally
+   (.jr-x), so the default is set here once: ink, with a hairline underline for
+   the affordance. Gold is deliberately not used, because gold is a signal and
+   a link is not one. Scoped to classless anchors so it can never reach the
+   rail items or the table rows, which carry their own treatment. */
+.pshell a:not([class]) {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: var(--line-thin);
+  text-decoration-color: var(--border-strong);
+}
+.pshell a:not([class]):hover { text-decoration-color: currentColor; }
+
+/* <small> otherwise inherits the browser's `smaller` keyword (~11.7px), under
+   the 14px reading-text floor. Pin it to the token. */
+.pshell small { font-size: var(--size-small); }
+
+/* components.css sizes .amd-toggle at 56x32 and .amd-radio at 24x24, both
+   under the system's own --control-min-h (44px). Expand the hit area only;
+   visual design is untouched. */
+.pshell .amd-toggle,
+.pshell .amd-radio,
+.pshell .amd-checkbox { position: relative; }
+.pshell .amd-toggle::before,
+.pshell .amd-radio::before,
+.pshell .amd-checkbox::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--control-min-h));
+  height: var(--control-min-h);
+  transform: translate(-50%, -50%);
+}
+
+/* Visually hidden, still announced. */
+.wf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* No canonical reduced-motion contract exists yet. Remove travel, keep every
+   state change and the hierarchy it carries. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: var(--dur-fast);
+    animation-iteration-count: 1;
+    transition-duration: var(--dur-fast);
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    transition-property: color, background-color, border-color, outline-color, opacity, fill, stroke;
+  }
+  .amd-loading__dot { animation: none; opacity: 1; }
+}
+
+/* The desk frame is fixed-width by intent — a physician portal is not a
+   responsive surface and pretending otherwise in a wireframe would be a lie.
+   Below the rail hinge the frame scrolls horizontally inside its own stage
+   rather than reflowing into a layout nobody designed. */
+@media (max-width: 1100px) {
+  .wf-stage { padding-left: 0; padding-right: 0; overflow-x: auto; justify-content: flex-start; }
+  .wf-desk { min-width: var(--wf-desk-w); border-radius: 0; }
+}

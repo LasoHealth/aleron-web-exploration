@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Patient data</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Everything reusable is in physician-chrome.css.
+
+     Carried from v1/patient-data.html unchanged: .pd-id, .pd-readiness,
+     .pd-abnormal, .pd-spark, .pd-coverage. The only new local rule is
+     .pd-trend, the state word that rides under a device-instrument label. */
+  .pd-id {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-2xs) var(--s-xs);
+    padding-bottom: var(--air-row);
+    margin-bottom: var(--air-group);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    color: var(--text-secondary);
+  }
+  .pd-id b { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .pd-id i { font-style: normal; color: var(--text-tertiary); }
+
+  /* Input-readiness strip. Four cells, equal weight: this is a completeness
+     check, not a ranking, so nothing here is emphasised over anything else. */
+  .pd-readiness {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s-md);
+  }
+  .pd-readiness > div { display: grid; gap: var(--s-2xs); align-content: start; }
+  .pd-readiness dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .pd-readiness dd { margin: 0; font-size: var(--size-small); line-height: 1.45; }
+  .pd-abnormal {
+    margin-top: var(--air-tier);
+    padding-top: var(--air-row);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .pd-abnormal b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  /* Wearable sparkline. SVG geometry is the sanctioned bare-number exception
+     (BRIEF.md); the stroke colour still resolves through a token, per P6. */
+  .pd-spark { display: block; width: 88px; height: 22px; overflow: visible; }
+  .pd-spark polyline { fill: none; stroke: var(--signal-baseline); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .pd-spark circle { fill: var(--signal-baseline); }
+  .pd-sparkwrap { display: flex; align-items: center; gap: var(--s-sm); }
+
+  /* Trend state word. It is a data-completeness state, not a severity, so it
+     stays tertiary text and never earns a tile (P3). */
+  .pd-trend {
+    display: block;
+    margin-top: var(--s-3xs);
+    font-size: var(--size-caption);
+    line-height: 1.45;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pd-coverage {
+    margin-top: var(--air-row);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+
+  /* ---- Felt experience, recovery context and drivers -----------------------
+     Carried verbatim from v2/vitality.html when that screen was folded in here.
+     SVG chart geometry is the sanctioned bare-number exception (BRIEF.md);
+     every colour still resolves through a token, per P6. */
+  /* Four outcome cards, two by two. Equal weight: the profile is read as a
+     shape, and ranking one outcome above another would invent a hierarchy the
+     model does not emit. */
+  .vt-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-md);
+  }
+  .vt-card {
+    display: grid;
+    gap: var(--air-row);
+    align-content: start;
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+  }
+  .vt-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-sm); }
+  .vt-card__head h3 { margin: 0; font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.3; }
+  .vt-card__sub { display: block; margin-top: var(--s-3xs); font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.45; }
+  .vt-card__now { display: grid; justify-items: end; gap: var(--s-2xs); }
+
+  /* Chart furniture. Gridlines, the axis and the tick text are ink alphas;
+     the desired-range band is the gold wash P6 names. */
+  .vt-chart { display: block; width: 100%; height: auto; }
+  .vt-chart .vt-grid-line { stroke: var(--hairline); stroke-width: 1; }
+  .vt-chart .vt-axis { stroke: var(--border-base); stroke-width: 1; }
+  .vt-chart .vt-band { fill: var(--signal-forward); fill-opacity: 0.10; }
+  .vt-chart .vt-band-ink { fill: var(--signal-baseline); fill-opacity: 0.10; }
+  .vt-chart .vt-band-edge { stroke: var(--border-subtle); stroke-width: 1; }
+  .vt-chart .vt-line { fill: none; stroke: var(--signal-baseline); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .vt-chart .vt-dot { fill: var(--text-primary); }
+  .vt-chart .vt-ghost { fill: none; stroke: var(--border-base); stroke-width: 1.2; stroke-dasharray: 2 2; }
+  .vt-chart .vt-divide { stroke: var(--border-base); stroke-width: 1; stroke-dasharray: 4 4; }
+  .vt-chart text { font-size: var(--size-caption); fill: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .vt-chart .vt-t-strong { fill: var(--text-secondary); }
+  .vt-chart .vt-t-value { fill: var(--text-primary); font-weight: 500; }
+
+  /* HRV block. Meta column left, chart and bridge right. */
+  .vt-hrv { display: grid; grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); gap: var(--air-group) var(--s-2xl); align-items: start; }
+  .vt-meta { display: grid; gap: var(--air-row); align-content: start; }
+  .vt-meta__type { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .vt-meta h3 { margin: 0; font-size: var(--size-h3); font-weight: var(--w-h3); line-height: 1.3; }
+  .vt-meta dl { display: grid; gap: var(--s-2xs); margin: 0; font-size: var(--size-small); color: var(--text-secondary); }
+  .vt-meta dl div { display: flex; gap: var(--s-xs); }
+  .vt-meta dt { color: var(--text-tertiary); }
+  .vt-meta dd { margin: 0; }
+
+  /* The bridge caption. Three parts, because HRV sits between the felt report
+     and the physiologic driver and belongs to neither. */
+  .vt-bridge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-xs) var(--s-sm);
+    margin-top: var(--air-tier);
+    padding: var(--s-xs) var(--s-sm);
+    background: var(--surface-inset);
+    border-radius: var(--radius-tile);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .vt-bridge b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  .vt-read {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-md);
+    margin-top: var(--air-tier);
+  }
+  .vt-read--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .vt-read > div { display: grid; gap: var(--s-2xs); align-content: start; }
+  .vt-read b { font-size: var(--size-caption); font-weight: var(--w-emphasis); color: var(--text-tertiary); }
+  .vt-read span { font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); }
+
+  /* Driver explorer. A scrolling column of selectable drivers beside the one
+     that is open. Selection is the inset field (P8). */
+  .vt-explorer { display: grid; grid-template-columns: minmax(200px, 250px) minmax(0, 1fr); gap: var(--s-2xl); align-items: start; }
+  .vt-tabs { display: grid; gap: var(--s-3xs); max-height: 26.25rem; overflow-y: auto; }
+  .vt-tab {
+    display: grid;
+    gap: var(--s-3xs);
+    padding: var(--s-xs) var(--s-sm);
+    border: 0;
+    border-left: var(--line-signal) solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .vt-tab:hover { background: var(--surface-inset); color: var(--text-primary); }
+  .vt-tab[aria-selected="true"] { background: var(--surface-inset); border-left-color: var(--signal-forward); color: var(--text-primary); }
+  .vt-tab__name { font-size: var(--size-small); font-weight: var(--w-emphasis); }
+  .vt-tab__m { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .vt-driverhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-sm); margin-bottom: var(--air-tier); }
+  .vt-driverhead h3 { margin: 0; font-size: var(--size-h3); font-weight: var(--w-h3); line-height: 1.3; }
+  .vt-driverhead p { margin: var(--s-2xs) 0 0; font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.5; }
+
+  .vt-note { font-size: var(--size-small); line-height: 1.55; color: var(--text-tertiary); max-width: 84ch; }
+
+  @media (max-width: 1100px) {
+    .pd-readiness { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .vt-grid { grid-template-columns: minmax(0, 1fr); }
+    .vt-hrv { grid-template-columns: minmax(0, 1fr); }
+    .vt-explorer { grid-template-columns: minmax(0, 1fr); }
+    .vt-read, .vt-read--three { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<!-- ── reviewer chrome ─────────────────────────────────────────────────── -->
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Patient data</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/emr.html" title="v0 has no patient-data view. Its nearest counterpart is the EMR tab, which deep links out to Canvas.">v0</a>
+    <a href="../v1/patient-data.html">v1</a>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/patient-data</span>
+  </div>
+
+  <!-- ── product surface ───────────────────────────────────────────────── -->
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <!-- The chart rail. Seven sections in v2: v1's six plus Screening,
+           inserted after Vitality, which is where the later app build put it.
+           Icons are the canonical six at 16px, mapped by the aliases in
+           icons.json: your-data → Patient Data, quality-of-life → Vitality,
+           plan → Care Plan, appointments → Journal, chat → Aleron AI. -->
+        <nav class="prail__nav">
+          <a class="prail__item" href="patient-data.html" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Patient Data
+          </a>
+          <a class="prail__item" href="risk-models.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+            Risk
+          </a>
+          <a class="prail__item" href="care-plan.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+            Care Plan
+          </a>
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <a class="prail__item" href="orders.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v13a2 2 0 0 0 4 0V3"/><path d="M10 11h4"/></svg>
+            Orders
+          </a>
+          <a class="prail__item" href="journal.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+            Journal
+          </a>
+          <a class="prail__item" href="aleron-ai.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+            Aleron AI
+          </a>
+        </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="emr.html">Open in Canvas &#8599;</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-36" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-36" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Patient data</h1>
+        </div>
+        <p>The intake packet in two halves: identity, signals and labs as measured, the four
+        patient-reported outcomes as felt, and the recovery context that bridges them.</p>
+      </header>
+
+      <!-- Input readiness. P7: the instrument confesses its limits, and it
+           does it before the data rather than in a footnote after it. -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Input readiness</h2>
+          <span class="pmod__meta">Packet <span class="pval">v1</span> &middot; frozen 24 Jun 2026</span>
+        </div>
+        <div class="pmod__body">
+          <dl class="pd-readiness">
+            <div>
+              <dt>Completeness</dt>
+              <dd><span class="pval">27<span class="pval__u">of 29 fields</span></span></dd>
+            </div>
+            <div>
+              <dt>Recency</dt>
+              <dd>Labs <span class="pval">7<span class="pval__u">d</span></span>, wearable <span class="pval">1<span class="pval__u">d</span></span></dd>
+            </div>
+            <div>
+              <dt>Provenance</dt>
+              <dd>Synthetic representative packet</dd>
+            </div>
+            <div>
+              <dt>Missingness</dt>
+              <dd>OGTT, FIB-4 <span class="pna">not emitted</span></dd>
+            </div>
+          </dl>
+          <p class="pd-abnormal">
+            <b>Abnormal findings</b> blood pressure stage 2 &middot; HOMA-IR insulin-resistant &middot;
+            hs-CRP high-risk tertile &middot; overnight oxygen desaturation &middot; VO&#8322;max low for age
+          </p>
+        </div>
+      </section>
+
+      <!-- The data spine. Group headers run tracked caps: the one place P5's
+           scan clause applies outside a citation table. Rows are label on the
+           left, value on a right-hand spine, note as reading text, flag only
+           when earned. -->
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Signals and labs</h2>
+          <span class="pmod__meta">Reference ranges from the recorded context fields</span>
+        </div>
+        <div class="pmod__body">
+
+          <p class="pd-id">
+            <b>Ethan Park</b> <i>&middot;</i> AL-47M <i>&middot;</i> 47 male <i>&middot;</i> metabolic-risk phenotype
+          </p>
+
+          <div class="pspine">
+
+            <section class="pspine__group">
+              <h3>Blood pressure &amp; sleep</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">Blood pressure
+                  <small class="pspine__note">Untreated, single clinic setting. A home or ambulatory series is the gate that would confirm it.</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pval">142/90<span class="pval__u">mmHg</span></span>
+                  <span class="ptile">stage 2</span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Overnight oxygen
+                  <small class="pspine__note">Overnight wearable, nadir across the trailing 30 nights.</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pval">89<span class="pval__u">% SpO&#8322; nadir</span></span>
+                  <span class="ptile">desaturation</span>
+                </span>
+              </div>
+            </section>
+
+            <!-- Device instruments. v1 carried one sparkline and no trend
+                 vocabulary; this is the later app build's wearable summary,
+                 one row per admitted instrument, each declaring how much
+                 history stands behind the number rather than implying a
+                 trend it cannot support (P7). -->
+            <section class="pspine__group">
+              <h3>Device instruments</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">Resting heart rate (RHR)
+                  <small class="pspine__note">Overnight. Discordant with measured fitness, which is what makes it worth a rhythm check rather than a congratulation.</small>
+                  <small class="pd-trend">building_baseline &middot; 9 of 14 prior-window nights</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pd-sparkwrap">
+                    <svg class="pd-spark" viewBox="0 0 88 22" aria-hidden="true"><polyline points="0,7 11,8 22,6 33,9 44,12 55,14 66,16 77,17 88,18"/><circle cx="88" cy="18" r="1.8"/></svg>
+                    <span class="pval">38<span class="pval__u">bpm</span></span>
+                  </span>
+                  <span class="ptile">low</span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">HRV (rMSSD)
+                  <small class="pspine__note">Recovery context only. Read as a within-person trend of seven nights or longer; the felt report wins on conflict.</small>
+                  <small class="pd-trend">building_baseline &middot; 9 of 14 prior-window nights</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pd-sparkwrap">
+                    <svg class="pd-spark" viewBox="0 0 88 22" aria-hidden="true"><polyline points="0,5 11,7 22,6 33,9 44,10 55,13 66,12 77,15 88,16"/><circle cx="88" cy="16" r="1.8"/></svg>
+                    <span class="pval">34<span class="pval__u">ms</span></span>
+                  </span>
+                  <span class="padv">low vs baseline</span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Sleep duration
+                  <small class="pspine__note">Dial read. Sleep-duration context, not a separate Vitality score. Staging only began emitting at the 29 Jun firmware update.</small>
+                  <small class="pd-trend">snapshot_only &middot; single snapshot, no trend yet</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pd-sparkwrap">
+                    <svg class="pd-spark" viewBox="0 0 88 22" aria-hidden="true"><polyline points="84,13 88,13"/><circle cx="88" cy="13" r="1.8"/></svg>
+                    <span class="pval">6.4<span class="pval__u">h</span></span>
+                  </span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Steps
+                  <small class="pspine__note">Movement context only. Not a patient-reported outcome and not a causal attribution.</small>
+                  <small class="pd-trend">building_baseline &middot; 11 of 14 prior-window days</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pd-sparkwrap">
+                    <svg class="pd-spark" viewBox="0 0 88 22" aria-hidden="true"><polyline points="0,9 11,12 22,10 33,14 44,13 55,16 66,15 77,17 88,16"/><circle cx="88" cy="16" r="1.8"/></svg>
+                    <span class="pval">3,800<span class="pval__u">steps/d</span></span>
+                  </span>
+                  <span class="padv">below target</span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Active minutes
+                  <small class="pspine__note">Movement context only. The wrist device reports a daily total and did not backfill history at pairing.</small>
+                  <small class="pd-trend">snapshot_only &middot; single snapshot, no trend yet</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pd-sparkwrap">
+                    <svg class="pd-spark" viewBox="0 0 88 22" aria-hidden="true"><polyline points="84,15 88,15"/><circle cx="88" cy="15" r="1.8"/></svg>
+                    <span class="pval">14<span class="pval__u">min/d</span></span>
+                  </span>
+                </span>
+              </div>
+              <p class="pd-coverage">Coverage &middot; nights 26 &middot; step days 24 &middot; last sync 30 Jun 2026 08:12</p>
+              <p class="pbound pbound--quiet">
+                Device instruments corroborate recovery and sleep; they do not replace patient-reported
+                outcomes or determine protocol state.
+              </p>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Metabolic</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">HbA1c</span>
+                <span class="pspine__m"><span class="pval">6.0<span class="pval__u">%</span></span> <span class="padv">prediabetes</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Fasting glucose</span>
+                <span class="pspine__m"><span class="pval">110<span class="pval__u">mg/dL</span></span> <span class="padv">impaired</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Fasting insulin</span>
+                <span class="pspine__m"><span class="pval">16<span class="pval__u">&micro;IU/mL</span></span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">HOMA-IR</span>
+                <span class="pspine__m"><span class="pval">4.3</span> <span class="ptile">insulin-resistant</span></span>
+              </div>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Lipids &amp; inflammation</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">Total cholesterol / LDL-C / HDL-C</span>
+                <span class="pspine__m"><span class="pval">205 / 132 / 40<span class="pval__u">mg/dL</span></span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Triglycerides
+                  <small class="pspine__note">Reference below 150 mg/dL.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">180<span class="pval__u">mg/dL</span></span> <span class="ptile">high</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">ApoB</span>
+                <span class="pspine__m"><span class="pval">112<span class="pval__u">mg/dL</span></span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Lp(a)
+                  <small class="pspine__note">Normal. Measured once; it is genetically set and does not need repeating.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">25<span class="pval__u">nmol/L</span></span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">hs-CRP
+                  <small class="pspine__note">High-risk tertile at 3 mg/L and above.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">3.0<span class="pval__u">mg/L</span></span> <span class="ptile">high</span></span>
+              </div>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Renal</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">eGFR and UACR
+                  <small class="pspine__note">Both within range. Read as a pair: filtration and albumin leak stage the kidney together, and either alone understates the picture.</small>
+                </span>
+                <span class="pspine__m pspine__m--pair">
+                  <span class="pval">93<span class="pval__u">mL/min/1.73m&sup2;</span></span>
+                  <span class="pval">14<span class="pval__u">mg/g</span></span>
+                </span>
+              </div>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Body</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">Height and weight
+                  <small class="pspine__note">The two inputs behind the BMI below. Neither is flagged on its own.</small>
+                </span>
+                <span class="pspine__m pspine__m--pair">
+                  <span class="pval">178<span class="pval__u">cm</span><span class="pval__alt">5 ft 10 in</span></span>
+                  <span class="pval">93<span class="pval__u">kg</span><span class="pval__alt">205 lb</span></span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">BMI
+                  <small class="pspine__note">Body fat approximately 30 %, which is high for this BMI and is what makes the number worth acting on rather than watching.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">29.4<span class="pval__u">kg/m&sup2;</span></span> <span class="padv">overweight</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Waist
+                  <small class="pspine__note">Waist-to-height 0.59, above the 0.5 threshold. Central adiposity is the part of the BMI that carries the metabolic risk.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">105<span class="pval__u">cm</span><span class="pval__alt">41 in</span></span></span>
+              </div>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Fitness</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">VO&#8322;max estimate
+                  <small class="pspine__note">Roughly the 10th to 15th percentile for age and sex. This is the input behind the ladder on the action map.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">28<span class="pval__u">mL/kg/min</span></span> <span class="ptile">low</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Activity
+                  <small class="pspine__note">Self-report. The device step count above is the corroborating instrument, not the source of this field.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">low</span></span>
+              </div>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Context</h3>
+              <div class="pspine__row">
+                <span class="pspine__k">Smoking</span>
+                <span class="pspine__m"><span class="pval">never</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Family history</span>
+                <span class="pspine__m"><span class="pval">T2D + HTN</span></span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Genetics
+                  <small class="pspine__note">Routed to the genetic must-do pipeline. An obligation, not an opportunity: it is not ranked against scored actions.</small>
+                </span>
+                <span class="pspine__m">
+                  <span class="pval">ATM heterozygous P/LP</span>
+                  <span class="pbase">required channel</span>
+                </span>
+              </div>
+              <div class="pspine__row">
+                <span class="pspine__k">Anti-obesity pharmacotherapy
+                  <small class="pspine__note">Eligibility status only. Eligibility is not a recommendation.</small>
+                </span>
+                <span class="pspine__m"><span class="pval">eligible, BMI &ge; 27 with comorbidity</span></span>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Felt experience. Tier-2 here: the merged screen spends its one
+           elevation on Signals and labs, and the felt half is a peer of the
+           measured half rather than a rival for it (P8). ===== -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Felt experience</h2>
+          <span class="pmod__sub">Each outcome gets its own graph. At intake these are one-point patient-reported measures, then they trend forward.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="vt-grid">
+
+            <div class="vt-card">
+              <div class="vt-card__head">
+                <div>
+                  <h3>Energy</h3>
+                  <span class="vt-card__sub">0-10 self-report &middot; felt energy, vigor, fatigue burden</span>
+                </div>
+                <div class="vt-card__now">
+                  <span class="ptile">low</span>
+                  <span><span class="pval pval--lg">4</span><span class="pval__u">of 10</span></span>
+                </div>
+              </div>
+              <svg class="vt-chart" viewBox="0 0 460 150" role="img" aria-label="Energy 4 of 10 at intake, against a desired range of 6.5 to 10. No prior measurements; three future measurement windows are scheduled.">
+                <rect class="vt-band" x="34" y="14" width="412" height="36"/>
+                <line class="vt-band-edge" x1="34" y1="50" x2="446" y2="50"/>
+                <line class="vt-grid-line" x1="34" y1="14" x2="446" y2="14"/>
+                <line class="vt-axis" x1="34" y1="116" x2="446" y2="116"/>
+                <line class="vt-divide" x1="298" y1="14" x2="298" y2="116"/>
+                <text class="vt-t-strong" x="440" y="24" text-anchor="end">desired range 6.5 to 10</text>
+                <circle class="vt-dot" cx="269" cy="75" r="4"/>
+                <text class="vt-t-value" x="269" y="66" text-anchor="middle">4</text>
+                <circle class="vt-ghost" cx="328" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="387" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="446" cy="116" r="3.5"/>
+                <text x="387" y="104" text-anchor="middle">future window</text>
+                <text x="28" y="18" text-anchor="end">10</text>
+                <text x="28" y="120" text-anchor="end">0</text>
+                <text x="34" y="132" text-anchor="middle">&minus;28d</text>
+                <text x="93" y="132" text-anchor="middle">&minus;21d</text>
+                <text x="152" y="132" text-anchor="middle">&minus;14d</text>
+                <text x="211" y="132" text-anchor="middle">&minus;7d</text>
+                <text class="vt-t-strong" x="269" y="132" text-anchor="middle">Intake</text>
+                <text x="328" y="132" text-anchor="middle">30d</text>
+                <text x="387" y="132" text-anchor="middle">90d</text>
+                <text x="446" y="132" text-anchor="middle">180d</text>
+              </svg>
+              <p class="vt-note">Energy is the patient priority when it is low. It is an outcome, not a presumed cause. Repeat the measure at 30, 90 and 180 days.</p>
+            </div>
+
+            <div class="vt-card">
+              <div class="vt-card__head">
+                <div>
+                  <h3>Mood</h3>
+                  <span class="vt-card__sub">0-10 self-report &middot; emotional tone, positive affect, lift</span>
+                </div>
+                <div class="vt-card__now">
+                  <span class="pbase">mid band</span>
+                  <span><span class="pval pval--lg">6</span><span class="pval__u">of 10</span></span>
+                </div>
+              </div>
+              <svg class="vt-chart" viewBox="0 0 460 150" role="img" aria-label="Mood 6 of 10 at intake, against a desired range of 6 to 10. No prior measurements; three future measurement windows are scheduled.">
+                <rect class="vt-band" x="34" y="14" width="412" height="41"/>
+                <line class="vt-band-edge" x1="34" y1="55" x2="446" y2="55"/>
+                <line class="vt-grid-line" x1="34" y1="14" x2="446" y2="14"/>
+                <line class="vt-axis" x1="34" y1="116" x2="446" y2="116"/>
+                <line class="vt-divide" x1="298" y1="14" x2="298" y2="116"/>
+                <text class="vt-t-strong" x="440" y="24" text-anchor="end">desired range 6 to 10</text>
+                <circle class="vt-dot" cx="269" cy="55" r="4"/>
+                <text class="vt-t-value" x="269" y="46" text-anchor="middle">6</text>
+                <circle class="vt-ghost" cx="328" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="387" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="446" cy="116" r="3.5"/>
+                <text x="387" y="104" text-anchor="middle">future window</text>
+                <text x="28" y="18" text-anchor="end">10</text>
+                <text x="28" y="120" text-anchor="end">0</text>
+                <text x="34" y="132" text-anchor="middle">&minus;28d</text>
+                <text x="93" y="132" text-anchor="middle">&minus;21d</text>
+                <text x="152" y="132" text-anchor="middle">&minus;14d</text>
+                <text x="211" y="132" text-anchor="middle">&minus;7d</text>
+                <text class="vt-t-strong" x="269" y="132" text-anchor="middle">Intake</text>
+                <text x="328" y="132" text-anchor="middle">30d</text>
+                <text x="387" y="132" text-anchor="middle">90d</text>
+                <text x="446" y="132" text-anchor="middle">180d</text>
+              </svg>
+              <p class="vt-note">Mood is part of the outcome profile. If it is stable, it should not dominate the plan by default. Repeat with PHQ or GAD if symptoms rise.</p>
+            </div>
+
+            <div class="vt-card">
+              <div class="vt-card__head">
+                <div>
+                  <h3>Body ease</h3>
+                  <span class="vt-card__sub">0-10 self-report &middot; physical ease, pain burden, readiness to move</span>
+                </div>
+                <div class="vt-card__now">
+                  <span class="pbase">mid band</span>
+                  <span><span class="pval pval--lg">5</span><span class="pval__u">of 10</span></span>
+                </div>
+              </div>
+              <svg class="vt-chart" viewBox="0 0 460 150" role="img" aria-label="Body ease 5 of 10 at intake, against a desired range of 6.5 to 10. No prior measurements; three future measurement windows are scheduled.">
+                <rect class="vt-band" x="34" y="14" width="412" height="36"/>
+                <line class="vt-band-edge" x1="34" y1="50" x2="446" y2="50"/>
+                <line class="vt-grid-line" x1="34" y1="14" x2="446" y2="14"/>
+                <line class="vt-axis" x1="34" y1="116" x2="446" y2="116"/>
+                <line class="vt-divide" x1="298" y1="14" x2="298" y2="116"/>
+                <text class="vt-t-strong" x="440" y="24" text-anchor="end">desired range 6.5 to 10</text>
+                <circle class="vt-dot" cx="269" cy="65" r="4"/>
+                <text class="vt-t-value" x="269" y="56" text-anchor="middle">5</text>
+                <circle class="vt-ghost" cx="328" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="387" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="446" cy="116" r="3.5"/>
+                <text x="387" y="104" text-anchor="middle">future window</text>
+                <text x="28" y="18" text-anchor="end">10</text>
+                <text x="28" y="120" text-anchor="end">0</text>
+                <text x="34" y="132" text-anchor="middle">&minus;28d</text>
+                <text x="93" y="132" text-anchor="middle">&minus;21d</text>
+                <text x="152" y="132" text-anchor="middle">&minus;14d</text>
+                <text x="211" y="132" text-anchor="middle">&minus;7d</text>
+                <text class="vt-t-strong" x="269" y="132" text-anchor="middle">Intake</text>
+                <text x="328" y="132" text-anchor="middle">30d</text>
+                <text x="387" y="132" text-anchor="middle">90d</text>
+                <text x="446" y="132" text-anchor="middle">180d</text>
+              </svg>
+              <p class="vt-note">Body ease shows whether the plan makes movement and training feel more possible. Repeat with a pain screen if it is still low.</p>
+            </div>
+
+            <div class="vt-card">
+              <div class="vt-card__head">
+                <div>
+                  <h3>Cognitive clarity</h3>
+                  <span class="vt-card__sub">0-10 self-report &middot; perceived sharpness, attention, brain fog</span>
+                </div>
+                <div class="vt-card__now">
+                  <span class="ptile">low</span>
+                  <span><span class="pval pval--lg">4</span><span class="pval__u">of 10</span></span>
+                </div>
+              </div>
+              <svg class="vt-chart" viewBox="0 0 460 150" role="img" aria-label="Cognitive clarity 4 of 10 at intake, against a desired range of 6.5 to 10. No prior measurements; three future measurement windows are scheduled.">
+                <rect class="vt-band" x="34" y="14" width="412" height="36"/>
+                <line class="vt-band-edge" x1="34" y1="50" x2="446" y2="50"/>
+                <line class="vt-grid-line" x1="34" y1="14" x2="446" y2="14"/>
+                <line class="vt-axis" x1="34" y1="116" x2="446" y2="116"/>
+                <line class="vt-divide" x1="298" y1="14" x2="298" y2="116"/>
+                <text class="vt-t-strong" x="440" y="24" text-anchor="end">desired range 6.5 to 10</text>
+                <circle class="vt-dot" cx="269" cy="75" r="4"/>
+                <text class="vt-t-value" x="269" y="66" text-anchor="middle">4</text>
+                <circle class="vt-ghost" cx="328" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="387" cy="116" r="3.5"/>
+                <circle class="vt-ghost" cx="446" cy="116" r="3.5"/>
+                <text x="387" y="104" text-anchor="middle">future window</text>
+                <text x="28" y="18" text-anchor="end">10</text>
+                <text x="28" y="120" text-anchor="end">0</text>
+                <text x="34" y="132" text-anchor="middle">&minus;28d</text>
+                <text x="93" y="132" text-anchor="middle">&minus;21d</text>
+                <text x="152" y="132" text-anchor="middle">&minus;14d</text>
+                <text x="211" y="132" text-anchor="middle">&minus;7d</text>
+                <text class="vt-t-strong" x="269" y="132" text-anchor="middle">Intake</text>
+                <text x="328" y="132" text-anchor="middle">30d</text>
+                <text x="387" y="132" text-anchor="middle">90d</text>
+                <text x="446" y="132" text-anchor="middle">180d</text>
+              </svg>
+              <p class="vt-note">Clarity should be read alongside HRV and the drivers, but it is not itself the cause. Repeat and compare against the recovery context.</p>
+            </div>
+
+          </div>
+          <p class="vt-note" style="margin-top: var(--air-group);">All four sit on the same fixed time scale, whether or not a
+          value exists at every point. An empty pre-intake window is a fact about the record, and
+          hiding it by rescaling would make one timepoint look like a trend.</p>
+        </div>
+      </section>
+
+      <!-- ===== Recovery context. The hinge: the reference surface already calls
+           HRV the bridge, and its triptych caption names both halves of this
+           merged screen by their own words. ===== -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Recovery context</h2>
+          <span class="pmod__sub">Objective recovery context for the subjective profile. HRV is not a driver, a diagnosis, or a treatment target by itself.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="vt-hrv">
+            <div class="vt-meta">
+              <span class="vt-meta__type">Context only</span>
+              <h3>HRV recovery</h3>
+              <div><span class="pval pval--lg">34</span><span class="pval__u">ms</span></div>
+              <span class="padv">Low vs baseline</span>
+              <dl>
+                <div><dt>Metric</dt><dd>RMSSD</dd></div>
+                <div><dt>Baseline</dt><dd><span class="pval">42<span class="pval__u">ms</span></span></dd></div>
+                <div><dt>Coverage</dt><dd><span class="pval">82<span class="pval__u">% wearable</span></span></dd></div>
+              </dl>
+            </div>
+            <div>
+              <svg class="vt-chart" viewBox="0 0 900 220" role="img" aria-label="HRV RMSSD falling from 42 to 34 milliseconds across four trailing windows, against a personal baseline range of 40 to 46 milliseconds.">
+                <rect class="vt-band-ink" x="52" y="47" width="828" height="43"/>
+                <line class="vt-band-edge" x1="52" y1="47" x2="880" y2="47"/>
+                <line class="vt-band-edge" x1="52" y1="90" x2="880" y2="90"/>
+                <line class="vt-grid-line" x1="52" y1="18" x2="880" y2="18"/>
+                <line class="vt-grid-line" x1="52" y1="54" x2="880" y2="54"/>
+                <line class="vt-grid-line" x1="52" y1="126" x2="880" y2="126"/>
+                <line class="vt-axis" x1="52" y1="176" x2="880" y2="176"/>
+                <line class="vt-divide" x1="584" y1="18" x2="584" y2="176"/>
+                <text class="vt-t-strong" x="874" y="30" text-anchor="end">personal baseline range 40 to 46 ms</text>
+                <polyline class="vt-line" points="52,76 170,90 289,97 407,111 525,133"/>
+                <circle class="vt-dot" cx="52" cy="76" r="3.5"/>
+                <circle class="vt-dot" cx="170" cy="90" r="3.5"/>
+                <circle class="vt-dot" cx="289" cy="97" r="3.5"/>
+                <circle class="vt-dot" cx="407" cy="111" r="3.5"/>
+                <circle class="vt-dot" cx="525" cy="133" r="4.5"/>
+                <text class="vt-t-value" x="525" y="150" text-anchor="middle">34 ms</text>
+                <circle class="vt-ghost" cx="643" cy="176" r="3.5"/>
+                <circle class="vt-ghost" cx="762" cy="176" r="3.5"/>
+                <circle class="vt-ghost" cx="880" cy="176" r="3.5"/>
+                <text x="762" y="164" text-anchor="middle">future window</text>
+                <text x="44" y="22" text-anchor="end">50</text>
+                <text x="44" y="58" text-anchor="end">45</text>
+                <text x="44" y="94" text-anchor="end">40</text>
+                <text x="44" y="130" text-anchor="end">35</text>
+                <text x="44" y="180" text-anchor="end">28</text>
+                <text x="52" y="196" text-anchor="middle">&minus;28d</text>
+                <text x="170" y="196" text-anchor="middle">&minus;21d</text>
+                <text x="289" y="196" text-anchor="middle">&minus;14d</text>
+                <text x="407" y="196" text-anchor="middle">&minus;7d</text>
+                <text class="vt-t-strong" x="525" y="196" text-anchor="middle">Intake</text>
+                <text x="643" y="196" text-anchor="middle">30d</text>
+                <text x="762" y="196" text-anchor="middle">90d</text>
+                <text x="880" y="196" text-anchor="middle">180d</text>
+              </svg>
+
+              <p class="vt-bridge">
+                <span>subjective outcome measures</span>
+                <span aria-hidden="true">&rarr;</span>
+                <b>HRV recovery context</b>
+                <span aria-hidden="true">&rarr;</span>
+                <span>physiologic driver interpretation</span>
+              </p>
+
+              <div class="vt-read">
+                <div>
+                  <b>Bridge role</b>
+                  <span>HRV is the bridge signal: objective recovery context for low energy and low clarity. It should prompt interpretation, not diagnosis by itself. On conflict, the felt report wins.</span>
+                </div>
+                <div>
+                  <b>Next measurement</b>
+                  <span>Compare the next 28-day recovery window against the intake baseline, after the sleep and metabolic actions have had time to register.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Associated drivers ===== -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Associated drivers</h2>
+          <span class="pmod__sub">Drivers are tracked with their own temporal signal and reference range. Select a driver to inspect the full graph.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="vt-explorer">
+            <div class="vt-tabs" role="tablist" aria-label="Associated drivers">
+              <button class="vt-tab" role="tab" aria-selected="true" type="button">
+                <span class="vt-tab__name">Sleep-disordered breathing</span>
+                <span class="ptile">High</span>
+                <span class="vt-tab__m">SpO&#8322; 89 % &middot; oxygen nadir signal</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Cardiorespiratory fitness</span>
+                <span class="ptile">Low</span>
+                <span class="vt-tab__m">28 mL/kg/min &middot; VO&#8322;max estimate</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Sleep regularity</span>
+                <span class="ptile">Low</span>
+                <span class="vt-tab__m">58 of 100 &middot; regularity score</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Iron status</span>
+                <span class="pbase">Pending</span>
+                <span class="vt-tab__m"><span class="pna">not yet measured</span> &middot; ferritin</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Movement</span>
+                <span class="ptile">Low</span>
+                <span class="vt-tab__m">3,800 steps/d &middot; daily average</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Thyroid status</span>
+                <span class="pbase">Pending</span>
+                <span class="vt-tab__m"><span class="pna">not yet measured</span> &middot; TSH</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Strength and lean mass</span>
+                <span class="pbase">Pending</span>
+                <span class="vt-tab__m">baseline needed &middot; functional reserve</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Pain burden</span>
+                <span class="pbase">Conditional</span>
+                <span class="vt-tab__m">screen if persistent &middot; PEG-3</span>
+              </button>
+              <button class="vt-tab" role="tab" aria-selected="false" type="button">
+                <span class="vt-tab__name">Mood and anxiety burden</span>
+                <span class="pbase">Conditional</span>
+                <span class="vt-tab__m">not dominant today &middot; PHQ / GAD</span>
+              </button>
+            </div>
+
+            <div>
+              <div class="vt-driverhead">
+                <div>
+                  <h3>Sleep-disordered breathing</h3>
+                  <p>oxygen nadir signal &middot; baseline: slight desaturation, SpO&#8322; nadir 89 % &middot; coverage: overnight wearable plus intake</p>
+                </div>
+                <div class="vt-card__now">
+                  <span class="ptile">High</span>
+                  <span><span class="pval pval--lg">89</span><span class="pval__u">% SpO&#8322; nadir</span></span>
+                </div>
+              </div>
+
+              <svg class="vt-chart" viewBox="0 0 900 220" role="img" aria-label="Overnight oxygen nadir falling from 93 to 89 percent across three trailing windows, against an expected overnight range of 92 to 98 percent.">
+                <rect class="vt-band-ink" x="52" y="18" width="828" height="79"/>
+                <line class="vt-band-edge" x1="52" y1="97" x2="880" y2="97"/>
+                <line class="vt-grid-line" x1="52" y1="18" x2="880" y2="18"/>
+                <line class="vt-grid-line" x1="52" y1="84" x2="880" y2="84"/>
+                <line class="vt-grid-line" x1="52" y1="137" x2="880" y2="137"/>
+                <line class="vt-axis" x1="52" y1="176" x2="880" y2="176"/>
+                <line class="vt-divide" x1="584" y1="18" x2="584" y2="176"/>
+                <text class="vt-t-strong" x="874" y="30" text-anchor="end">expected overnight range 92 to 98 %</text>
+                <polyline class="vt-line" points="289,84 407,110 525,137"/>
+                <circle class="vt-dot" cx="289" cy="84" r="3.5"/>
+                <circle class="vt-dot" cx="407" cy="110" r="3.5"/>
+                <circle class="vt-dot" cx="525" cy="137" r="4.5"/>
+                <text class="vt-t-value" x="525" y="154" text-anchor="middle">89 %</text>
+                <circle class="vt-ghost" cx="52" cy="176" r="3.5"/>
+                <circle class="vt-ghost" cx="170" cy="176" r="3.5"/>
+                <circle class="vt-ghost" cx="643" cy="176" r="3.5"/>
+                <circle class="vt-ghost" cx="762" cy="176" r="3.5"/>
+                <circle class="vt-ghost" cx="880" cy="176" r="3.5"/>
+                <text x="111" y="164" text-anchor="middle">no device data</text>
+                <text x="762" y="164" text-anchor="middle">future window</text>
+                <text x="44" y="22" text-anchor="end">98</text>
+                <text x="44" y="88" text-anchor="end">93</text>
+                <text x="44" y="141" text-anchor="end">89</text>
+                <text x="44" y="180" text-anchor="end">86</text>
+                <text x="52" y="196" text-anchor="middle">&minus;28d</text>
+                <text x="170" y="196" text-anchor="middle">&minus;21d</text>
+                <text x="289" y="196" text-anchor="middle">&minus;14d</text>
+                <text x="407" y="196" text-anchor="middle">&minus;7d</text>
+                <text class="vt-t-strong" x="525" y="196" text-anchor="middle">Intake</text>
+                <text x="643" y="196" text-anchor="middle">30d</text>
+                <text x="762" y="196" text-anchor="middle">90d</text>
+                <text x="880" y="196" text-anchor="middle">180d</text>
+              </svg>
+
+              <div class="vt-read vt-read--three">
+                <div>
+                  <b>Interpretation</b>
+                  <span>Associated driver for energy and clarity. If confirmed, it can change blood-pressure sequencing, the reading of fatigue, and training response. It is not a Vitality outcome and it does not carry a score of its own.</span>
+                </div>
+                <div>
+                  <b>Reference</b>
+                  <span>expected overnight range: <span class="pval">92<span class="pval__u">%</span></span> to <span class="pval">98<span class="pval__u">%</span></span></span>
+                </div>
+                <div>
+                  <b>Next measurement</b>
+                  <span>Sleep questionnaire, then a home sleep apnea test when it becomes action-changing. The gate is scored on the action map at 35 % reclassification odds.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders. Backend state, read only on this screen: ordering happens in
+           Care Plan, and showing the control here would imply two places to
+           do the same act. -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Orders</h2>
+          <span class="pmod__meta">Backend order state</span>
+        </div>
+        <div class="pmod__body">
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Order</th>
+                  <th scope="col">Placed</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Comprehensive metabolic panel
+                    <small class="pledger__prov">Standing order SO-BLOOD-2026-01</small>
+                  </td>
+                  <td>8 Jun 2026</td>
+                  <td><span class="pbase">resulted 22 Jun, reviewed</span></td>
+                </tr>
+                <tr>
+                  <td>MBTA 163-gene panel
+                    <small class="pledger__prov">Standing order SO-GEN-2026-02</small>
+                  </td>
+                  <td>8 Jun 2026</td>
+                  <td><span class="pbase">resulted 23 Jun, ATM P/LP, required channel</span></td>
+                </tr>
+                <tr>
+                  <td>Home sleep apnea test
+                    <small class="pledger__prov">Gate on the action map</small>
+                  </td>
+                  <td><span class="pna">not placed</span></td>
+                  <td><span class="padv">proposed, awaiting review</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>How the four outcomes are combined</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Composite</dt><dd><span class="pna">None emitted.</span> There is no Vitality score. Four outcomes are four numbers, and averaging them would let a good mood hide low energy.</dd>
+            <dt>Comparison</dt><dd>Within-person only. No percentile, no cohort, no normative band beyond the desired range shown on each chart.</dd>
+            <dt>Device role</dt><dd>Corroboration. Device instruments corroborate recovery and sleep; they do not replace patient-reported outcomes or determine protocol state.</dd>
+            <dt>Cadence</dt><dd>Repeat the four measures at 30, 90 and 180 days. Conditional instruments, PEG-3 and PHQ or GAD, fire only if the outcome pattern calls for them.</dd>
+            <dt>Source</dt><dd>Intake survey &middot; <code>patient_packet.v1</code> &middot; frozen 24 Jun 2026</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="pdisc">
+        <summary>Packet provenance and validation</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Packet</dt><dd><code>patient_packet.v1</code> &middot; frozen 24 Jun 2026 after baseline results and genetics</dd>
+            <dt>Validator</dt><dd>packet-validator 2.4.0 &middot; 29 checks passed, 0 failed</dd>
+            <dt>Source</dt><dd>Synthetic representative packet &middot; staging</dd>
+            <dt>Wearable</dt><dd><code>wearable_summary.v1</code> &middot; 26 of 30 nights present &middot; prior-window personal baseline still forming</dd>
+            <dt>Windows</dt><dd>7 d and 30 d means against a prior 28 d personal baseline &middot; within-person only, no composite recovery score</dd>
+            <dt>Not emitted</dt><dd>75 g OGTT, FIB-4. Both appear as scored gates on the action map rather than as blank rows here.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-35" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-35" role="note">
+        Synthetic profile &middot; values from the intake packet &middot; flags derive from recorded
+        context fields and standard reference ranges, not new interpretation &middot; device rows
+        state their own window density rather than implying a trend the history cannot carry
+        &middot; patient-reported outcomes have one timepoint and the scale says so rather than
+        rescaling to hide it &middot; HRV is recovery context, not a treatment target.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Vitality is now a half of this screen rather than a rail stop of its own.</b> Patient
+    Data is what is measured, Vitality is what is felt, and the HRV block is the hinge the reference
+    surface already calls the bridge: its triptych reads <em>subjective outcome measures</em>,
+    <em>HRV recovery context</em>, <em>physiologic driver interpretation</em>, which names both
+    halves in the reference surface's own words. Reading the felt report used to cost a rail hop
+    away from the labs it has to be read against, and it no longer does. The rail returns to the six
+    sections that register O4 fixes for this surface family, so the chart stops carrying a seventh
+    item the icon set never had a glyph for.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The screen itself, carried forward from <code>v1/patient-data.html</code>. v0 has no
+    patient-data view at all: its <code>EMR</code> tab is a deep link that hands the physician to
+    Canvas. This is the surface that keeps the scan in Aleron.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The felt half, from the reference surface's Vitality pane: four outcome charts on one
+    fixed time scale, the HRV context block with its three-part bridge caption, and the associated
+    drivers explorer. The later app build removed the Vitality tab from navigation as out of scope
+    for V1, leaving <code>vitalityView()</code> and its adapter path in place but unrouted, so the
+    section became unreachable rather than deleted. v2 restores the content and gives it the one
+    home where it is read against the labs.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The fixed x-scale runs from &minus;28d to 180d whether or not a value exists at each
+    point, and the three future windows are ghost dots on the axis rather than a projected line.
+    A projection would be a decorative trend on one measured timepoint.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The gold wash is the desired-range band, which P6 names explicitly as tokened chart
+    furniture alongside gridlines and reference bands. The personal-baseline band on the HRV chart
+    and the expected-range band on the driver chart are ink washes instead, because neither is a
+    target the plan is aiming at.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Low bands are filled ember tiles, per P3, and <em>Low vs baseline</em> on HRV is an
+    advisory word rather than a tile, because a recovery signal running under its own baseline is
+    context and not a hazard.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The <b>Device instruments</b> group, from the later app build's
+    <code>wearableSummary.js</code> and <code>dashboardApp.js</code>. Five admitted instruments,
+    each with a sparkline, a <code>trend_state</code> word and its window density. v1 had one
+    sparkline on one row and no vocabulary for how much history stood behind it.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The coverage line and the instrument boundary sentence, both verbatim from
+    <code>dashboardApp.js</code>. The boundary is the reason the group is called device
+    instruments rather than outcomes: it corroborates, it does not score.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Group headers are the only tracked caps on the surface, per P5's scan clause.
+    Everything that reads as a sentence stays sentence case.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The rail is <code>PROPOSED domain.chart-rail</code> in <code>physician-chrome.css</code>.
+    <code>components.css</code> v0.5.0 declares 28 components and none of them is a navigation
+    rail, yet the register fixes its width, icon size and selection treatment. Ratify or
+    replace.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Screening has no canonical icon. The magnifier with a plus is drawn inline in the
+    canonical stroke grammar, matching the glyph the later app build uses, and is flagged
+    provisional in the markup. Reusing <code>risk</code> for it would collapse two different
+    sections onto one shape.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Nothing in <code>components.css</code> covers a PRO card, a fixed-scale outcome chart, a
+    bridge caption or a driver explorer. All four are screen-local layout here; if a second surface
+    needs the outcome card it graduates to section B of <code>physician-chrome.css</code>.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's <code>.ds-skeleton</code> loading state, which this group would have shown while
+    the wearable window resolved. The canonical loading instrument is three pulsing dots
+    (<code>.amd-loading</code>); shimmer is on BRIEF.md's forbidden list and the v0 use is a
+    tracked finding, not a pattern to carry.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>Nothing from v0 is carried into the felt half, because v0 has nothing to carry: the
+    current portal models five disease domains plus a systemic pass and records no patient-reported
+    outcome anywhere. That absence is the finding.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>The <em>Models</em> and <em>Actions</em> tab pair that sat in the Vitality header. It is
+    the risk surface's own view switch, borrowed there because Vitality was a rail stop beside it;
+    on a patient-data screen it would offer a view this screen does not have.</span></p>
+</div>
+
+</body>
+</html>

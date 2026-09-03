@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Lab Orders</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     patients/lab-orders.blade.php. Every rule below is that file's own
+     inline layout, gathered in one place. */
+  .v0-reauth {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-sm);
+    margin-bottom: var(--air-tier);
+    padding: var(--s-sm);
+    border: var(--line-thin) solid var(--border-base);
+    border-radius: var(--radius-control);
+    background: var(--surface-inset);
+  }
+  .v0-collhead {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--s-sm) var(--s-md);
+    background: transparent;
+    border: 0;
+    font: inherit;
+    font-weight: var(--w-emphasis);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .v0-collbody {
+    padding: var(--s-md);
+    display: grid;
+    gap: var(--s-md);
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .v0-radios { display: flex; gap: var(--s-md); font-size: var(--size-small); color: var(--text-primary); }
+  .v0-radios label { display: inline-flex; align-items: center; gap: var(--s-xs); }
+  .v0-checkgrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-xs);
+    font-size: var(--size-small);
+    color: var(--text-secondary);
+  }
+  .v0-checkgrid label { display: inline-flex; align-items: center; gap: var(--s-xs); }
+  .v0-attestrow { display: flex; align-items: flex-start; gap: var(--s-xs); font-size: var(--size-small); color: var(--text-secondary); line-height: 1.55; }
+  .v0-addr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-xs); }
+  .v0-addr .span2 { grid-column: span 2; }
+  .v0-subform { display: grid; gap: var(--s-sm); }
+  .v0-ordertable thead th { font-size: var(--size-caption); color: var(--text-secondary); }
+  .v0-ordertable td { vertical-align: top; }
+  .v0-ordertable td.act { text-align: right; }
+  .v0-ordertable .amd-button { min-height: auto; padding: var(--s-2xs) var(--s-sm); font-size: var(--size-small); font-weight: var(--w-emphasis); }
+  @media (max-width: 1080px) {
+    .v0-checkgrid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>Lab Orders</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <span aria-disabled="true" title="v1 has no ordering surface: the reference surface prices diagnostics on the action map but never authorizes one">v1</span>
+    <a href="../v2/orders.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/lab-orders</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       This route is the one page in the chart whose tab strip has five
+       items instead of six: patients/lab-orders.blade.php omits the
+       Trajectory entry entirely rather than rendering it disabled. The
+       inconsistency is reproduced here, not fixed. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+          <p class="v0-ident__sub">Lab and genetic orders &middot; review and sign returned results.</p>
+        </div>
+
+        <!-- Tab strip variant 2 of 4: inset holder plus a hairline border,
+             five items, no Trajectory. -->
+        <nav class="v0-tabs" data-variant="bordered" aria-label="Patient sections">
+          <a href="care-plan.html">Care Plan</a>
+          <a href="risk-models.html">Risk Models</a>
+          <span aria-current="page">Lab Orders</span>
+          <a href="standing-orders.html">Standing Orders</a>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <div class="amd-annunciator" role="alert" aria-live="polite" style="margin-bottom: var(--air-tier);">
+        <span class="amd-annunciator__hazard">Order error</span>
+        <span style="font-size: var(--size-small);">Lipoprotein(a) (Quest) has no lab_test_id configured in this environment and was dropped from the basket.</span>
+      </div>
+
+      <div class="v0-reauth">
+        <span style="font-size: var(--size-small); color: var(--text-secondary);">A recent identity confirmation is required to sign.</span>
+        <a class="amd-button" data-variant="secondary" href="login.html" style="text-decoration: none; font-weight: var(--w-emphasis); font-size: var(--size-small);">Confirm identity</a>
+      </div>
+
+      <!-- Authorize a new order. Tier-2 inset panel, collapsed by default,
+           shown open here. Blood and Genetic bodies are mutually exclusive
+           in the app; both are drawn so the specimen is complete. -->
+      <div class="amd-card" data-tier="2" style="margin-bottom: var(--air-tier); padding: 0; overflow: hidden;">
+        <button class="v0-collhead" type="button" aria-expanded="true">
+          <span>Authorize a new order</span>
+          <span aria-hidden="true">&minus;</span>
+        </button>
+
+        <div class="v0-collbody">
+
+          <div class="v0-radios">
+            <label><input type="radio" name="order_type" value="blood" checked> Blood</label>
+            <label><input type="radio" name="order_type" value="genetics"> Genetic</label>
+          </div>
+
+          <div class="v0-subform">
+            <div class="v0-checkgrid">
+              <label><input type="checkbox" checked> <span>Lipid Panel (Quest)</span></label>
+              <label><input type="checkbox"> <span>Comprehensive Metabolic Panel (Quest)</span></label>
+              <label><input type="checkbox" checked> <span>Hemoglobin A1c (Quest)</span></label>
+              <label><input type="checkbox" checked> <span>hs-CRP (Quest)</span></label>
+              <label><input type="checkbox" checked> <span>Fasting Insulin (Quest)</span></label>
+              <label><input type="checkbox" checked> <span>Apolipoprotein B (Quest)</span></label>
+              <label><input type="checkbox"> <span>Lipoprotein(a) (Quest)</span></label>
+              <label><input type="checkbox"> <span>Urine Albumin/Creatinine Ratio (Quest)</span></label>
+              <label><input type="checkbox"> <span>PSA (Quest)</span></label>
+              <label><input type="checkbox"> <span>eGFR / Creatinine (Quest)</span></label>
+              <label><input type="checkbox"> <span>Liver Function Panel / LFTs (Quest)</span></label>
+              <label><input type="checkbox"> <span>Creatine Kinase (Quest)</span></label>
+              <label><input type="checkbox"> <span>TSH (Quest)</span></label>
+              <label><input type="checkbox"> <span>Complete Blood Count (Quest)</span></label>
+              <label><input type="checkbox"> <span>p-tau217 (Quest)</span></label>
+              <label><input type="checkbox"> <span>Neurofilament Light / NfL (Quest)</span></label>
+            </div>
+            <div class="amd-field">
+              <label class="amd-field__label" for="collection-method">Collection method</label>
+              <select class="amd-input" id="collection-method">
+                <option value="walk_in_test">Walk-in / PSC</option>
+                <option value="at_home_phlebotomy">At-home phlebotomy</option>
+                <option value="testkit">Test kit</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="v0-subform">
+            <div class="amd-field">
+              <label class="amd-field__label" for="panel-key">Panel</label>
+              <select class="amd-input" id="panel-key">
+                <option value="">Select a panel&hellip;</option>
+                <option>Invitae 160-Gene Panel</option>
+                <option>Hereditary Cancer Panel</option>
+                <option>Cardiovascular Genetic Panel</option>
+                <option>Pharmacogenomics Panel</option>
+                <option>Proactive Genetic Health Screen</option>
+              </select>
+            </div>
+            <label class="v0-attestrow">
+              <input type="checkbox" style="margin-top: var(--s-2xs);">
+              <span>I attest that pre-test genetic counseling has been provided to this patient.</span>
+            </label>
+          </div>
+
+          <div style="display: grid; gap: var(--s-xs);">
+            <span class="amd-field__label">Shipping address (kit or at-home)</span>
+            <div class="v0-addr">
+              <input class="amd-input span2" placeholder="Receiver name" value="Ethan Park">
+              <input class="amd-input span2" placeholder="Street">
+              <input class="amd-input" placeholder="City">
+              <input class="amd-input" placeholder="State" maxlength="2">
+              <input class="amd-input" placeholder="ZIP">
+              <input class="amd-input" placeholder="Country" maxlength="2" value="US">
+            </div>
+          </div>
+
+          <div class="amd-field">
+            <label class="amd-field__label" for="order-note">Note (optional)</label>
+            <textarea class="amd-input" id="order-note" rows="2" placeholder="Optional note"></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end;">
+            <button class="amd-button" data-variant="primary" type="button" style="font-weight: var(--w-emphasis);">Authorize order</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Orders. The single elevated Tier-1 holder, a citation table with a
+           fifth, unlabelled column for the row action. -->
+      <div class="amd-card" data-tier="1" style="padding: 0; overflow: hidden;">
+        <table class="amd-citation-table v0-ordertable" style="font-size: var(--size-small);">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Status</th>
+              <th>Results</th>
+              <th>Review</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div style="color: var(--text-primary);">blood #1041</div>
+                <div class="amd-value" style="color: var(--text-secondary); font-size: var(--size-caption);">lipid-panel, hba1c, hs-crp, fasting-insulin, apob</div>
+              </td>
+              <td style="color: var(--text-secondary);">collected</td>
+              <td><span class="ds-pill ds-pill--ok">Available</span></td>
+              <td><span class="ds-pill">Unsigned</span></td>
+              <td class="act"><button class="amd-button" data-variant="primary" type="button">Review &amp; sign</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="color: var(--text-primary);">blood #1038</div>
+                <div class="amd-value" style="color: var(--text-secondary); font-size: var(--size-caption);">uacr, egfr</div>
+              </td>
+              <td style="color: var(--text-secondary);">requisition_sent</td>
+              <td><span class="ds-pill">Pending</span></td>
+              <td><span class="ds-pill">Unsigned</span></td>
+              <td class="act"></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="color: var(--text-primary);">genetics #1022</div>
+                <div class="amd-value" style="color: var(--text-secondary); font-size: var(--size-caption);">invitae-160</div>
+              </td>
+              <td style="color: var(--text-secondary);">resulted</td>
+              <td><span class="ds-pill ds-pill--ok">Available</span></td>
+              <td><span class="ds-pill ds-pill--ok">Signed</span></td>
+              <td class="act"></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="color: var(--text-primary);">blood #0994</div>
+                <div class="amd-value" style="color: var(--text-secondary); font-size: var(--size-caption);">cmp, cbc, tsh</div>
+              </td>
+              <td style="color: var(--text-secondary);">resulted</td>
+              <td><span class="ds-pill ds-pill--ok">Available</span></td>
+              <td><span class="ds-pill ds-pill--ok">Signed</span></td>
+              <td class="act"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>This route&rsquo;s tab strip has five items. <code>lab-orders.blade.php</code> omits the
+    Trajectory entry from its <code>$pageTabs</code> array instead of rendering it disabled the way
+    the other four chart pages do, so the strip silently changes width and the items shift under the
+    pointer as the physician moves between tabs.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Tab strip variant 2 of 4: the inset holder gains a hairline border on this route only. Four
+    hand-copied inline nav blocks means four visually distinct strips for one control.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Order status is the raw persisted enum: <code>requisition_sent</code>, <code>collected</code>,
+    <code>resulted</code>. So is the test list, which prints catalog keys
+    (<code>lipid-panel, hba1c, hs-crp</code>) rather than the display names the ordering form used one
+    card above.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The genetics counseling attestation is a bare checkbox with a 3px inline top margin and no
+    ring, no label styling and no error state. It is the legal gate on the whole genetics path and it
+    is the least prominent control on the screen.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The test menu is sixteen unsorted checkboxes in a two-column grid with no grouping, no
+    search and no indication of which tests any risk model is currently missing. The information gaps
+    that would answer that are two routes away on Risk Models.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Both selects on this page are <code>&lt;select class="amd-input"&gt;</code>. The design
+    system ships <code>.amd-select</code> and <code>.amd-select-wrap</code> for exactly this, so the
+    native disclosure arrow renders unstyled and the control is a different height from every field
+    around it.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The fifth table column has no header and holds the only per-row action, which appears solely
+    when a result is available and unsigned. On a chart with nothing to sign the column is invisible
+    and the table looks like a read-only ledger.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Empty state is a single centred cell spanning all five columns reading <code>No lab orders
+    on file.</code> There is no prompt toward the ordering form directly above it, and the shipping
+    address block renders for a walk-in draw where it is not needed.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Two independent ordering surfaces exist for the same act: this form, and the sign-and-send
+    block inside the Care Plan note. They enforce different gates. Genetics can only be authorized
+    here, and only this one has the counseling attestation.</span></p>
+</div>
+
+</body>
+</html>

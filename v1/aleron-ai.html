@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v1 — Aleron AI</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Everything reusable is in physician-chrome.css,
+     and the conversation itself is the canonical .amd-ai-thread rather than a
+     local dialect.
+
+     The context strip is the isolation claim made visible: six cells naming
+     everything the agent can see. If a question needs a seventh field, the
+     answer is that the agent does not have it. */
+  .ai-strip {
+    display: flex;
+    flex-wrap: wrap;
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+    background: var(--surface-tier2);
+    overflow: hidden;
+  }
+  .ai-cell {
+    flex: 1 1 180px;
+    display: grid;
+    gap: var(--s-2xs);
+    align-content: start;
+    padding: var(--air-row) var(--s-md);
+    border-left: var(--line-thin) solid var(--border-subtle);
+  }
+  .ai-cell:first-child { border-left: 0; }
+  .ai-cell dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ai-cell dd { margin: 0; font-size: var(--size-small); line-height: 1.4; color: var(--text-primary); }
+
+  .ai-log { display: grid; gap: var(--air-group); }
+  .amd-ai-thread__message ol { margin: var(--air-row) 0 0; padding-left: var(--s-lg); display: grid; gap: var(--air-row); }
+  .amd-ai-thread__message li { line-height: 1.6; }
+  .amd-ai-thread__message p { margin: 0 0 var(--air-row); line-height: 1.6; }
+  .amd-ai-thread__message p:last-of-type { margin-bottom: 0; }
+
+  .ai-compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-sm); align-items: start; }
+  .ai-compose textarea { min-height: var(--s-3xl); resize: vertical; font: inherit; font-size: var(--size-small); line-height: 1.5; }
+  .ai-prompts { display: flex; flex-wrap: wrap; gap: var(--s-xs); margin-top: var(--air-tier); }
+
+  @media (max-width: 760px) {
+    .ai-compose { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<!-- ── reviewer chrome ─────────────────────────────────────────────────── -->
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v1 flow</a> / <b>Aleron AI</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-disabled="true" title="v0 has no agent surface. Nothing in the shipped portal answers a question about a patient.">v0</span>
+    <span aria-current="page">v1</span>
+    <a href="../v2/aleron-ai.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/aleron-ai</span>
+  </div>
+
+  <!-- ── product surface ───────────────────────────────────────────────── -->
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <!-- The chart rail. Six sections, fixed per surface family (register O4).
+           Icons are the canonical six at 16px, mapped by the aliases in
+           icons.json: your-data → Patient Data, quality-of-life → Vitality,
+           plan → Care Plan, appointments → Journal, chat → Aleron AI. -->
+      <nav class="prail__nav">
+        <a class="prail__item" href="patient-data.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Patient Data
+        </a>
+        <a class="prail__item" href="risk-models.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Risk
+        </a>
+        <a class="prail__item" href="vitality.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg>
+          Vitality
+        </a>
+        <a class="prail__item" href="care-plan.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          Care Plan
+        </a>
+        <a class="prail__item" href="journal.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+          Journal
+        </a>
+        <a class="prail__item" href="aleron-ai.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Aleron AI
+        </a>
+      </nav>
+
+      <div class="prail__foot">
+        <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-3" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-3" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+      </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Aleron AI</h1>
+        </div>
+        <p>An isolated patient-context agent. It answers from this patient&rsquo;s current state and nothing else.</p>
+      </header>
+
+      <!-- The six-cell context strip. Everything the agent can see, named. -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Context in scope</h2>
+          <span class="pmod__meta">Six fields &middot; nothing outside them reaches an answer</span>
+        </div>
+        <div class="pmod__body">
+          <dl class="ai-strip">
+            <div class="ai-cell">
+              <dt>Patient</dt>
+              <dd>Ethan Park &middot; AL-47M &middot; 47M</dd>
+            </div>
+            <div class="ai-cell">
+              <dt>Dominant lens</dt>
+              <dd>metabolic-risk phenotype &middot; Metabolic <span class="pval">34<span class="pval__u">%</span></span></dd>
+            </div>
+            <div class="ai-cell">
+              <dt>Required</dt>
+              <dd>Colorectal cancer screening and ATM genetic risk guidance</dd>
+            </div>
+            <div class="ai-cell">
+              <dt>Map</dt>
+              <dd><span class="pval">20<span class="pval__u">library</span></span> &middot;
+                <span class="pval">4<span class="pval__u">candidate signals</span></span></dd>
+            </div>
+            <div class="ai-cell">
+              <dt>Top action</dt>
+              <dd>GLP-1/GIP</dd>
+            </div>
+            <div class="ai-cell">
+              <dt>Top gate</dt>
+              <dd>BP confirmation</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- The conversation. .amd-ai-thread is canonical, including
+           .amd-ai-thread__source, which is exactly the provenance line every
+           agent turn has to close with. -->
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Conversation</h2>
+          <span class="pmod__meta">Dr. A. Okafor &middot; 1 Jul 2026</span>
+        </div>
+        <div class="pmod__body">
+          <div class="amd-ai-thread ai-log" aria-live="polite">
+
+            <div class="amd-ai-thread__message" data-author="user">
+              <p>What is the clinical overview?</p>
+            </div>
+
+            <div class="amd-ai-thread__message">
+              <p>Metabolic risk with GLP-1/GIP, strength, and BP confirmation first. The full action space
+                now includes 4 scored AI-generated candidates alongside the library items. The first pass
+                should stay narrow: Start GLP-1/GIP metabolic therapy, Start supervised resistance training,
+                and Confirm BP with home or ambulatory monitoring. Home sleep apnea test remains on the map
+                as a scored candidate, but it is behind the selected items for this visit. Required guidance
+                is separate: Colorectal cancer screening, ATM genetic risk guidance, and ATM family-history
+                gate.</p>
+              <p>Current highest-value moves:</p>
+              <ol>
+                <li><b>Start GLP-1/GIP metabolic therapy:</b> Eligible by BMI plus metabolic comorbidity;
+                  targets central adiposity, insulin resistance, BP exposure, and metabolic risk while
+                  requiring lean-mass protection.</li>
+                <li><b>Start supervised resistance training:</b> Protects lean mass, improves function, and
+                  makes weight-loss or VO2max work clinically safer.</li>
+                <li><b>Confirm BP with home or ambulatory monitoring:</b> Reclass odds
+                  <span class="pval">65<span class="pval__u">%</span></span> &middot; patient QALY if
+                  reclassified <span class="pval">0.63<span class="pval__u">QALY</span></span>. Confirms
+                  persistent hypertension before lifelong BP pharmacotherapy and helps sequence sleep apnea,
+                  weight loss, and exercise clearance.</li>
+              </ol>
+              <p class="amd-ai-thread__source">Source: current chart, action map, genetics, vitality, and
+                scored candidates. Limited to visible source fields.</p>
+            </div>
+
+            <div class="amd-ai-thread__message" data-author="user">
+              <p>What two things would you recommend beyond required guidance?</p>
+            </div>
+
+            <div class="amd-ai-thread__message">
+              <p>Beyond required guidance, I would keep the visit focused on these two items:</p>
+              <ol>
+                <li><b>Action: Start GLP-1/GIP metabolic therapy.</b> Patient-value signal
+                  <span class="pval">1.5<span class="pval__u">QALY</span></span>. Eligible by BMI plus
+                  metabolic comorbidity; targets central adiposity, insulin resistance, BP exposure, and
+                  metabolic risk while requiring lean-mass protection.</li>
+                <li><b>Action: Start supervised resistance training.</b> Patient-value signal
+                  <span class="pval">1.1<span class="pval__u">QALY</span></span>. Protects lean mass,
+                  improves function, and makes weight-loss or VO2max work clinically safer.</li>
+              </ol>
+              <p class="amd-ai-thread__source">Source: current chart, action map, genetics, vitality, and
+                scored candidates. Limited to visible source fields.</p>
+            </div>
+
+          </div>
+
+          <form class="ai-compose" style="margin-top: var(--air-section)">
+            <label class="wf-sr-only" for="ai-input">Ask about this patient, the map, or recommendations</label>
+            <textarea class="amd-input" id="ai-input" autocomplete="off"
+              placeholder="Ask about this patient, the map, or recommendations"></textarea>
+            <button type="submit" class="amd-button" data-variant="primary">Ask</button>
+          </form>
+
+          <div class="ai-prompts">
+            <button type="button" class="amd-button" data-variant="secondary">Clinical overview</button>
+            <button type="button" class="amd-button" data-variant="secondary">Two recommendations</button>
+            <button type="button" class="amd-button" data-variant="secondary">Diagnostic gates</button>
+            <button type="button" class="amd-button" data-variant="secondary">Vitality lens</button>
+          </div>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>What the agent cannot do</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>No orders</dt><dd>AI contributes candidate generation, not free-text orders. The final plan is generated only after candidates are scored and placed on the map.</dd>
+            <dt>No other patient</dt><dd>The context strip above is the whole scope. There is no cohort view, no cross-patient comparison, and no memory between charts.</dd>
+            <dt>No unscored value</dt><dd>A signal that has not been structured and scored has no number, and the agent will say so rather than estimating one.</dd>
+            <dt>Every turn</dt><dd>Closes with the same provenance line. A turn that cannot cite it is a turn that should not have been emitted.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <p class="pfoot">
+        Answers are limited to the selected patient, current model outputs, the action library, genetics,
+        candidate signals, and the map.
+      </p>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Notes for review</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The whole screen. v0 has no agent surface, so the switcher marks v0 absent.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The six-cell context strip is the isolation claim made visible, and it sits above the
+    conversation rather than in a tooltip. If a question would need a seventh field, the honest answer
+    is that the agent does not have it.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The thread is the canonical <code>.amd-ai-thread</code>, including
+    <code>.amd-ai-thread__source</code>, which is exactly the fixed provenance line every agent turn
+    closes with. No local dialect was needed for the conversation itself.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The four canned prompts are <code>.amd-button</code> at <code>secondary</code>. That is four
+    equal-weight secondary buttons in a row, which the register has no pattern for: they are shortcuts,
+    not four alternative commitments. A quiet chip, or <code>.amd-ask-trigger</code> extended to take
+    a label, would carry the weight better. Flagged rather than locally restyled.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><b>Top action reads GLP-1/GIP here because that is what the rest of the surface assumes.</b>
+    In the shipped reference file it renders as Intensive lifestyle (DPP): the same
+    <code>rerunActionLibraryScoring</code> short-circuit that empties the action map also strips every
+    action above the recommendation threshold, so the agent fills all three recommendation slots with
+    diagnostic gates. Same root cause as the note on <code>risk-actions.html</code>. Fix it once.</span></p>
+</div>
+
+</body>
+</html>

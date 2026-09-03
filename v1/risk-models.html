@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v1 — Risk, models</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Everything reusable is in physician-chrome.css.
+
+     The domain rail is the reference surface's .rt row: five disease models as
+     one tab strip, each carrying its own current metric and band word so the
+     physician picks a domain by reading, not by clicking through. It is
+     .amd-tabs with a three-line label; the tab treatment itself is canonical
+     and is not restyled here. */
+  .rm-domains { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s-2xs); }
+  .rm-domains [role="tab"] {
+    display: grid;
+    gap: var(--s-2xs);
+    justify-items: start;
+    align-content: start;
+    text-align: left;
+    text-decoration: none;
+    padding: var(--s-sm);
+  }
+  .rm-domains .rm-name { font-size: var(--size-small); }
+  .rm-domains .rm-val { font-size: var(--size-h3); font-weight: var(--w-emphasis); font-variant-numeric: tabular-nums; }
+
+  /* Hero: interpretation on the left at reading measure, the number on the
+     right as a scorecard. The scorecard is the only place the domain's
+     headline figure is set large. */
+  .rm-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 248px); gap: var(--air-section); align-items: start; }
+  .rm-eyebrow {
+    font-size: var(--size-caption);
+    font-weight: var(--w-emphasis);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .rm-hero h2 { margin: var(--air-row) 0 0; font-size: var(--size-h3); font-weight: var(--w-h3); line-height: 1.35; max-width: 46ch; }
+  .rm-hero p { margin: var(--air-row) 0 0; font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); max-width: 68ch; }
+  .rm-route {
+    margin-top: var(--air-tier);
+    padding-top: var(--air-row);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    line-height: 1.55;
+    color: var(--text-tertiary);
+    max-width: 68ch;
+  }
+  .rm-card {
+    display: grid;
+    gap: var(--air-row);
+    justify-items: start;
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier1);
+    background: var(--surface-card);
+  }
+  .rm-card .rm-horizon { font-size: var(--size-small); line-height: 1.5; color: var(--text-secondary); }
+
+  /* Three equal cards: what moves, what it is read from, and how far to trust
+     it. Equal weight is the point, so nothing here is elevated. */
+  .rm-meaning { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-md); }
+  .rm-meaning > div {
+    display: grid;
+    gap: var(--s-2xs);
+    align-content: start;
+    padding: var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+  }
+  .rm-meaning dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-meaning dd { margin: 0; font-size: var(--size-small); line-height: 1.5; color: var(--text-primary); }
+  .rm-meaning .rm-m { font-size: var(--size-caption); line-height: 1.5; color: var(--text-tertiary); }
+
+  /* Numbered next moves. The number is a waypoint, not a value, so it stays
+     tertiary and the move itself carries the weight. */
+  .rm-moves { display: grid; }
+  .rm-move {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: var(--s-md) var(--s-lg);
+    align-items: baseline;
+    padding: var(--air-group) 0;
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .rm-move:first-child { border-top: 0; padding-top: var(--air-row); }
+  .rm-num { font-size: var(--size-small); font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
+  .rm-move b { display: block; font-weight: var(--w-emphasis); font-size: var(--size-text); }
+  .rm-why { font-size: var(--size-small); line-height: 1.5; color: var(--text-secondary); }
+  .rm-move > .rm-why { color: var(--text-tertiary); }
+  .rm-move b + .rm-why { margin-top: var(--s-2xs); }
+
+  /* Variables. Name and value, then the value-vs-reference track, then the
+     sensitivity bar. SVG-free: the track is two boxes and a marker, so it
+     inherits the register with the rest of the furniture (P6). */
+  .rm-vars { display: grid; }
+  .rm-var {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(140px, 1fr) minmax(120px, 168px);
+    gap: var(--s-sm) var(--s-lg);
+    align-items: center;
+    padding: var(--air-row) 0;
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .rm-vname { font-size: var(--size-small); }
+  .rm-vnote { display: block; margin-top: var(--s-3xs); font-size: var(--size-caption); line-height: 1.45; color: var(--text-tertiary); }
+  .rm-track {
+    position: relative;
+    height: var(--s-xs);
+    border-radius: var(--radius-tile);
+    background: var(--surface-inset);
+  }
+  .rm-track i {
+    position: absolute;
+    top: 50%;
+    width: var(--line-signal);
+    height: var(--s-md);
+    margin-left: calc(var(--line-signal) / -2);
+    transform: translateY(-50%);
+    border-radius: var(--radius-tile);
+    background: var(--signal-baseline);
+  }
+  .rm-track i[data-state="oor"] { background: var(--signal-hazard); }
+  .rm-tstat { display: block; margin-top: var(--s-2xs); font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-sens { display: flex; align-items: center; gap: var(--s-xs); }
+  .rm-sens .pbar { flex: 1; margin-top: 0; }
+  .rm-sens span { font-size: var(--size-caption); font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
+
+  /* Model audit trail. Kept below the clinical interpretation, in the
+     reference surface's own words. */
+  .rm-audit { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-md); }
+  .rm-audit > div { display: grid; gap: var(--s-2xs); align-content: start; }
+  .rm-audit dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-audit dd { margin: 0; font-size: var(--size-text); font-weight: var(--w-emphasis); font-variant-numeric: tabular-nums; }
+  .rm-audit .rm-m { font-size: var(--size-caption); line-height: 1.45; color: var(--text-tertiary); font-weight: 400; }
+
+  @media (max-width: 1180px) {
+    .rm-domains { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rm-hero { grid-template-columns: minmax(0, 1fr); }
+    .rm-meaning { grid-template-columns: minmax(0, 1fr); }
+    .rm-move, .rm-var { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<!-- ── reviewer chrome ─────────────────────────────────────────────────── -->
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v1 flow</a> / <b>Risk, models</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/risk-models.html">v0</a>
+    <span aria-current="page">v1</span>
+    <a href="../v2/risk-models.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/risk/models</span>
+  </div>
+
+  <!-- ── product surface ───────────────────────────────────────────────── -->
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <!-- The chart rail. Six sections, fixed per surface family (register O4).
+           Icons are the canonical six at 16px, mapped by the aliases in
+           icons.json: your-data → Patient Data, quality-of-life → Vitality,
+           plan → Care Plan, appointments → Journal, chat → Aleron AI. -->
+      <nav class="prail__nav">
+        <a class="prail__item" href="patient-data.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Patient Data
+        </a>
+        <a class="prail__item" href="risk-models.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Risk
+        </a>
+        <a class="prail__item" href="vitality.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg>
+          Vitality
+        </a>
+        <a class="prail__item" href="care-plan.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          Care Plan
+        </a>
+        <a class="prail__item" href="journal.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+          Journal
+        </a>
+        <a class="prail__item" href="aleron-ai.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Aleron AI
+        </a>
+      </nav>
+
+      <div class="prail__foot">
+        <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-13" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-13" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+      </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Risk</h1>
+          <span class="phead__aside">
+            <span class="amd-tabs" role="tablist" aria-label="Risk views">
+              <a role="tab" aria-selected="true" href="risk-models.html">Models</a>
+              <a role="tab" aria-selected="false" href="risk-actions.html">Actions</a>
+            </span>
+          </span>
+        </div>
+        <p>Five disease models read the packet; the action map prices every lever and gate they expose.</p>
+      </header>
+
+      <!-- Domain rail. Cancer shows "site-specific" rather than a percentage
+           because the reference surface refuses to compose one cancer number
+           out of engines that do not share an honest unit. -->
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Risk by domain</h2>
+          <span class="pmod__meta">Current model outputs &middot; one intake timepoint</span>
+        </div>
+        <div class="pmod__body">
+          <div class="amd-tabs rm-domains" role="tablist" aria-label="Risk domains">
+            <a role="tab" aria-selected="false" href="#cvd" title="30-yr ASCVD">
+              <span class="rm-name">Cardiovascular</span>
+              <span class="rm-val">16<span class="pval__u">%</span></span>
+              <span class="padv">Moderate</span>
+            </a>
+            <a role="tab" aria-selected="true" href="#metabolic" title="10-yr incident T2D">
+              <span class="rm-name">Metabolic</span>
+              <span class="rm-val">34<span class="pval__u">%</span></span>
+              <span class="ptile">High</span>
+            </a>
+            <a role="tab" aria-selected="false" href="#kidney" title="5-yr incident CKD">
+              <span class="rm-name">Kidney</span>
+              <span class="rm-val">~3<span class="pval__u">%</span></span>
+              <span class="pbase">Low</span>
+            </a>
+            <a role="tab" aria-selected="false" href="#neuro" title="20-yr dementia">
+              <span class="rm-name">Neuro</span>
+              <span class="rm-val">~5<span class="pval__u">%</span></span>
+              <span class="padv">Moderate</span>
+            </a>
+            <a role="tab" aria-selected="false" href="#cancer" title="10-yr modifiable-site">
+              <span class="rm-name">Cancer</span>
+              <span class="rm-val">site-specific</span>
+              <span class="padv">Moderate</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- The one elevated element on this screen (P8). The selected domain's
+           interpretation is what the physician came here to read. -->
+      <section class="pmod pmod--tier1" id="metabolic">
+        <div class="pmod__head">
+          <h2>Metabolic</h2>
+          <span class="pmod__meta">QDiabetes base plus Aleron modifiers</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-hero">
+            <div>
+              <p class="rm-eyebrow">Risk interpretation</p>
+              <h2>High 10-yr incident diabetes risk, driven by insulin resistance and low fitness.</h2>
+              <p>This patient&rsquo;s risk is carried by prediabetes physiology, HOMA-IR 4.3, central adiposity,
+                and low estimated VO2max. The first clinical job is to confirm the glycemic phenotype and
+                target the fitness and body-composition trajectory.</p>
+              <p class="rm-route">No established diabetes is documented, so the readout uses the incident-risk
+                pathway. Severity staging becomes relevant only if diabetes is established.</p>
+            </div>
+            <div class="rm-card">
+              <p class="rm-eyebrow">Current read</p>
+              <span class="pval pval--lg">34<span class="pval__u">%</span></span>
+              <span class="ptile">High</span>
+              <span class="rm-horizon">Gate 1 incident T2D<br>QDiabetes base plus Aleron modifiers</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod">
+        <div class="pmod__head">
+          <h2>What this readout means</h2>
+          <span class="pmod__meta">Levers, evidence, and the limit of the read</span>
+        </div>
+        <div class="pmod__body">
+          <dl class="rm-meaning">
+            <div>
+              <dt>Actionable levers</dt>
+              <dd>CRF, Insulin resistance, Central adiposity / weight</dd>
+              <dd class="rm-m">Prioritized from the current modifier sensitivity list.</dd>
+            </div>
+            <div>
+              <dt>Patient evidence</dt>
+              <dd>Insulin resistance: <span class="pval">4.3<span class="pval__u">HOMA-IR</span></span>;
+                Waist-to-height: <span class="pval">0.59</span>;
+                Weight trajectory: <span class="pna">pending</span></dd>
+              <dd class="rm-m">The current fields the physician can verify in chart review.</dd>
+            </div>
+            <div>
+              <dt>Confidence note</dt>
+              <dd>Moderate confidence, provenance visible</dd>
+              <dd class="rm-m">Metabolic has two gates. Gate 1 emits incident T2D risk; Gate 2 emits severity
+                and treatment gaps rather than another complication probability.</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="pmod">
+        <div class="pmod__head">
+          <h2>Clinical next moves</h2>
+          <span class="pmod__meta">What this risk readout should change</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-moves">
+            <div class="rm-move">
+              <span class="rm-num">01</span>
+              <span><b>Confirm glycemic phenotype</b>
+                <span class="rm-why">HbA1c <span class="pval">6.0<span class="pval__u">%</span></span>,
+                  fasting glucose <span class="pval">110<span class="pval__u">mg/dL</span></span>,
+                  fasting insulin <span class="pval">16<span class="pval__u">&micro;IU/mL</span></span>,
+                  HOMA-IR <span class="pval">4.3</span>.</span>
+              </span>
+              <span class="rm-why">Repeat or reconcile labs, then decide whether this is stable prediabetes
+                versus evolving T2D.</span>
+            </div>
+            <div class="rm-move">
+              <span class="rm-num">02</span>
+              <span><b>Treat CRF as a risk lever</b>
+                <span class="rm-why">VO&#8322;max estimate <span class="pval">28<span class="pval__u">mL/kg/min</span></span>
+                  with low percentile context.</span>
+              </span>
+              <span class="rm-why">Prescribe measurable aerobic progression and retest capacity.</span>
+            </div>
+            <div class="rm-move">
+              <span class="rm-num">03</span>
+              <span><b>Track waist and weight trajectory</b>
+                <span class="rm-why">BMI <span class="pval">29.4<span class="pval__u">kg/m&sup2;</span></span>,
+                  waist <span class="pval">105<span class="pval__u">cm</span></span>,
+                  waist-to-height <span class="pval">0.59</span>.</span>
+              </span>
+              <span class="rm-why">Use body-composition trajectory as a model input, not just a counseling note.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Variables. Group headers run tracked caps: P5's scan clause, scoped
+           to group headers and nothing else. -->
+      <section class="pmod">
+        <div class="pmod__head">
+          <h2>Variables</h2>
+          <span class="pmod__meta">Value vs reference &middot; and how much each moves risk</span>
+        </div>
+        <div class="pmod__body">
+          <p class="plegend" style="margin: 0 0 var(--air-group)">
+            <span><i data-mark="harm"></i>out of range</span>
+            <span><i data-mark="range"></i>in range</span>
+            <span>bar = model sensitivity</span>
+            <span>reference ranges and patient-specific projection pending calibration</span>
+          </p>
+
+          <div class="pspine">
+            <section class="pspine__group">
+              <h3>Base inputs &middot; QDiabetes base plus Aleron modifiers</h3>
+              <div class="rm-vars">
+                <div class="rm-var">
+                  <span class="rm-vname">QDiabetes base anchor
+                    <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-12" aria-label="Wireframe explanation, not part of the product">i</button><small class="rm-vnote wf-scaffold wf-ex__bubble" id="wf-ex-12" role="note">Not materialized in synthetic data. Reference frame 1 to 50 %.</small></span>
+                  </span>
+                  <span><span class="pna">pending</span><span class="rm-tstat">no anchor to plot</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:58%"></i></span><span>58</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Age
+                    <small class="rm-vnote">Display frame 35 to 60 yr.</small>
+                  </span>
+                  <span><span class="rm-track"><i style="left:50%"></i></span>
+                    <span class="rm-tstat"><span class="pval">47<span class="pval__u">yr</span></span> &middot; in range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Sex
+                    <small class="rm-vnote">Female / male.</small>
+                  </span>
+                  <span><span class="pval">male</span><span class="rm-tstat">present</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">BMI
+                    <small class="rm-vnote">Reference frame 18.5 to 42 kg/m&sup2;.</small>
+                  </span>
+                  <span><span class="rm-track"><i data-state="oor" style="left:47%"></i></span>
+                    <span class="rm-tstat"><span class="pval">29.4<span class="pval__u">kg/m&sup2;</span></span> &middot; out of range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Smoking
+                    <small class="rm-vnote">Never / former / current.</small>
+                  </span>
+                  <span><span class="pval">never</span><span class="rm-tstat">in range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">FDR diabetes history
+                    <small class="rm-vnote">No / yes. Family history recorded as T2D plus HTN.</small>
+                  </span>
+                  <span><span class="pval">present</span><span class="rm-tstat">present</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">HbA1c
+                    <small class="rm-vnote">Model input. Prediabetes band begins at 5.7 %.</small>
+                  </span>
+                  <span><span class="rm-track"><i data-state="oor" style="left:62%"></i></span>
+                    <span class="rm-tstat"><span class="pval">6.0<span class="pval__u">%</span></span> &middot; out of range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Fasting glucose
+                    <small class="rm-vnote">Model input. Impaired fasting glucose begins at 100 mg/dL.</small>
+                  </span>
+                  <span><span class="rm-track"><i data-state="oor" style="left:58%"></i></span>
+                    <span class="rm-tstat"><span class="pval">110<span class="pval__u">mg/dL</span></span> &middot; out of range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="pspine__group">
+              <h3>Five Gate-1 modifiers &middot; Aleron overlay</h3>
+              <div class="rm-vars">
+                <div class="rm-var">
+                  <span class="rm-vname">CRF percentile
+                    <small class="rm-vnote">Reference frame 1st to 99th percentile. The highest-sensitivity field in this model and the input behind the ladder on the action map.</small>
+                  </span>
+                  <span><span class="rm-track"><i data-state="oor" style="left:12%"></i></span>
+                    <span class="rm-tstat"><span class="pval">28<span class="pval__u">mL/kg/min</span></span>, roughly 10th to 15th pct &middot; out of range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:100%"></i></span><span>100</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Insulin resistance
+                    <small class="rm-vnote">Reference frame 0.5 to 8 HOMA-IR.</small>
+                  </span>
+                  <span><span class="rm-track"><i data-state="oor" style="left:51%"></i></span>
+                    <span class="rm-tstat"><span class="pval">4.3<span class="pval__u">HOMA-IR</span></span> &middot; out of range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:74%"></i></span><span>74</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Waist-to-height
+                    <small class="rm-vnote">Reference frame 0.40 to 0.75.</small>
+                  </span>
+                  <span><span class="rm-track"><i data-state="oor" style="left:54%"></i></span>
+                    <span class="rm-tstat"><span class="pval">0.59</span> &middot; out of range</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Hepatic risk
+                    <small class="rm-vnote">FIB-4, reference frame 0.5 to 5. Not emitted in this packet; it is a scored gate on the action map instead of a blank row here.</small>
+                  </span>
+                  <span><span class="pna">pending</span><span class="rm-tstat">not emitted</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:42%"></i></span><span>42</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Family history
+                    <small class="rm-vnote">None / strong / early.</small>
+                  </span>
+                  <span><span class="pval">present</span><span class="rm-tstat">present</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:36%"></i></span><span>36</span></span>
+                </div>
+                <div class="rm-var">
+                  <span class="rm-vname">Weight trajectory
+                    <small class="rm-vnote">Loss / stable / gain. Needs a second measured weight.</small>
+                  </span>
+                  <span><span class="pna">pending</span><span class="rm-tstat">one timepoint</span></span>
+                  <span class="rm-sens"><span class="pbar"><i style="width:38%"></i></span><span>38</span></span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Model audit trail</h2>
+          <span class="pmod__meta">Kept below the clinical interpretation</span>
+        </div>
+        <div class="pmod__body">
+          <dl class="rm-audit">
+            <div>
+              <dt>Model route</dt>
+              <dd>Gate 1</dd>
+              <dd class="rm-m">No established diabetes</dd>
+            </div>
+            <div>
+              <dt>QDiabetes base anchor</dt>
+              <dd><span class="pna">pending</span></dd>
+              <dd class="rm-m">10-yr incident T2D point estimate</dd>
+            </div>
+            <div>
+              <dt>Before CRF &middot; modifier layer</dt>
+              <dd><span class="pna">pending</span></dd>
+              <dd class="rm-m">Sigmoid of base plus modifiers</dd>
+            </div>
+            <div>
+              <dt>Adjusted 10-yr incident T2D</dt>
+              <dd>34<span class="pval__u">%</span></dd>
+              <dd class="rm-m">Prediabetes + insulin resistance</dd>
+            </div>
+            <div>
+              <dt>Gate 2 severity &middot; router</dt>
+              <dd><span class="pna">N/A</span></dd>
+              <dd class="rm-m">Not emitted without established T2D</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>Why the model believes this</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Modifiable</dt><dd>CRF percentile: 28 mL/kg/min (~10-15th pct) &middot; Insulin resistance: 4.3 HOMA-IR &middot; Waist-to-height: 0.59 &middot; Hepatic risk: pending</dd>
+            <dt>Context</dt><dd>Age 47 yr &middot; Sex male &middot; BMI 29.4 kg/m&sup2; &middot; Smoking never</dd>
+            <dt>Grouping</dt><dd>By physician actionability, not model plumbing</dd>
+          </dl>
+        </div>
+      </details>
+
+      <p class="pfoot">
+        Trend: one intake timepoint only. Follow-up trend should appear after a second measured visit,
+        not as a decorative chart. Every domain but cardiovascular carries <span class="pna">model provenance pending</span>;
+        an unassessed risk is not a low risk.
+      </p>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Notes for review</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The whole screen. v0's <code>risk-models</code> shows a score and a band and stops; this one
+    shows the interpretation, the levers, the fields it read, the sensitivity of each field, and the
+    audit trail beneath, in that order.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Cancer's rail cell reads <code>site-specific</code>, not a percentage. The reference surface
+    refuses to compose one cancer number from engines that do not share an honest unit, and that
+    refusal is the design.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><code>PROPOSED domain.proportion-bar</code> (<code>.pbar</code>) and
+    <code>PROPOSED domain.chart-legend</code> (<code>.plegend</code>) were added to section B of
+    <code>physician-chrome.css</code>. <code>components.css</code> has <code>.amd-confidence</code>,
+    a three-segment discrete meter for an evidence level, which cannot carry a continuous
+    sensitivity score; and it declares no legend at all, which P2 and P7 both require.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The value-vs-reference track (<code>.rm-track</code>) is screen-local because it appears
+    only here. If the same track shows up on a second screen it belongs in section B.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The band word is a filled ember tile only for High (P3). Moderate is an advisory word and
+    Low is a baseline word, so a real hazard outranks a quiet advisory by construction rather than
+    by the reader noticing a hue.</span></p>
+</div>
+
+</body>
+</html>

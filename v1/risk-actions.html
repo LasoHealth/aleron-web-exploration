@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v1 — Risk, action map</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout and SVG geometry only. Everything reusable is in
+     physician-chrome.css.
+
+     BRIEF.md sanctions bare numbers for SVG chart geometry and for nothing
+     else on this screen. Every colour below still resolves through a token,
+     per P6: gridlines, leader lines, the reference band and every mark draw
+     from ink alphas and the palette, so the register flip carries the whole
+     instrument. The alphas are written with color-mix off a token rather than
+     as rgba literals, which is the same containment the chrome uses. */
+
+  .am-surface { display: block; width: 100%; height: auto; }
+  .am-surface text { font-family: var(--voice); font-variant-numeric: tabular-nums; }
+
+  /* Frame. The value axis is one scale for everything plotted, which is the
+     whole claim of the instrument, so the gridlines run the full width. */
+  .am-axis { stroke: color-mix(in srgb, var(--text-primary) 32%, transparent); }
+  .am-colrule { stroke: color-mix(in srgb, var(--text-primary) 16%, transparent); }
+  .am-grid { stroke: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+  .am-zero { stroke: var(--text-tertiary); stroke-width: 1.25; }
+  .am-harm { fill: var(--signal-hazard); opacity: 0.18; }
+
+  .am-tick { font-size: 10.5px; fill: var(--text-tertiary); }
+  .am-axlab { font-size: 10.5px; fill: var(--text-secondary); }
+  .am-frame { font-size: 10.5px; fill: var(--text-tertiary); }
+  /* Register open decision O1 provisionally grants a 9.5px floor for chart
+     annotation secondary to a plotted mark. These are exactly that. */
+  .am-mark-label { font-size: 9.5px; fill: var(--text-primary); }
+  .am-mark-value { font-size: 9.5px; fill: var(--text-secondary); }
+  .am-note { font-size: 9.5px; fill: var(--text-secondary); }
+  .am-leader { stroke: color-mix(in srgb, var(--text-primary) 22%, transparent); stroke-width: 0.75; }
+
+  /* Marks. P2: a circle acts, a square measures. Category never rides on hue,
+     so an action, a therapy and a lifestyle change are the same filled circle
+     and the arm is read off the ledger row instead. */
+  .am-act { fill: var(--text-primary); opacity: 0.92; }
+  .am-act--harm { fill: var(--signal-hazard); opacity: 0.92; }
+  .am-gated { fill: none; stroke: var(--text-primary); stroke-width: 1.6; stroke-dasharray: 3 2; }
+  .am-dx { fill: var(--signal-baseline); stroke: var(--signal-baseline); stroke-width: 1.3; opacity: 0.95; }
+  .am-dx--major { fill: var(--signal-baseline); stroke: var(--text-primary); stroke-width: 2; opacity: 0.95; }
+  .am-dx--candidate { fill: none; stroke: var(--signal-unmodeled); stroke-width: 2; stroke-dasharray: 3 2; }
+  .am-halo { fill: none; stroke: var(--signal-unmodeled); stroke-width: 1.4; stroke-dasharray: 3 2; }
+  .am-ladder { fill: var(--p-ladder); }
+  .am-ladder-line { fill: none; stroke: var(--p-ladder); stroke-width: 2; opacity: 0.45; }
+  /* The screen's one gold. P2: gold on an instrument is the selection focus,
+     and that spends the budget for the whole screen. */
+  .am-select { fill: none; stroke: var(--signal-forward); stroke-width: 1.6; }
+  .am-tether { stroke: var(--text-secondary); stroke-width: 1.1; stroke-dasharray: 2 3; opacity: 0.85; }
+
+  .am-wrap { overflow-x: auto; }
+  .am-legend { margin-top: var(--air-group); }
+
+  /* Ledger. The table is a canonical square specimen (.pledger); these rules
+     only add the shape chip and the value stack inside a cell. */
+  .am-chip {
+    display: inline-block;
+    width: var(--s-xs);
+    height: var(--s-xs);
+    margin-right: var(--s-xs);
+    border-radius: 50%;
+    background: var(--text-primary);
+    vertical-align: var(--line-thin);
+  }
+  .am-chip[data-mark="diagnostic"] { border-radius: 0; background: var(--signal-baseline); }
+  .am-chip[data-mark="gated"] { background: transparent; border: var(--line-thin) dashed var(--text-secondary); }
+  .am-chip[data-mark="candidate"] { border-radius: 0; background: transparent; border: var(--line-thin) dashed var(--signal-unmodeled); }
+  .am-chip[data-mark="harm"] { background: var(--signal-hazard); }
+  .am-name { font-weight: var(--w-emphasis); }
+  .am-vsub { display: block; font-size: var(--size-caption); font-weight: 400; color: var(--text-tertiary); }
+  .pledger td[data-role="value"] .pbar { width: 60%; margin-left: auto; }
+
+  /* AI candidate pipeline. Signal on the left, the structured candidate and
+     its map placement on the right, because the whole point is that a signal
+     is not yet a recommendation. */
+  .am-pipe { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); gap: var(--s-lg); align-items: start; }
+  .am-pipe .amd-tabs { flex-direction: column; align-items: stretch; }
+  .am-pipe [role="tab"] { display: grid; gap: var(--s-3xs); text-align: left; text-decoration: none; }
+  .am-pipe [role="tab"] .am-t1 { display: flex; justify-content: space-between; gap: var(--s-sm); font-size: var(--size-small); }
+  .am-pipe [role="tab"] .am-t2 { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .am-panel { display: grid; gap: var(--air-group); }
+  .am-phead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs) var(--air-group); }
+  .am-phead h3 { margin: 0; font-size: var(--size-h3); font-weight: var(--w-h3); }
+  .am-pgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-md); }
+  .am-pgrid > div { display: grid; gap: var(--s-2xs); align-content: start; }
+  .am-pgrid dt, .am-pgrid .am-k { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .am-pgrid dd { margin: 0; font-size: var(--size-small); line-height: 1.5; }
+
+  /* Gates list. Same row grammar as the pipeline: label, then why. */
+  .am-gates { display: grid; }
+  .am-gate {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-sm) var(--s-md);
+    align-items: baseline;
+    padding: var(--air-group) 0;
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .am-gate:first-child { border-top: 0; padding-top: var(--air-row); }
+  .am-gate b { font-weight: var(--w-emphasis); }
+  .am-gate p { margin: var(--s-2xs) 0 0; font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); }
+
+  @media (max-width: 1100px) {
+    .am-pipe { grid-template-columns: minmax(0, 1fr); }
+    .am-pipe .amd-tabs { flex-direction: row; flex-wrap: wrap; }
+    .am-pgrid { grid-template-columns: minmax(0, 1fr); }
+    .am-gate { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<!-- ── reviewer chrome ─────────────────────────────────────────────────── -->
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v1 flow</a> / <b>Risk, action map</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-disabled="true" title="v0 has no action map. Its risk screen ends at a score and a band, and nothing in v0 prices an action.">v0</span>
+    <span aria-current="page">v1</span>
+    <a href="../v2/risk-actions.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/risk/actions</span>
+  </div>
+
+  <!-- ── product surface ───────────────────────────────────────────────── -->
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <!-- The chart rail. Six sections, fixed per surface family (register O4).
+           Icons are the canonical six at 16px, mapped by the aliases in
+           icons.json: your-data → Patient Data, quality-of-life → Vitality,
+           plan → Care Plan, appointments → Journal, chat → Aleron AI. -->
+      <nav class="prail__nav">
+        <a class="prail__item" href="patient-data.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Patient Data
+        </a>
+        <a class="prail__item" href="risk-actions.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Risk
+        </a>
+        <a class="prail__item" href="vitality.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg>
+          Vitality
+        </a>
+        <a class="prail__item" href="care-plan.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          Care Plan
+        </a>
+        <a class="prail__item" href="journal.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+          Journal
+        </a>
+        <a class="prail__item" href="aleron-ai.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Aleron AI
+        </a>
+      </nav>
+
+      <div class="prail__foot">
+        <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-11" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-11" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+      </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Risk</h1>
+          <span class="phead__aside">
+            <span class="amd-tabs" role="tablist" aria-label="Risk views">
+              <a role="tab" aria-selected="false" href="risk-models.html">Models</a>
+              <a role="tab" aria-selected="true" href="risk-actions.html">Actions</a>
+            </span>
+          </span>
+        </div>
+        <p>Five disease models read the packet; the action map prices every lever and gate they expose.</p>
+      </header>
+
+      <!-- THE ACTION MAP. The one elevated element on this screen (P8): the
+           instrument itself, not a card about it.
+
+           Geometry, so the numbers below are readable rather than magic:
+             viewBox 940 x 560 · value axis at x=58 · plot 58..878
+             confidence 0..1 maps linearly across those 820 units
+             y = 487.2 - 83.07 * QALY, so y=487.2 is zero and y=22 is +5.6
+           Confidence positions come from the evidence label: weak 0.35,
+           moderate 0.58, strong 0.82. Marks that would collide are spread
+           horizontally in a non-semantic order, exactly as the reference
+           surface does, so proximity along x never reads as ranking. -->
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Action map</h2>
+          <span class="pmod__sub">Every scored action and diagnostic on one patient-QALY scale</span>
+          <span class="pmod__meta">
+            <span class="amd-tabs" role="tablist" aria-label="Map scale">
+              <button type="button" role="tab" aria-selected="true">Full scale</button>
+              <button type="button" role="tab" aria-selected="false">Disease levers</button>
+            </span>
+          </span>
+        </div>
+        <div class="pmod__body">
+          <div class="am-wrap">
+          <svg class="am-surface" viewBox="0 0 940 560" role="img"
+               aria-label="Action decision surface for AL-47M. Thirty scored actions, six diagnostic gates and a three-rung VO2max ladder plotted against patient QALY on the vertical axis and evidence confidence on the horizontal axis. Resmetirom is selected and tethered to the FIB-4 liver-staging gate that unlocks it.">
+            <title>Action decision surface</title>
+
+            <!-- value axis + confidence columns -->
+            <line class="am-axis" x1="58" y1="22" x2="58" y2="500"/>
+            <line class="am-colrule" x1="263" y1="22" x2="263" y2="500"/>
+            <line class="am-colrule" x1="468" y1="22" x2="468" y2="500"/>
+            <line class="am-colrule" x1="673" y1="22" x2="673" y2="500"/>
+
+            <!-- one QALY scale, gridlines running the full plot width -->
+            <line class="am-grid" x1="58" y1="487.2" x2="878" y2="487.2"/>
+            <line class="am-grid" x1="58" y1="404.1" x2="878" y2="404.1"/>
+            <line class="am-grid" x1="58" y1="321.1" x2="878" y2="321.1"/>
+            <line class="am-grid" x1="58" y1="238.0" x2="878" y2="238.0"/>
+            <line class="am-grid" x1="58" y1="154.9" x2="878" y2="154.9"/>
+            <line class="am-grid" x1="58" y1="71.8" x2="878" y2="71.8"/>
+            <text class="am-tick" x="50" y="490.2" text-anchor="end">0.0</text>
+            <text class="am-tick" x="50" y="407.1" text-anchor="end">+1.0</text>
+            <text class="am-tick" x="50" y="324.1" text-anchor="end">+2.0</text>
+            <text class="am-tick" x="50" y="241.0" text-anchor="end">+3.0</text>
+            <text class="am-tick" x="50" y="157.9" text-anchor="end">+4.0</text>
+            <text class="am-tick" x="50" y="74.8" text-anchor="end">+5.0</text>
+            <text class="am-axlab" x="58" y="14">patient QALY &uarr;</text>
+
+            <!-- P7: the axis carries two value frames and says so itself -->
+            <text class="am-frame" x="878" y="14" text-anchor="end">actions plot net &middot; diagnostics plot value if reclassified</text>
+
+            <!-- confidence axis -->
+            <text class="am-tick" x="58" y="518" text-anchor="middle">0</text>
+            <text class="am-tick" x="263" y="518" text-anchor="middle">0.25</text>
+            <text class="am-tick" x="468" y="518" text-anchor="middle">0.50</text>
+            <text class="am-tick" x="673" y="518" text-anchor="middle">0.75</text>
+            <text class="am-tick" x="878" y="518" text-anchor="middle">1</text>
+            <text class="am-frame" x="468" y="536" text-anchor="middle">evidence confidence score &middot; continuous 0-1 axis; categorical words are labels only</text>
+
+            <!-- net-harmful zone. Ember carries this one meaning on the map. -->
+            <rect class="am-harm" x="58" y="487.2" width="820" height="12.8"/>
+            <line class="am-zero" x1="58" y1="487.2" x2="878" y2="487.2"/>
+            <text class="am-note" x="62" y="497">net-harmful zone &middot; burden exceeds benefit</text>
+
+            <!-- VO₂max ladder. The one forward-curve geometry on the map: three
+                 rungs of the same lever at one confidence, joined so they read
+                 as a course rather than three competing options. -->
+            <path class="am-ladder-line" d="M 546 41.1 L 546 140.8 L 546 285.3"/>
+            <text class="am-mark-label" x="546" y="30.1" text-anchor="middle" font-weight="500">VO&#8322;max ladder</text>
+            <circle class="am-ladder" cx="546" cy="41.1" r="6.5"><title>Increase VO₂max to 43 mL/kg/min (+15): +5.37 QALY · confidence 0.58 (strong association, moderate causal)</title></circle>
+            <circle class="am-ladder" cx="546" cy="140.8" r="6.5"><title>Increase VO₂max to 38 mL/kg/min (+10): +4.17 QALY · confidence 0.58 (strong association, moderate causal)</title></circle>
+            <circle class="am-ladder" cx="546" cy="285.3" r="6.5"><title>Increase VO₂max to 33 mL/kg/min (+5): +2.43 QALY · confidence 0.58 (strong association, moderate causal)</title></circle>
+            <text class="am-mark-value" x="556" y="44.1">&rarr;43 mL/kg/min +5.37 QALY</text>
+            <text class="am-mark-value" x="556" y="143.8">&rarr;38 mL/kg/min +4.17 QALY</text>
+            <text class="am-mark-value" x="556" y="288.3">&rarr;33 mL/kg/min +2.43 QALY</text>
+
+            <!-- actions: filled circles act, dashed open circles are gated -->
+            <circle class="am-act" cx="486" cy="139.0" r="5"><title>Physical activity → CVD, VO2max / activity rebuild - moderate confidence 0.58</title></circle>
+            <circle class="am-gated" cx="730" cy="254.6" r="5"><title>Bariatric / metabolic surgery - strong confidence 0.82 - gated on BMI 30 or above, or incident T2D</title></circle>
+            <circle class="am-act" cx="506" cy="364.3" r="5"><title>GLP-1/GIP metabolic therapy - moderate confidence 0.58</title></circle>
+            <circle class="am-act" cx="572" cy="395.8" r="5"><title>Supervised resistance training - moderate confidence 0.58</title></circle>
+            <circle class="am-gated" cx="452" cy="414.1" r="5"><title>Resmetirom (Rezdiffra), F2-F3 MASH - moderate confidence 0.58 - gated on FIB-4 then FibroScan</title></circle>
+            <circle class="am-gated" cx="744" cy="434.9" r="5"><title>BP pharmacotherapy after confirmation - strong confidence 0.82 - gated on confirmed stage-2 hypertension</title></circle>
+            <circle class="am-act" cx="345" cy="448.8" r="5"><title>Acarbose (impaired glucose tolerance) - weak confidence 0.35</title></circle>
+            <circle class="am-act" cx="730" cy="458.2" r="5"><title>Intensive lifestyle (DPP) - strong confidence 0.82</title></circle>
+            <circle class="am-act" cx="520" cy="467.4" r="5"><title>Mediterranean diet → CVD - moderate confidence 0.58</title></circle>
+            <circle class="am-act" cx="345" cy="467.9" r="5"><title>Fiber / whole grains → CVD - weak confidence 0.35</title></circle>
+            <circle class="am-gated" cx="596" cy="469.8" r="5"><title>Alcohol reduction - moderate confidence 0.58 - intake-conditional</title></circle>
+            <circle class="am-act" cx="325" cy="471.1" r="5"><title>Lifestyle → insulin resistance - weak confidence 0.35</title></circle>
+            <circle class="am-act" cx="486" cy="473.6" r="5"><title>Pioglitazone (insulin-resistant) - moderate confidence 0.58</title></circle>
+            <circle class="am-gated" cx="361" cy="480.6" r="5"><title>SGLT2 inhibitor (empa/dapa) - weak confidence 0.35 - metabolic-only for him</title></circle>
+            <circle class="am-act" cx="466" cy="481.2" r="5"><title>Mediterranean diet → T2D - moderate confidence 0.58</title></circle>
+            <circle class="am-act" cx="534" cy="484.2" r="5"><title>Zoster vaccine → dementia - moderate confidence 0.58</title></circle>
+            <circle class="am-act" cx="560" cy="485.1" r="5"><title>Influenza vaccine (annual) - moderate confidence 0.58</title></circle>
+            <circle class="am-act" cx="700" cy="485.1" r="5"><title>Metformin (diabetes prevention) - strong confidence 0.82</title></circle>
+            <circle class="am-act" cx="309" cy="485.8" r="5"><title>Cut processed/red meat → cancer - weak confidence 0.35</title></circle>
+            <circle class="am-act" cx="726" cy="485.9" r="5"><title>Statin (primary prevention) - strong confidence 0.82</title></circle>
+            <circle class="am-gated" cx="329" cy="486.1" r="5"><title>Icosapent ethyl (high-dose EPA) - weak confidence 0.35 - reserve if TG stays high on a statin</title></circle>
+            <circle class="am-act" cx="752" cy="486.2" r="5"><title>Statin → stroke/dementia - strong confidence 0.82</title></circle>
+            <circle class="am-act" cx="349" cy="486.4" r="5"><title>Mediterranean diet → cancer - weak confidence 0.35</title></circle>
+            <circle class="am-gated" cx="369" cy="486.8" r="5"><title>Ziltivekimab (IL-6) - weak confidence 0.35 - doubly contingent</title></circle>
+            <circle class="am-act--harm" cx="508" cy="487.8" r="5"><title>Low-dose colchicine - moderate confidence 0.58 - net harm -0.01 QALY</title></circle>
+            <circle class="am-act--harm" cx="778" cy="488.7" r="5"><title>Bempedoic acid - strong confidence 0.82 - net harm -0.02 QALY</title></circle>
+            <circle class="am-act--harm" cx="800" cy="488.8" r="5"><title>Ezetimibe (add-on) - strong confidence 0.82 - net harm -0.02 QALY</title></circle>
+            <circle class="am-act--harm" cx="822" cy="489.1" r="5"><title>PCSK9 inhibitor - strong confidence 0.82 - net harm -0.02 QALY</title></circle>
+            <circle class="am-act--harm" cx="341" cy="496.8" r="5"><title>Aspirin (primary) - weak confidence 0.35 - net harm -0.12 QALY</title></circle>
+            <circle class="am-act--harm" cx="706" cy="499.2" r="5"><title>Canakinumab (IL-1β) - strong confidence 0.82 - net harm -0.14 QALY</title></circle>
+
+            <!-- diagnostics: squares measure. CAC is drawn larger because it is
+                 the only one that stages an anatomic finding rather than
+                 confirming a number. -->
+            <rect class="am-dx" x="653" y="413.6" width="6" height="6"><title>75g 2-hour OGTT - moderate confidence 0.58</title></rect>
+            <rect class="am-dx--major" x="615.5" y="420.4" width="9" height="9"><title>Coronary calcium (CAC) - moderate confidence 0.58</title></rect>
+            <rect class="am-dx" x="577" y="426.0" width="6" height="6"><title>FIB-4 then FibroScan if indicated - moderate confidence 0.58</title></rect>
+            <rect class="am-dx" x="709" y="431.9" width="6" height="6"><title>Home or ambulatory BP confirmation - strong confidence 0.82</title></rect>
+            <rect class="am-dx" x="495" y="446.8" width="6" height="6"><title>Home sleep apnea test - moderate confidence 0.58</title></rect>
+            <!-- AI candidate: indigo, dashed, and haloed. P7 keeps scored
+                 candidates visibly different from library items. -->
+            <circle class="am-halo" cx="540" cy="454.0" r="9"/>
+            <rect class="am-dx--candidate" x="537" y="451.0" width="6" height="6"><title>12-lead ECG, then patch/Holter if persistent - moderate confidence 0.58 - candidate signal from nocturnal bradycardia</title></rect>
+
+            <!-- the movers get named on the chart -->
+            <text class="am-mark-label" x="471" y="142.0" text-anchor="end">Activity bundle <tspan class="am-mark-value">+4.19 QALY</tspan></text>
+            <text class="am-mark-label" x="715" y="257.6" text-anchor="end">Bariatric surgery <tspan class="am-mark-value">+2.80 QALY</tspan></text>
+            <text class="am-mark-label" x="521" y="367.3">GLP-1/GIP <tspan class="am-mark-value">+1.48 QALY</tspan></text>
+            <text class="am-mark-label" x="587" y="398.8">Resistance training <tspan class="am-mark-value">+1.10 QALY</tspan></text>
+            <line class="am-leader" x1="712" y1="438.9" x2="712" y2="446"/>
+            <text class="am-mark-label" x="712" y="449.0" text-anchor="middle">BP confirmation <tspan class="am-mark-value">0.63 QALY</tspan></text>
+            <text class="am-mark-label" x="483" y="452.8" text-anchor="end">HSAT <tspan class="am-mark-value">0.45 QALY</tspan></text>
+            <text class="am-mark-label" x="691" y="502.2" text-anchor="end">Canakinumab <tspan class="am-mark-value">-0.14 QALY</tspan></text>
+
+            <!-- selection: the gold ring, and the tether to the gate that
+                 unlocks it. The sequencing logic made visible. -->
+            <line class="am-tether" x1="452" y1="414.1" x2="580" y2="429.0"/>
+            <text class="am-note" x="516" y="415.6" text-anchor="middle">unlocks on result</text>
+            <circle class="am-select" cx="452" cy="414.1" r="10"/>
+            <text class="am-mark-label" x="437" y="417.1" text-anchor="end">Resmetirom <tspan class="am-mark-value">+0.88 QALY</tspan></text>
+          </svg>
+          </div>
+
+          <p class="plegend am-legend">
+            <span><i></i>action</span>
+            <span><i data-mark="diagnostic"></i>diagnostic</span>
+            <span><i data-mark="gated"></i>gated</span>
+            <span><i data-mark="candidate"></i>candidate signal</span>
+            <span><i data-mark="harm"></i>net harm</span>
+            <span><i data-mark="ladder"></i>VO&#8322;max ladder</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- The evidence ledger. Every plotted mark, its value, and the decision
+           it turns on. The shape chip in the first cell is the same mark the
+           map plots: one vocabulary across chart and table. -->
+      <section class="pmod">
+        <div class="pmod__head">
+          <h2>Evidence ledger</h2>
+          <span class="pmod__sub">Every plotted mark, its value, and the decision it turns on &middot; provenance rides on the row</span>
+        </div>
+        <div class="pmod__body pmod__body--flush">
+          <div style="padding: var(--s-md) var(--s-md) 0">
+            <span class="amd-tabs" role="tablist" aria-label="Ledger filters">
+              <button type="button" role="tab" aria-selected="true">All 36</button>
+              <button type="button" role="tab" aria-selected="false">Diagnostics 6</button>
+              <button type="button" role="tab" aria-selected="false">Therapies 20</button>
+              <button type="button" role="tab" aria-selected="false">Lifestyle 10</button>
+            </span>
+          </div>
+
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col" data-role="value">Patient value</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Decision logic</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="am-chip" aria-hidden="true"></span><span class="am-name">GLP-1/GIP metabolic therapy</span>
+                    <small class="pledger__prov">library &middot; direct &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">1.5<span class="pval__u">QALY</span>
+                    <span class="pbar"><i style="width:36%"></i></span>
+                  </td>
+                  <td><span class="pbase">actionable</span></td>
+                  <td>Adiposity, diabetes prevention, BP and metabolic exposure, body ease, and reserve when
+                    lean mass is protected. Eligible at BMI 29.4 kg/m&sup2; with metabolic comorbidity.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">Home or ambulatory BP confirmation</span>
+                    <small class="pledger__prov">library &middot; strong evidence</small>
+                  </td>
+                  <td data-role="value">0.63<span class="pval__u">QALY</span>
+                    <span class="am-vsub">if reclassified &middot; odds 65 %</span>
+                    <span class="pbar"><i style="width:15%"></i></span>
+                  </td>
+                  <td><span class="padv">reclass gate</span></td>
+                  <td>Persistent BP state changes the medication threshold and the sequence. Confirms persistent
+                    hypertension versus white-coat or measurement artifact.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" aria-hidden="true"></span><span class="am-name">Supervised resistance training</span>
+                    <small class="pledger__prov">library &middot; direct &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">1.1<span class="pval__u">QALY</span>
+                    <span class="pbar"><i style="width:26%"></i></span>
+                  </td>
+                  <td><span class="pbase">actionable</span></td>
+                  <td>Lean mass, strength, bone loading, functional reserve, body ease, and safer weight-loss
+                    or VO&#8322;max work. Sequenced before the GLP-1 as lean-mass insurance.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">Home sleep apnea test</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">0.45<span class="pval__u">QALY</span>
+                    <span class="am-vsub">if reclassified &middot; odds 35 %</span>
+                    <span class="pbar"><i style="width:11%"></i></span>
+                  </td>
+                  <td><span class="padv">reclass gate</span></td>
+                  <td>Sleep diagnosis changes the BP and recovery sequence. Action-changing gate if
+                    sleep-disordered breathing confirms.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" aria-hidden="true"></span><span class="am-name">VO&#8322;max / activity rebuild</span>
+                    <small class="pledger__prov">library &middot; bundle &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">4.19<span class="pval__u">QALY</span>
+                    <span class="pbar"><i style="width:100%"></i></span>
+                  </td>
+                  <td><span class="pbase">actionable</span></td>
+                  <td>Not an atomic recommendation. It allocates the shared fitness and activity value before
+                    concrete actions are selected, de-duped against the disease slices, and the ladder above
+                    prices its rungs.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="gated" aria-hidden="true"></span><span class="am-name">BP pharmacotherapy after confirmation</span>
+                    <small class="pledger__prov">library &middot; direct &middot; strong evidence</small>
+                  </td>
+                  <td data-role="value">0.63<span class="pval__u">QALY</span>
+                    <span class="pbar"><i style="width:15%"></i></span>
+                  </td>
+                  <td><span class="padv">gated</span></td>
+                  <td>Stroke, heart failure, coronary, kidney and dementia-risk reduction after persistent BP
+                    is confirmed. Gated on confirmed stage-2 hypertension by home or ambulatory BP.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">FIB-4 then FibroScan if indicated</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">0.70<span class="pval__u">QALY</span>
+                    <span class="am-vsub">if reclassified &middot; odds 20 %</span>
+                    <span class="pbar"><i style="width:17%"></i></span>
+                  </td>
+                  <td><span class="padv">reclass gate</span></td>
+                  <td>Fibrosis stage opens or closes the MASH pathway. AST, ALT and platelets first, FibroScan
+                    if indicated.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="gated" aria-hidden="true"></span><span class="am-name">Bariatric / metabolic surgery</span>
+                    <small class="pledger__prov">library &middot; strong evidence</small>
+                  </td>
+                  <td data-role="value">2.8<span class="pval__u">QALY</span>
+                    <span class="pbar"><i style="width:67%"></i></span>
+                  </td>
+                  <td><span class="padv">gated</span></td>
+                  <td>Needs BMI 30 kg/m&sup2; or above with his metabolic syndrome, or incident T2D. He is
+                    BMI 29.4 kg/m&sup2;, just below, so the value is scored if eligible. Same weight lever as
+                    GLP-1 or SGLT2i: choose one, never summed.</td>
+                </tr>
+                <tr aria-selected="true">
+                  <td><span class="am-chip" data-mark="gated" aria-hidden="true"></span><span class="am-name">Resmetirom (Rezdiffra), F2 to F3 MASH</span>
+                    <small class="pledger__prov">library &middot; moderate evidence &middot; surrogate endpoint</small>
+                  </td>
+                  <td data-role="value">0.88<span class="pval__u">QALY</span>
+                    <span class="pbar"><i style="width:21%"></i></span>
+                  </td>
+                  <td><span class="padv">gated</span></td>
+                  <td>Contingent on FIB-4 then FibroScan confirming F2 to F3 MASH; value scored if indicated.
+                    Histologic surrogate, outcomes maturing. Do not prescribe blind, stage the liver first.
+                    <small class="pledger__prov">Selected on the map. The tether runs to the gate that unlocks it.</small>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="candidate" aria-hidden="true"></span><span class="am-name">12-lead ECG, then patch/Holter if persistent</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">0.40<span class="pval__u">QALY</span>
+                    <span class="am-vsub">if reclassified &middot; odds 15 %</span>
+                    <span class="pbar"><i style="width:10%"></i></span>
+                  </td>
+                  <td><span class="padv">reclass gate</span></td>
+                  <td>Rhythm finding changes exercise clearance or cardiology escalation. Safety context, not
+                    a primary value lever unless reclassification odds rise.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">Coronary calcium (CAC)</span>
+                    <small class="pledger__prov">library &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">0.75<span class="pval__u">QALY</span>
+                    <span class="am-vsub">if reclassified &middot; odds 25 %</span>
+                    <span class="pbar"><i style="width:18%"></i></span>
+                  </td>
+                  <td><span class="padv">reclass gate</span></td>
+                  <td>Plaque burden changes statin or ApoB intensity. Sets lipid and BP intensity using the
+                    patient-value diagnostic frame.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">75 g 2-hour OGTT</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">0.85<span class="pval__u">QALY</span>
+                    <span class="am-vsub">if reclassified &middot; odds 4 %</span>
+                    <span class="pbar"><i style="width:20%"></i></span>
+                  </td>
+                  <td><span class="padv">reclass gate</span></td>
+                  <td>Post-load diabetes unlocks the diabetes pathway. Meaningful if positive, but low
+                    reclassification odds for this profile.</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="harm" aria-hidden="true"></span><span class="am-name">Canakinumab (IL-1&beta;)</span>
+                    <small class="pledger__prov">library &middot; strong evidence</small>
+                  </td>
+                  <td data-role="value">-0.14<span class="pval__u">QALY</span>
+                    <span class="pbar"><i data-tone="harm" style="width:3%"></i></span>
+                  </td>
+                  <td><span class="ptile">net harm</span></td>
+                  <td>Strong evidence for the effect, and still net-negative here: the burden exceeds the
+                    benefit at his risk level. Strong evidence is not the same as a good idea.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="pempty">13 of 36 rows shown at this density. The remaining 23 sit in
+            <b>Therapies</b> and <b>Lifestyle</b>; under load, content yields to disclosure rather
+            than to shrunk air.</p>
+        </div>
+      </section>
+
+      <!-- The diagnostics variant of the ledger. Same table, different frame:
+           reclassification odds and value-if-reclassified are kept as two
+           separate columns because multiplying them hides which one is small. -->
+      <section class="pmod">
+        <div class="pmod__head">
+          <h3>Diagnostics, priced as gates</h3>
+          <span class="pmod__meta">Odds and value kept separate on purpose</span>
+        </div>
+        <div class="pmod__body pmod__body--flush">
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Diagnostic</th>
+                  <th scope="col" data-role="value">Reclass odds</th>
+                  <th scope="col" data-role="value">QALY if reclassified</th>
+                  <th scope="col">Decision changed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">Home or ambulatory BP confirmation</span>
+                    <small class="pledger__prov">library &middot; strong evidence</small>
+                  </td>
+                  <td data-role="value">65<span class="pval__u">%</span><span class="pbar"><i style="width:100%"></i></span></td>
+                  <td data-role="value">0.63<span class="pval__u">QALY</span><span class="pbar"><i style="width:74%"></i></span></td>
+                  <td>Persistent BP state changes medication threshold and sequencing</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">Home sleep apnea test</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">35<span class="pval__u">%</span><span class="pbar"><i style="width:54%"></i></span></td>
+                  <td data-role="value">0.45<span class="pval__u">QALY</span><span class="pbar"><i style="width:53%"></i></span></td>
+                  <td>Sleep diagnosis changes BP and recovery sequence</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">Coronary calcium (CAC)</span>
+                    <small class="pledger__prov">library &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">25<span class="pval__u">%</span><span class="pbar"><i style="width:38%"></i></span></td>
+                  <td data-role="value">0.75<span class="pval__u">QALY</span><span class="pbar"><i style="width:88%"></i></span></td>
+                  <td>Plaque burden changes statin or ApoB intensity</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">FIB-4 then FibroScan if indicated</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">20<span class="pval__u">%</span><span class="pbar"><i style="width:31%"></i></span></td>
+                  <td data-role="value">0.70<span class="pval__u">QALY</span><span class="pbar"><i style="width:82%"></i></span></td>
+                  <td>Fibrosis stage opens or closes the MASH pathway</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="candidate" aria-hidden="true"></span><span class="am-name">12-lead ECG, then patch/Holter if persistent</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">15<span class="pval__u">%</span><span class="pbar"><i style="width:23%"></i></span></td>
+                  <td data-role="value">0.40<span class="pval__u">QALY</span><span class="pbar"><i style="width:47%"></i></span></td>
+                  <td>Rhythm finding changes exercise clearance or cardiology escalation</td>
+                </tr>
+                <tr>
+                  <td><span class="am-chip" data-mark="diagnostic" aria-hidden="true"></span><span class="am-name">75 g 2-hour OGTT</span>
+                    <small class="pledger__prov">candidate signal &middot; moderate evidence</small>
+                  </td>
+                  <td data-role="value">4<span class="pval__u">%</span><span class="pbar"><i style="width:6%"></i></span></td>
+                  <td data-role="value">0.85<span class="pval__u">QALY</span><span class="pbar"><i style="width:100%"></i></span></td>
+                  <td>Post-load diabetes unlocks the diabetes pathway</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod">
+        <div class="pmod__head">
+          <h2>AI candidate pipeline</h2>
+          <span class="pmod__sub">Signal &middot; structured candidate &middot; score &middot; map placement</span>
+        </div>
+        <div class="pmod__body">
+          <div class="am-pipe">
+            <div class="amd-tabs" role="tablist" aria-label="AI candidate pipeline">
+              <a role="tab" aria-selected="true" href="#sig-sleep">
+                <span class="am-t1"><span>Sleep-disordered breathing signal</span><span class="pval">0.45<span class="pval__u">QALY</span></span></span>
+                <span class="am-t2">sleep &middot; scored</span>
+              </a>
+              <a role="tab" aria-selected="false" href="#sig-ogtt">
+                <span class="am-t1"><span>OGTT may reclassify prediabetes</span><span class="pval">0.85<span class="pval__u">QALY</span></span></span>
+                <span class="am-t2">cardiometabolic &middot; scored</span>
+              </a>
+              <a role="tab" aria-selected="false" href="#sig-liver">
+                <span class="am-t1"><span>MASLD fibrosis stage unknown</span><span class="pval">0.70<span class="pval__u">QALY</span></span></span>
+                <span class="am-t2">hepatic &middot; scored</span>
+              </a>
+              <a role="tab" aria-selected="false" href="#sig-brady">
+                <span class="am-t1"><span>Nocturnal bradycardia needs rhythm check</span><span class="pval">0.40<span class="pval__u">QALY</span></span></span>
+                <span class="am-t2">rhythm &middot; scored</span>
+              </a>
+            </div>
+
+            <div class="am-panel" id="sig-sleep">
+              <div class="am-phead">
+                <h3>Sleep-disordered breathing signal</h3>
+                <span class="pmod__meta">sleep &middot; moderate evidence &middot; scored</span>
+              </div>
+              <dl class="am-pgrid">
+                <div>
+                  <dt>Pattern recognized</dt>
+                  <dd>Slight overnight desaturation plus central adiposity, stage-2 BP, insulin resistance,
+                    and low fitness suggest a missing upstream driver.</dd>
+                </div>
+                <div>
+                  <dt>Scored candidate</dt>
+                  <dd><b>Home sleep apnea test</b><br>diagnostic &middot; moderate &middot;
+                    reclass odds <span class="pval">35<span class="pval__u">%</span></span> &middot;
+                    patient QALY if reclassified <span class="pval">0.45<span class="pval__u">QALY</span></span></dd>
+                </div>
+                <div>
+                  <dt>Map status</dt>
+                  <dd>Placed on the action map with AI provenance.</dd>
+                </div>
+                <div>
+                  <dt>Data used</dt>
+                  <dd>SpO&#8322; nadir 89 % &middot; BMI 29.4 kg/m&sup2; &middot; BP 142/90 mmHg &middot;
+                    HOMA-IR 4.3 &middot; VO&#8322;max 28 mL/kg/min</dd>
+                </div>
+              </dl>
+              <p class="pbound pbound--quiet"><span><b>AI provenance</b> &middot; Generated from sleep
+                signals. Confidence basis: moderate evidence label, moderate confirmation. Map entry:
+                structured and scored.</span></p>
+              <p class="pfoot" style="margin: 0; padding-top: 0; border-top: 0">AI contributes candidate
+                generation. Only scored candidates enter the map and the final synthesis.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Action-changing gates</h2>
+          <span class="pmod__sub">Scored diagnostics that can change sequencing</span>
+        </div>
+        <div class="pmod__body">
+          <div class="am-gates">
+            <div class="am-gate">
+              <span class="padv">resolve</span>
+              <span><b>Home or ambulatory BP confirmation</b>
+                <p>Validated v2 diagnostic gate. Reclass odds
+                  <span class="pval">65<span class="pval__u">%</span></span>; patient QALY if reclassified
+                  <span class="pval">0.63<span class="pval__u">QALY</span></span>. Decision changed:
+                  persistent BP state changes medication threshold and sequencing.</p>
+              </span>
+            </div>
+            <div class="am-gate">
+              <span class="padv">resolve</span>
+              <span><b>Home sleep apnea test</b>
+                <p>Signal source: Sleep-disordered breathing signal. Reclass odds
+                  <span class="pval">35<span class="pval__u">%</span></span>; patient QALY if reclassified
+                  <span class="pval">0.45<span class="pval__u">QALY</span></span>. Decision changed:
+                  sleep diagnosis changes BP and recovery sequence.</p>
+              </span>
+            </div>
+            <div class="am-gate">
+              <span class="padv">resolve</span>
+              <span><b>FIB-4 then FibroScan if indicated</b>
+                <p>Signal source: MASLD fibrosis stage unknown. Reclass odds
+                  <span class="pval">20<span class="pval__u">%</span></span>; patient QALY if reclassified
+                  <span class="pval">0.70<span class="pval__u">QALY</span></span>. Decision changed:
+                  fibrosis stage opens or closes MASH pathway.</p>
+              </span>
+            </div>
+            <div class="am-gate">
+              <span class="padv">resolve</span>
+              <span><b>12-lead ECG, then patch/Holter if persistent</b>
+                <p>Signal source: Nocturnal bradycardia needs rhythm check. Reclass odds
+                  <span class="pval">15<span class="pval__u">%</span></span>; patient QALY if reclassified
+                  <span class="pval">0.40<span class="pval__u">QALY</span></span>. Decision changed:
+                  rhythm finding changes exercise clearance or cardiology escalation.</p>
+              </span>
+            </div>
+            <div class="am-gate">
+              <span class="padv">resolve</span>
+              <span><b>75 g 2-hour OGTT</b>
+                <p>Signal source: OGTT may reclassify prediabetes. Reclass odds
+                  <span class="pval">4<span class="pval__u">%</span></span>; patient QALY if reclassified
+                  <span class="pval">0.85<span class="pval__u">QALY</span></span>. Decision changed:
+                  post-load diabetes unlocks diabetes pathway.</p>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>Required channel</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Care gap</dt><dd>Colorectal cancer screening &middot; age 47 &middot; never screened &middot; colonoscopy or FIT &middot; net +0.25 QALY</dd>
+            <dt>Genetics</dt><dd>ATM heterozygous P/LP &middot; ATM genetic risk guidance and ATM family-history gate</dd>
+            <dt>Ranking</dt><dd>Not plotted against opportunities. An obligation cannot be out-ranked by a higher-value lever and cannot be rejected.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-10" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-10" role="note">
+        Synthetic scored surface &middot; QALY values directional &middot; raw AI signals stay in the
+        pipeline until structured, scored, and placed on the map with provenance.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Notes for review</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The action map itself. v0 has no counterpart at all: nothing in the shipped portal prices an
+    action, so the version switcher marks v0 absent rather than pointing at a screen that would
+    mislead the reviewer.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Two value frames on one axis, declared on the axis (P7). Actions plot net; diagnostics plot
+    value if reclassified. The diagnostics table below keeps odds and value in separate columns for
+    the same reason: OGTT is 0.85 QALY at 4 % odds, and multiplying them into one number hides which
+    half is small.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The screen's one gold is the selection ring on Resmetirom. Everything else that could have
+    taken gold, including the selected ledger row, uses the inset field instead.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The VO&#8322;max ladder needs a colour the palette does not have. P2 fixes five signals and
+    russet is not one of them. Carried as <code>PROPOSED token.instrument-furniture</code>
+    (<code>--p-ladder</code>) in section B of <code>physician-chrome.css</code> with both register
+    values, so the decision is visible for ratification rather than buried in a screen. Either the
+    ladder gives up its own colour and rides on shape alone, or the palette gains a sixth signal.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><code>PROPOSED domain.chart-legend</code> (<code>.plegend</code>) and
+    <code>PROPOSED domain.proportion-bar</code> (<code>.pbar</code>) also went into section B.
+    A chart whose category rides on shape is unreadable without a legend, and
+    <code>components.css</code> v0.5.0 declares none.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The reference surface's Decision-logic column prints the raw gate string, which for the
+    v2 library items reads as machine enums (<code>eligible=true</code>,
+    <code>gate=confirmed_stage2_hypertension</code>). Its own provenance helper says
+    "provenance in words, never machine enums". This recreation uses the action library's prose
+    <code>basis</code> and <code>trigger</code> copy for that column instead. Ratify the prose or
+    ratify the enum, but not both.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>In the shipped reference file, <code>rerunActionLibraryScoring</code> returns early on
+    <code>ENGINE_DERIVED_ACTIONS_BY_PATIENT</code>, so AL-47M's map actually plots only six derived
+    actions with a maximum net of +0.03 QALY. The v2 library additions that the rest of the surface
+    assumes (GLP-1/GIP 1.48, supervised resistance training 1.10, BP pharmacotherapy 0.63) never
+    reach the chart, and the AI screen's "Top action" degrades to Intensive lifestyle (DPP). This
+    screen plots the library set that the catalog, the chart's own label table and the care-plan note
+    all depend on. Fix the short-circuit upstream.</span></p>
+</div>
+
+</body>
+</html>

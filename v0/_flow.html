@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Flow map</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. Every node, lane, fork, connector and legend
+     class comes from physician-chrome.css section A; this file adds nothing
+     but the one caption row under a fork. */
+  .v0-lanecap {
+    margin: calc(var(--air-row) * -1) 0 var(--air-tier);
+    font-size: var(--size-caption);
+    color: var(--wf-dim);
+    line-height: 1.55;
+  }
+</style>
+</head>
+<body class="wf">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><b>v0 flow</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <span aria-disabled="true" title="v1 keeps its own flow map at ../v1/_flow.html; it maps a different product, so there is no counterpart to this screen">v1</span>
+    <span aria-disabled="true" title="v2 keeps its own flow map at ../v2/_flow.html; it maps a different product, so there is no counterpart to this screen">v2</span>
+  </span>
+</nav>
+
+<div class="wf-doc wf-doc--wide">
+
+  <p class="wf-eyebrow">v0 &middot; baseline</p>
+  <h1 class="wf-title">The portal as it stands today</h1>
+  <p class="wf-lede">This is a replica, not a proposal. Every screen below reproduces what
+  <code>Aleron-Web</code> renders right now, including the parts that break the design system, and
+  each screen carries a findings list saying which parts those are. v1 and v2 argue against this
+  map; v0 only records it.</p>
+
+  <p class="wf-prose">Nine routes, one of them unreachable. The shell is a 56px header and a centred
+  main, so there is no rail, no footer and no persistent patient context. Everything a physician
+  needs to keep in view while they work is re-rendered inside the content area by each Blade file
+  separately, which is why the tab strip that switches between chart sections has four visually
+  distinct variants and why one route has five tabs where the rest have six.</p>
+
+  <p class="wf-sectionlabel">Entry</p>
+
+  <div class="wf-lane">
+    <a class="wf-node" href="login.html">
+      <span class="wf-node__step">Step 1</span>
+      <span class="wf-node__title">Sign in</span>
+      <span class="wf-node__route">/login</span>
+    </a>
+  </div>
+  <span class="wf-connector"></span>
+  <div class="wf-lane">
+    <a class="wf-node" href="patients.html">
+      <span class="wf-node__step">Step 2</span>
+      <span class="wf-node__title">Patients</span>
+      <span class="wf-node__route">/patients</span>
+    </a>
+  </div>
+  <p class="v0-lanecap">The only list surface in the product. It sorts by nothing, has no work
+  queue and no lifecycle state, and its one recency signal is <code>Last run</code>. Every row goes
+  to the same place: the patient chart, opened on Risk Models.</p>
+
+  <span class="wf-connector"></span>
+
+  <p class="wf-sectionlabel">The chart, six tabs</p>
+
+  <p class="wf-prose">Six sections, rendered by six Blade files that each re-declare the identity
+  block and the tab strip. Trajectory has shipped disabled since launch as a non-clickable span
+  titled <i>Coming in a later milestone</i>. Lab Orders omits it from its tab array altogether, so
+  that one strip is five items wide and the others shift under the pointer.</p>
+
+  <div class="wf-fork">
+    <a class="wf-node" href="care-plan.html">
+      <span class="wf-node__step">Tab 1</span>
+      <span class="wf-node__title">Care Plan</span>
+      <span class="wf-node__route">/patients/{id}/care-plan</span>
+    </a>
+    <span class="wf-node" data-state="absent">
+      <span class="wf-node__step">Tab 2</span>
+      <span class="wf-node__title">Trajectory</span>
+      <span class="wf-node__route">disabled since launch</span>
+    </span>
+    <a class="wf-node" href="risk-models.html">
+      <span class="wf-node__step">Tab 3</span>
+      <span class="wf-node__title">Risk Models</span>
+      <span class="wf-node__route">/patients/{id}/risk-models</span>
+    </a>
+    <a class="wf-node" href="lab-orders.html">
+      <span class="wf-node__step">Tab 4</span>
+      <span class="wf-node__title">Lab Orders</span>
+      <span class="wf-node__route">/patients/{id}/lab-orders</span>
+    </a>
+    <a class="wf-node" href="standing-orders.html">
+      <span class="wf-node__step">Tab 5</span>
+      <span class="wf-node__title">Standing Orders</span>
+      <span class="wf-node__route">/patients/{id}/standing-orders</span>
+    </a>
+    <a class="wf-node" href="emr.html">
+      <span class="wf-node__step">Tab 6</span>
+      <span class="wf-node__title">EMR</span>
+      <span class="wf-node__route">/patients/{id}/emr</span>
+    </a>
+  </div>
+
+  <p class="wf-sectionlabel">Inside Risk Models: seven sub-tabs, one route</p>
+
+  <p class="wf-prose">All seven panels mount at once and fetch in parallel; switching a sub-tab is
+  an <code>x-show</code>, not a navigation. None of the seven has a URL, so none can be linked,
+  bookmarked or opened beside another. The five deterministic domains share one panel layout and
+  Systemic has its own.</p>
+
+  <div class="wf-fork">
+    <a class="wf-node" href="risk-models.html">
+      <span class="wf-node__step">Sub-tab 1</span>
+      <span class="wf-node__title">Summary</span>
+      <span class="wf-node__route">no route of its own</span>
+    </a>
+    <a class="wf-node" href="risk-models-systemic.html" data-state="gap">
+      <span class="wf-node__step">Sub-tab 2</span>
+      <span class="wf-node__title">Systemic</span>
+      <span class="wf-node__route">no route of its own</span>
+    </a>
+    <a class="wf-node" href="risk-models-domain.html" data-state="gap">
+      <span class="wf-node__step">Sub-tabs 3 to 7</span>
+      <span class="wf-node__title">Cardiovascular, Metabolic, Kidney, Cancer, Neurodegenerative</span>
+      <span class="wf-node__route">no route of its own</span>
+    </a>
+  </div>
+
+  <p class="wf-sectionlabel">Inside Care Plan: a two-step wizard, one route</p>
+
+  <p class="wf-prose">Care Plan is a port of a separate prototype with its own class vocabulary
+  (<code>#cp</code>), its own navigation strip and its own type scale, mounted in the same layout as
+  the rest. Its page nav mixes patient scope and practice scope in one row: Compose note and Notes
+  history are patient-scoped, Practice &middot; Standing orders is not.</p>
+
+  <div class="wf-fork">
+    <a class="wf-node" href="care-plan.html">
+      <span class="wf-node__step">Step 1</span>
+      <span class="wf-node__title">Select actions</span>
+      <span class="wf-node__route">no route of its own</span>
+    </a>
+    <a class="wf-node" href="care-plan-note.html">
+      <span class="wf-node__step">Step 2</span>
+      <span class="wf-node__title">Review &amp; sign note</span>
+      <span class="wf-node__route">no route of its own</span>
+    </a>
+    <a class="wf-node" href="care-plan-note.html" data-state="gap">
+      <span class="wf-node__step">Page 2</span>
+      <span class="wf-node__title">Notes history</span>
+      <span class="wf-node__route">no route of its own</span>
+    </a>
+    <a class="wf-node" href="standing-orders.html" data-state="gap">
+      <span class="wf-node__step">Page 3</span>
+      <span class="wf-node__title">Practice &middot; Standing orders</span>
+      <span class="wf-node__route">duplicates tab 5</span>
+    </a>
+  </div>
+
+  <p class="wf-sectionlabel">Where the same act happens twice</p>
+
+  <p class="wf-prose">Two surfaces authorize laboratory orders and they enforce different gates.
+  The Care Plan note can sign and send blood orders under one attestation; it cannot transmit a
+  genetics kit at all, because the pre-test counseling gate exists only on Lab Orders. Standing
+  Orders is the practice-level authorization both of them fail closed against, and it is filed
+  inside a patient chart while containing nothing patient-specific.</p>
+
+  <div class="wf-fork">
+    <a class="wf-node" href="care-plan-note.html" data-state="gap">
+      <span class="wf-node__step">Path A</span>
+      <span class="wf-node__title">Sign &amp; send from the note</span>
+      <span class="wf-node__route">blood only, one attestation</span>
+    </a>
+    <a class="wf-node" href="lab-orders.html" data-state="gap">
+      <span class="wf-node__step">Path B</span>
+      <span class="wf-node__title">Authorize a new order</span>
+      <span class="wf-node__route">blood and genetics, counseling gate</span>
+    </a>
+    <a class="wf-node" href="standing-orders.html">
+      <span class="wf-node__step">Gate</span>
+      <span class="wf-node__title">Standing order on file</span>
+      <span class="wf-node__route">fails closed when unconfigured</span>
+    </a>
+  </div>
+
+  <p class="wf-sectionlabel">Legend</p>
+
+  <div class="wf-legend">
+    <span><i></i> reachable route or view</span>
+    <span><i class="is-gap"></i> reachable, but with a structural defect recorded on the screen</span>
+    <span><i class="is-absent"></i> present in the interface and not reachable</span>
+  </div>
+
+  <p class="wf-sectionlabel">What the map shows</p>
+
+  <ul class="wf-notelist">
+    <li><strong>Nine screens, four routes that matter.</strong> Eleven of the fifteen views a
+    physician can reach live under four URLs, switched client side. Nothing below a chart tab can be
+    linked to a colleague.</li>
+    <li><strong>No patient context bar.</strong> Six Blade files re-render the same identity block in
+    six slightly different shapes, and all six scroll away with the content.</li>
+    <li><strong>Four tab-strip variants for one control.</strong> Inset holder, inset holder with a
+    border, inset holder with square items, and a card holder with a selected surface. They differ
+    only by hand-copied inline styles.</li>
+    <li><strong>The audit face is the interface.</strong> Eyebrows, provenance, formulas, order
+    chips, statuses, metadata keys and the whole care-plan wizard run in the mono face the design
+    system retired from product surfaces.</li>
+    <li><strong>Loading is skeletons.</strong> Patients renders four bars, every risk domain renders
+    three, and the design system forbids skeletons outright.</li>
+    <li><strong>Gold is spent on a checkbox.</strong> The one sanctioned gold detail is the wordmark
+    bar; the care-plan selection box fills with the same token, six times per screen.</li>
+  </ul>
+
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Every branch in this map is a tab. There is no task flow anywhere in v0: no queue, no
+    handoff, no state a patient moves through, and no screen that tells the physician what to do
+    next. The product is a set of viewers with an ordering form attached.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Trajectory has occupied a tab slot since launch without ever rendering. It is a disabled
+    span with a <code>title</code> attribute, so its explanation is invisible on touch and to a
+    keyboard user.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The two ordering paths are the sharpest structural finding on the map. Which gates apply
+    depends on which screen the physician happened to be on, and nothing in either interface says the
+    other path exists.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Standing Orders is a practice-level compliance artifact addressed by a patient-scoped URL.
+    It renders identically for all six patients in the cohort.</span></p>
+</div>
+
+</body>
+</html>

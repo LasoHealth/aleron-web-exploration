@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — EMR</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     patients/emr.blade.php is the shortest page in the product: an identity
+     block, a tab strip, and one card that is either a launcher or an empty
+     state. Its identity block has no subtitle line at all, which is the
+     sixth different shape that block takes. */
+  .v0-emr__body { margin-top: var(--s-xs); max-width: 68ch; font-size: var(--size-text); line-height: 1.6; color: var(--text-secondary); }
+  .v0-emr__cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); margin-top: var(--s-lg); }
+  .v0-emr__cta .amd-button { display: inline-flex; align-items: center; gap: var(--s-xs); text-decoration: none; font-weight: var(--w-emphasis); }
+  .v0-emr__foot { margin-top: var(--s-md); max-width: 68ch; font-size: var(--size-small); color: var(--text-tertiary); line-height: 1.55; }
+  .v0-emr__empty { padding: var(--s-xl); text-align: center; }
+  .v0-emr__empty p.lede { font-size: var(--size-text); color: var(--text-secondary); }
+  .v0-emr__empty p.sub { margin: var(--s-xs) auto 0; max-width: 60ch; font-size: var(--size-small); color: var(--text-tertiary); line-height: 1.55; }
+  .v0-emr__empty code {
+    padding: var(--s-2xs) var(--s-xs);
+    border-radius: var(--radius-tile);
+    background: var(--surface-inset);
+    color: var(--text-secondary);
+    font-family: var(--audit);
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <b>EMR</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <span aria-disabled="true" title="v1 has no EMR tab: the reference surface never leaves Aleron for the system of record">v1</span>
+    <a href="../v2/emr.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/emr</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       One of six chart tabs, and the only one whose content is a door out
+       of the product. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+        </div>
+
+        <!-- Tab strip variant 3 of 4: inset holder, radius-tile items. -->
+        <nav class="v0-tabs" data-variant="tile" aria-label="Patient sections">
+          <a href="care-plan.html">Care Plan</a>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <a href="risk-models.html">Risk Models</a>
+          <a href="lab-orders.html">Lab Orders</a>
+          <a href="standing-orders.html">Standing Orders</a>
+          <span aria-current="page">EMR</span>
+        </nav>
+      </div>
+
+      <!-- Linked state. Single elevated Tier-1 holder on this surface. -->
+      <section class="amd-card" data-tier="1" style="padding: var(--s-xl);">
+        <p class="ds-audit ds-audit--plain">Canvas EMR &middot; system of record</p>
+        <h2 style="margin-top: var(--s-xs); font-size: var(--size-h3); font-weight: var(--w-emphasis); color: var(--text-primary);">Full chart lives in Canvas</h2>
+        <p class="v0-emr__body">The complete legal record, covering allergies, problem list, medications, notes and order history, is maintained in Canvas EMR. Opening the chart launches Canvas in a new tab, scrolled to this patient. You review and edit there; Aleron stays your decision-support layer.</p>
+
+        <div class="v0-emr__cta">
+          <a class="amd-button" data-variant="primary" href="emr.html" target="_blank" rel="noopener noreferrer">
+            Open Ethan Park&rsquo;s chart in Canvas
+            <span aria-hidden="true">&#8599;</span>
+          </a>
+          <span class="ds-audit ds-audit--plain">Canvas patient c8a1f4e2</span>
+        </div>
+
+        <p class="v0-emr__foot">Opening the chart signs you in to Canvas through Aleron MD single sign-on. While SSO is being enabled you may see a one-time Canvas sign-in.</p>
+      </section>
+
+      <p class="wf-note" data-kind="gap" style="margin-top: var(--air-tier);"><span class="wf-note__tag">reviewer</span>
+        <span>Second specimen. The card below is what the same route renders when the patient has no
+        <code>canvas_patient_id</code>. It replaces the Tier-1 card entirely, so the page can carry
+        zero elevated holders.</span></p>
+
+      <!-- Unlinked state: flat, naked holder, no chart to elevate. -->
+      <section class="amd-card" data-tier="flat" style="margin-top: var(--air-tier);">
+        <div class="v0-emr__empty">
+          <p class="lede">This patient isn&rsquo;t linked to a Canvas record yet.</p>
+          <p class="sub">An EMR chart opens once the patient has a Canvas patient record (<code>canvas_patient_id</code>). Sync the patient to Canvas, then reload this page.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The empty state names a database column to the physician: <em>Missing:
+    <code>canvas_patient_id</code></em>. What they can act on is <em>this patient is not linked to Canvas
+    yet</em> plus the sync button, both of which are already there. Recorded rather than fixed, per v0's
+    rule.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Tab strip variant 3 of 4. This one keeps the inset holder of the Risk Models strip but drops
+    the item radius from 10 to 4, so the active pill is visibly squarer than the identical control two
+    routes away. Nothing but a hand-copied inline style separates them.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The identity block here has no subtitle line, so MRN and last-run date vanish on the one
+    page whose whole purpose is to hand the physician off to another system. Five sibling pages show
+    an identity block; this is the sixth shape it takes.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The empty state is a centred paragraph with a shell instruction in it. It tells the
+    physician to sync the patient to Canvas and gives no control that does so, so the only actionable
+    version of this screen is the one where the work is already done.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The launch anchor promises SSO and then admits in the footnote that a one-time Canvas
+    sign-in may appear. That caveat is <code>--text-tertiary</code> at 13px under a 68ch measure,
+    which is the quietest text on the page and the only warning on it.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Nothing from Canvas is read back into this page. Allergies, medications and the problem list
+    are named in the body copy as things that exist elsewhere, so the physician has to leave the
+    product to check whether the care plan they are about to sign conflicts with any of them.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The Canvas patient id is printed in the audit face beside the button and is the only
+    identifier on the page that ties the two systems together. It is not linked, not copyable by any
+    control, and not repeated anywhere else in the product.</span></p>
+</div>
+
+</body>
+</html>

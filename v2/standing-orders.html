@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Standing orders</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only.
+
+     Two authorization records, read only. Nothing on this screen is app state:
+     each record is a signed compliance document referenced by environment
+     configuration, and the menu under it is a deploy-gated artefact. The only
+     question the screen answers is whether ordering for this patient is
+     authorized right now, which is why it lives in the chart. */
+
+  .so-card { margin-bottom: var(--air-section); }
+  .so-status {
+    margin-left: auto;
+    font-size: var(--size-small);
+    font-weight: var(--w-emphasis);
+    color: var(--text-primary);
+  }
+  .so-status[data-tone="off"] { color: var(--signal-advisory); }
+
+  .so-rec th[scope="row"] { width: 15rem; font-weight: 400; color: var(--text-secondary); }
+  .so-menu-label {
+    padding: var(--s-sm) var(--s-md);
+    border-top: var(--line-thin) solid var(--hairline);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    font-weight: var(--w-emphasis);
+    color: var(--text-primary);
+  }
+  .so-menu-label span { font-weight: 400; color: var(--text-tertiary); }
+  .so-advisory { padding: var(--s-md); }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Standing orders</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/standing-orders.html">v0</a>
+    <span aria-disabled="true" title="v1 has no ordering surface and therefore no notion of what authorizes an order">v1</span>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/standing-orders</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <nav class="prail__nav">
+        <a class="prail__item" href="patient-data.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          Patient Data
+        </a>
+        <a class="prail__item" href="risk-models.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Risk
+        </a>
+        <a class="prail__item" href="patient-data.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg>
+          Vitality
+        </a>
+        <a class="prail__item" href="orders.html">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L20 20"/><path d="M8.5 11h5M11 8.5v5"/></svg>
+          Screening
+        </a>
+        <a class="prail__item" href="care-plan.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          Care Plan
+        </a>
+        <a class="prail__item" href="journal.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+          Journal
+        </a>
+        <a class="prail__item" href="aleron-ai.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Aleron AI
+        </a>
+      </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-46" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-46" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Standing orders</h1>
+          <span class="phead__aside"><span class="pbase">Read only &middot; environment configuration</span></span>
+        </div>
+        <p>The signed documents that authorize this patient's orders. Nothing here is app state and nothing here is editable: each record is referenced by environment configuration, and each menu is a versioned, peer-reviewed, deploy-gated artefact.</p>
+      </header>
+
+      <!-- Carried from v0/standing-orders.html: the fail-closed rollup, widened.
+           v0 counted only records with no reference or no NPI. A disabled kill
+           switch refuses an order just as hard, and v0 showed nothing for it. -->
+      <div class="pbound">
+        <b>1 of 2 authorizations will refuse: genetic kit orders are declined in this environment.</b>
+        <span>The authorization record is complete, but the ordering kill switch is off, so
+        <span class="pval">StandingOrder::for('genetics')</span> resolves and the order is still declined.
+        Refusal is the default: an order under an authorization that does not fully resolve fails closed
+        rather than transmitting on partial configuration.</span>
+      </div>
+
+      <!-- ── blood ────────────────────────────────────────────────────── -->
+      <section class="pmod pmod--tier1 so-card">
+        <div class="pmod__head">
+          <h2>Blood labs</h2>
+          <span class="pmod__sub">Catalog key <span class="pval">blood</span> &middot; Quest, basket of one or more tests per order</span>
+          <span class="so-status">Authorized</span>
+        </div>
+
+        <div class="pmod__body pmod__body--flush">
+          <table class="pledger so-rec">
+            <tbody>
+              <tr>
+                <th scope="row">Standing order reference</th>
+                <td><span class="pval">SO-BLOOD-2026-01</span>
+                  <small class="pledger__prov">Signed 14 Jan 2026 &middot; countersigned by the medical director</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Ordering physician NPI</th>
+                <td><span class="pval">1487520394</span>
+                  <small class="pledger__prov">Dr. A. Okafor. This is the NPI Junction receives, whoever places the order.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Canvas practitioner id</th>
+                <td><span class="pval">prac-9f2c41</span>
+                  <small class="pledger__prov">Order-authorization writes to Canvas carry clinician attribution.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Ordering</th>
+                <td>Enabled
+                  <small class="pledger__prov">Kill switch on. Turning it off refuses every blood order in this environment immediately.</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="so-menu-label">Authorized menu <span>&middot; 16 entries, 14 orderable here</span></p>
+
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Test / panel</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Lipid Panel (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Comprehensive Metabolic Panel (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Hemoglobin A1c (Quest)</td><td>Orderable</td></tr>
+                <tr><td>hs-CRP (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Fasting Insulin (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Apolipoprotein B (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Lipoprotein(a) (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Urine Albumin/Creatinine Ratio (Quest)</td><td>Orderable</td></tr>
+                <tr><td>PSA (Quest)</td><td>Orderable</td></tr>
+                <tr><td>eGFR / Creatinine (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Liver Function Panel / LFTs (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Creatine Kinase (Quest)</td><td>Orderable</td></tr>
+                <tr><td>TSH (Quest)</td><td>Orderable</td></tr>
+                <tr><td>Complete Blood Count (Quest)</td><td>Orderable</td></tr>
+                <tr><td>p-tau217 (Quest)</td><td><span class="pna">No test id configured</span></td></tr>
+                <tr><td>Neurofilament Light / NfL (Quest)</td><td><span class="pna">No test id configured</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── genetics ─────────────────────────────────────────────────── -->
+      <section class="pmod so-card">
+        <div class="pmod__head">
+          <h2>Genetic kits</h2>
+          <span class="pmod__sub">Catalog key <span class="pval">genetics</span> &middot; Invitae, a single panel per order</span>
+          <span class="so-status" data-tone="off">Configured, ordering off</span>
+        </div>
+
+        <div class="pmod__body pmod__body--flush">
+          <table class="pledger so-rec">
+            <tbody>
+              <tr>
+                <th scope="row">Standing order reference</th>
+                <td><span class="pval">SO-GEN-2026-02</span>
+                  <small class="pledger__prov">Signed 3 Feb 2026 &middot; countersigned by the medical director</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Ordering physician NPI</th>
+                <td><span class="pval">1487520394</span>
+                  <small class="pledger__prov">Dr. A. Okafor.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Canvas practitioner id</th>
+                <td><span class="pna">Not set</span>
+                  <small class="pledger__prov">Canvas order-authorization writes fail soft, with no clinician attribution on the record. The order still transmits to the vendor; only the Canvas attribution is lost.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Ordering</th>
+                <td><span class="padv">Disabled, kill switch off</span>
+                  <small class="pledger__prov">Every genetic order in this environment is refused while this is off, whatever the rest of the record says.</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="so-menu-label">Authorized menu <span>&middot; 5 entries, 4 orderable here</span></p>
+
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Test / panel</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Invitae 160-Gene Panel
+                  <small class="pledger__prov">The panel that resulted for this patient on 23 Jun 2026</small>
+                </td><td>Orderable</td></tr>
+                <tr><td>Hereditary Cancer Panel</td><td>Orderable</td></tr>
+                <tr><td>Cardiovascular Genetic Panel</td><td>Orderable</td></tr>
+                <tr><td>Proactive Genetic Health Screen</td><td>Orderable</td></tr>
+                <tr><td>Pharmacogenomics Panel</td><td><span class="pna">No test id configured</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Carried verbatim in substance from v0/standing-orders.html: the
+               advisory that this authorization model is itself under review.
+               An advisory is words in advisory colour, never a tile, so it
+               cannot outrank the fail-closed hazard above. -->
+          <div class="so-advisory">
+            <div class="amd-annunciator">
+              <span class="amd-annunciator__advisory">Model under review</span>
+              <span>The Canvas clinical-documentation ADR section 5 recommends that genetics move from
+              standing-order authorization to an individual-physician order carrying a pre-test counseling
+              acknowledgment. The physician-portal ordering flow enforces that acknowledgment today; the
+              mobile standing-order rail does not yet, so the two paths currently authorize the same panel
+              under different obligations.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-45" aria-label="Wireframe explanation, not part of the product">i</button><details class="pdisc wf-scaffold wf-ex__bubble" id="wf-ex-45" role="note">
+        <summary>Why an environment-wide record lives inside one patient's chart</summary>
+        <div class="pdisc__body">
+          <p>The configuration is environment-wide, not patient-specific. The question it answers is not.
+          A physician about to order for Ethan Park needs to know whether ordering for Ethan Park is
+          authorized right now, and answering that from a global admin page means leaving the chart to
+          find out why an order was refused. So the record is read here, beside Lab orders, and it is read
+          only, because per the catalog's own contract the standing order and its test menu are a versioned,
+          peer-reviewed, deploy-gated compliance artefact rather than mutable runtime state.</p>
+          <p>Being on the catalog with a configured test id <em>is</em> being authorized under the standing
+          order. There is no second allowlist. Both routine blood labs and genetic kits resolve through the
+          same <code>OrderCatalog</code>, so enforcement is identical on both paths.</p>
+          <dl class="pfacts">
+            <dt>Source</dt><dd><code>docs/physician-portal/canvas-clinical-documentation-and-lab-order-authorization.md</code> section 5, Model 1</dd>
+            <dt>Records</dt><dd>Two: <code>blood</code> and <code>genetics</code>. One catalog, one enforcement path.</dd>
+            <dt>Fail closed</dt><dd>Missing reference, missing NPI, missing test id or a kill switch that is off all refuse the order.</dd>
+            <dt>Fail soft</dt><dd>Missing Canvas practitioner id. The order transmits; the Canvas record loses clinician attribution.</dd>
+            <dt>Physician can edit</dt><dd>Nothing. Section 2 of the role matrix puts adapter configuration under Admin.</dd>
+          </dl>
+        </div>
+      </details></div>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-44" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-44" role="note">
+        Synthetic staging configuration &middot; references and NPIs shown are fixtures &middot; each record is a
+        signed document referenced by environment configuration, and this screen reads it rather than
+        holding it.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The entire screen, from <code>v0/standing-orders.html</code>: both authorization records,
+    all four record fields, the authorized-menu table and the genetics advisory. v1 has no ordering
+    surface at all, so it has no concept of what authorizes an order.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The four record fields in v0's own order: <code>Standing order reference</code>,
+    <code>Ordering physician NPI</code>, <code>Canvas practitioner id</code>, <code>Ordering</code>.
+    Their fail-closed and fail-soft consequences are carried too, and moved from a docblock into the
+    row where the consequence applies.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The <em>Model under review</em> advisory, from <code>v0/standing-orders.html</code>. Still
+    an advisory: words in advisory colour, never a tile, so the real fail-closed hazard above
+    outranks it by construction.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The rollup counts anything that refuses an order, not just an incomplete record. v0's
+    rollup counted records with no reference or no NPI; a kill switch that is off refuses just as
+    hard and v0 rendered nothing for it, so the screen could read as fully authorized while every
+    genetic order was being declined.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Fail closed and fail soft are named as different things. v0 prints
+    <em>Not set, blocks ordering</em> and <em>Not set, writes fail soft</em> in the same visual
+    weight, which reads as two versions of the same problem.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0 elevates both cards to Tier 1. Two elevated cards on one screen spends the whole
+    emphasis budget twice and leaves nothing to distinguish the authorized record from the one that
+    is refusing. Blood keeps the elevation; genetics is flat and carries the advisory instead.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's <code>ds-pill</code> status chips on every menu row. Fourteen identical Orderable
+    pills is noise; the two rows that differ are the only ones worth a treatment, and they get
+    <span class="pna">No test id configured</span> in place of a value.</span></p>
+</div>
+
+</body>
+</html>

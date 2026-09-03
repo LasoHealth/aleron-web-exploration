@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Orders</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only.
+
+     Two halves of one surface. The Active half is a v0 capability: the
+     reference surface can propose an order intent inside a care plan and has
+     nowhere to place one, track one, or sign a returned result, and v0 can do
+     all three. The Screening half is the later app build's forward order plan.
+     A schedule is an order that has not been placed yet, which is why the two
+     live behind one switch rather than in two rail stops.
+
+     Prefixes are kept as they were in the two source screens so a diff against
+     either one still reads: .lo-* is the active-orders half, .sc-* is the
+     screening half. */
+  .lo-form { display: grid; gap: var(--air-group); }
+  .lo-kind { display: flex; flex-wrap: wrap; gap: var(--s-md); }
+  .lo-kind label { display: inline-flex; align-items: center; gap: var(--s-xs); font-size: var(--size-small); color: var(--text-primary); }
+  .lo-kind input { margin: 0; accent-color: var(--signal-forward); }
+
+  .lo-tests {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-xs) var(--s-md);
+  }
+  .lo-tests label {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-xs);
+    align-items: start;
+    font-size: var(--size-small);
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+  .lo-tests input { margin: 0; accent-color: var(--signal-forward); }
+  .lo-tests small { display: block; font-size: var(--size-caption); color: var(--text-tertiary); }
+
+  .lo-addr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-xs); }
+  .lo-addr .amd-field--wide { grid-column: 1 / -1; }
+  .lo-addr .amd-field--half { grid-column: span 2; }
+
+  .lo-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
+  .lo-acts__spacer { margin-left: auto; }
+
+  .lo-phys { display: grid; gap: var(--s-3xs); margin: 0; }
+  .lo-phys__who { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
+
+  .lo-tests__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-xs) var(--s-md);
+    padding-top: var(--air-row);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+
+  /* The review-and-sign flow, open in place on the row it belongs to. Keeping
+     it in the row is v0's choice and it is the right one: signing a result is
+     about that result, and moving it to a modal loses the row. */
+  .lo-sign {
+    display: grid;
+    gap: var(--air-row);
+    max-width: 46ch;
+    margin-left: auto;
+    padding: var(--s-sm);
+    border-radius: var(--radius-control);
+    background: var(--surface-inset);
+    text-align: left;
+  }
+  .lo-sign__acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-xs); }
+  .lo-tests-sum { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.5; }
+  .sc-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(120px, 0.9fr) minmax(88px, 0.6fr) minmax(120px, 0.8fr);
+    gap: var(--s-md);
+    align-items: baseline;
+    padding: var(--s-sm) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .sc-row:last-child { border-bottom: 0; }
+  .sc-head {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(120px, 0.9fr) minmax(88px, 0.6fr) minmax(120px, 0.8fr);
+    gap: var(--s-md);
+    padding: var(--s-xs) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .sc-name { display: grid; gap: var(--s-3xs); min-width: 0; }
+  .sc-name b { font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.35; }
+  .sc-name small { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.45; }
+  .sc-cell { display: grid; gap: var(--s-3xs); font-size: var(--size-small); }
+
+  .sc-switch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); margin-bottom: var(--air-tier); }
+  .sc-switch .amd-segmented [role="radio"] { padding: 0 var(--s-md); }
+
+  /* Timeline. A twelve-month track per row with the dot placed by fraction of
+     year. Bare percentages are geometry, the same exception the SVG charts
+     take. */
+  .sc-tl { display: grid; gap: var(--s-2xs); }
+  .sc-tl-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 2.4fr) minmax(72px, auto);
+    gap: var(--s-md);
+    align-items: center;
+    padding: var(--s-2xs) var(--s-md);
+  }
+  .sc-tl-row:hover { background: var(--surface-inset); }
+  .sc-tl-name { font-size: var(--size-small); }
+  .sc-tl-date { font-size: var(--size-caption); color: var(--text-tertiary); text-align: right; font-variant-numeric: tabular-nums; }
+  .sc-track {
+    position: relative;
+    height: var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .sc-months {
+    position: relative;
+    height: var(--s-md);
+    border-bottom: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .sc-months span { position: absolute; top: 0; transform: translateX(-50%); }
+  .sc-dot {
+    position: absolute;
+    top: 50%;
+    width: var(--s-xs);
+    height: var(--s-xs);
+    margin: calc(var(--s-2xs) * -1) 0 0 calc(var(--s-2xs) * -1);
+    border-radius: 50%;
+    background: var(--signal-baseline);
+  }
+  .sc-dot[data-tone="hazard"] { background: var(--signal-hazard); }
+  .sc-dot[data-tone="forward"] { background: var(--text-primary); }
+  .sc-now {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--line-thin);
+    background: var(--signal-forward);
+  }
+  .sc-nowlabel {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: var(--size-caption);
+    color: var(--signal-advisory);
+  }
+  .sc-yearflip { display: inline-flex; align-items: center; gap: var(--s-xs); margin-left: auto; font-size: var(--size-small); }
+  .sc-yearflip button {
+    min-width: var(--s-lg);
+    min-height: var(--s-lg);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tile);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    cursor: pointer;
+  }
+  .sc-yearflip button:hover { color: var(--text-primary); border-color: var(--border-base); }
+  .sc-yearflip b { font-variant-numeric: tabular-nums; }
+
+  .sc-note { font-size: var(--size-small); line-height: 1.55; color: var(--text-tertiary); max-width: 84ch; }
+  /* One panel renders at a time in the product; both are laid out here, so the
+     switch itself sits above them rather than inside either one. */
+  .or-panel { display: grid; }
+  .or-switch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm) var(--air-group); margin-bottom: var(--air-section); }
+  .or-switch__spacer { margin-left: auto; }
+
+  @media (max-width: 1100px) {
+    .lo-tests { grid-template-columns: minmax(0, 1fr); }
+    .sc-row, .sc-head { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .sc-tl-row { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Orders</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/lab-orders.html" title="v0 has the active-orders half only. It has no screening schedule anywhere: care gaps appear as one line inside the risk summary.">v0</a>
+    <span aria-disabled="true" title="v1 has neither half. The reference surface proposes order intents inside the care plan and has nowhere to place, track or sign one, and it has no Screening pane at all.">v1</span>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/orders</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+        <nav class="prail__nav">
+          <a class="prail__item" href="patient-data.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Patient Data
+          </a>
+          <a class="prail__item" href="risk-models.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+            Risk
+          </a>
+          <a class="prail__item" href="care-plan.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+            Care Plan
+          </a>
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <a class="prail__item" href="orders.html" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v13a2 2 0 0 0 4 0V3"/><path d="M10 11h4"/></svg>
+            Orders
+          </a>
+          <a class="prail__item" href="journal.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+            Journal
+          </a>
+          <a class="prail__item" href="aleron-ai.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+            Aleron AI
+          </a>
+        </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="emr.html">Open in Canvas &#8599;</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-32" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-32" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Orders</h1>
+          <span class="phead__aside"><span class="pbase">4 orders on this chart &middot; 1 unsigned result &middot; 9 screening protocols</span></span>
+        </div>
+        <p>What has been ordered and what is due: lab and genetic orders with the results that came
+        back, and the screening schedule that is the same act placed forward in time.</p>
+      </header>
+
+      <div class="or-switch">
+        <div class="amd-tabs" role="tablist" aria-label="Orders view">
+          <button class="amd-button" role="tab" aria-selected="true" type="button">Active</button>
+          <button class="amd-button" role="tab" aria-selected="false" type="button">Screening schedule</button>
+        </div>
+        <span class="or-switch__spacer"></span>
+        <span class="pbase">As of 31 Aug 2026</span>
+      </div>
+
+      <!-- ===== Active panel ===================================================
+           Authorizing an order and signing its result are two acts, on two days,
+           and they stay separate here. ===== -->
+      <div class="or-panel">
+
+        <!-- Carried from v0/lab-orders.html: the Entra step-up gate. v0 shows a
+             bare "A recent identity confirmation is required to sign" strip. The
+             gate is a hazard rather than an advisory, because it stops an act. -->
+        <div class="pbound">
+          <b>Your session needs a fresh identity confirmation before you can authorize an order or sign a result.</b>
+          <span>Signing requires recent Entra step-up (<span class="pval">2fa.recent</span>). A stale session
+          returns <span class="pval">423</span>, sends you to re-authenticate, and returns you to this screen
+          with your work intact.</span>
+        </div>
+        <p style="margin: var(--air-row) 0 var(--air-section);">
+          <button class="amd-button" data-variant="secondary" type="button">Confirm identity</button>
+        </p>
+
+        <!-- Carried from v0/lab-orders.html: the authorize-a-new-order card, the
+             physician-initiated path. Collapsed in v0 behind a plus; open here
+             because the screen is being read as a specimen. -->
+        <section class="pmod">
+          <div class="pmod__head">
+            <h2>Authorize a new order</h2>
+            <span class="pmod__sub">Physician-initiated, under the standing order that covers this catalog type.</span>
+            <span class="pmod__meta"><a href="standing-orders.html">Standing orders</a></span>
+          </div>
+          <div class="pmod__body">
+            <div class="lo-form">
+
+              <fieldset class="lo-kind" style="border: 0; margin: 0; padding: 0;">
+                <legend class="amd-field__label" style="padding: 0;">Order type</legend>
+                <label><input type="radio" name="lo-kind" checked> Blood</label>
+                <label><input type="radio" name="lo-kind"> Genetic</label>
+              </fieldset>
+
+              <div>
+                <p class="amd-field__label" style="margin: 0 0 var(--s-xs);">Tests, from the authorized menu</p>
+                <div class="lo-tests">
+                  <label><input type="checkbox" checked> <span>Hemoglobin A1c (Quest)<small>12-week repeat against 6.0 %</small></span></label>
+                  <label><input type="checkbox" checked> <span>Fasting Insulin (Quest)<small>12-week repeat against 16 &micro;IU/mL</small></span></label>
+                  <label><input type="checkbox"> <span>Comprehensive Metabolic Panel (Quest)</span></label>
+                  <label><input type="checkbox"> <span>Lipid Panel (Quest)</span></label>
+                  <label><input type="checkbox"> <span>Apolipoprotein B (Quest)</span></label>
+                  <label><input type="checkbox"> <span>hs-CRP (Quest)</span></label>
+                  <label><input type="checkbox"> <span>Lipoprotein(a) (Quest)<small>Measured once at 25 nmol/L. Genetically set, no repeat indicated.</small></span></label>
+                  <label><input type="checkbox"> <span>Urine Albumin/Creatinine Ratio (Quest)</span></label>
+                  <label><input type="checkbox"> <span>Liver Function Panel / LFTs (Quest)</span></label>
+                  <label><input type="checkbox"> <span>Creatine Kinase (Quest)</span></label>
+                  <label><input type="checkbox"> <span>TSH (Quest)</span></label>
+                  <label><input type="checkbox"> <span>Complete Blood Count (Quest)</span></label>
+                </div>
+                <p class="lo-tests__meta">
+                  <span><span class="pval">2</span> selected</span>
+                  <span><span class="pval">16</span> entries in the blood catalog, <span class="pval">14</span> orderable in this environment</span>
+                  <span>p-tau217 and Neurofilament Light have no test id configured here, so they are listed on the standing order and not offered</span>
+                </p>
+              </div>
+
+              <div class="amd-field">
+                <span class="amd-field__label">Ordering physician</span>
+                <p class="lo-phys">
+                  <span class="lo-phys__who">Dr. A. Okafor</span>
+                  <span class="pbase">NPI <span class="pval">1487520394</span> &middot; licensed in <span class="pval">CA</span>, <span class="pval">NY</span>, <span class="pval">TX</span></span>
+                </p>
+                <p class="pbase">Named on the order, not inferred from the session. The patient's state has to be one you are licensed in, which is what makes this a field rather than a footer.</p>
+              </div>
+
+              <div class="amd-field">
+                <label class="amd-field__label" for="lo-collect">Collection method</label>
+                <div class="amd-select-wrap">
+                  <select class="amd-select" id="lo-collect">
+                    <option>Walk-in / PSC</option>
+                    <option selected>At-home phlebotomy</option>
+                    <option>Test kit</option>
+                  <option>On-site collection</option>
+                  </select>
+                </div>
+                <p class="pbase">At-home phlebotomy and test kits ship to the patient. An address is captured either way: the order carries one for every method, including a walk-in draw.</p>
+              </div>
+
+              <!-- Genetics branch. Shown here as the second state of the same
+                   card, because the counseling gate is the reason this screen
+                   cannot be folded into a generic order form. -->
+              <div class="preason">
+                <strong>If the order type is Genetic instead</strong>
+                <ul>
+                  <li>The test multi-select is replaced by a single panel: Invitae 160-Gene Panel, Hereditary Cancer Panel, Cardiovascular Genetic Panel, Pharmacogenomics Panel, or Proactive Genetic Health Screen. One panel per order, never a basket.</li>
+                  <li>The pre-test counseling attestation below becomes required, and the authorize control does not exist until it is checked.</li>
+                </ul>
+                <label class="pattest" style="margin-top: var(--air-row);">
+                  <input type="checkbox">
+                  <span>I attest that pre-test genetic counseling has been provided to this patient.</span>
+                </label>
+              </div>
+
+              <div>
+                <p class="amd-field__label" style="margin: 0 0 var(--s-xs);">Shipping address, for a kit or an at-home draw</p>
+                <div class="lo-addr">
+                  <div class="amd-field amd-field--wide">
+                    <label class="amd-field__label" for="lo-rcv">Receiver name</label>
+                    <input class="amd-input" id="lo-rcv" value="Ethan Park">
+                  </div>
+                  <div class="amd-field amd-field--wide">
+                    <label class="amd-field__label" for="lo-street">Street</label>
+                    <input class="amd-input" id="lo-street" value="1408 Waugh Drive, Apt 6">
+                  </div>
+                  <div class="amd-field amd-field--half">
+                    <label class="amd-field__label" for="lo-city">City</label>
+                    <input class="amd-input" id="lo-city" value="Houston">
+                  </div>
+                  <div class="amd-field">
+                    <label class="amd-field__label" for="lo-state">State</label>
+                    <input class="amd-input" id="lo-state" maxlength="2" value="TX">
+                  </div>
+                  <div class="amd-field">
+                    <label class="amd-field__label" for="lo-zip">ZIP</label>
+                    <input class="amd-input" id="lo-zip" value="77019">
+                  </div>
+                  <div class="amd-field amd-field--half">
+                    <label class="amd-field__label" for="lo-country">Country</label>
+                    <input class="amd-input" id="lo-country" maxlength="2" value="US">
+                  </div>
+                </div>
+              </div>
+
+              <div class="amd-field">
+                <label class="amd-field__label" for="lo-note">Note, optional</label>
+                <textarea class="amd-input" id="lo-note" rows="2">Twelve-week metabolic recheck after starting weekly incretin therapy. Fasting draw, morning preferred.</textarea>
+              </div>
+
+              <div class="lo-acts">
+                <button class="amd-button" data-variant="primary" type="button" aria-disabled="true">Authorize order</button>
+                <span class="lo-tests-sum">Blocked by the identity confirmation above. 2 tests, at-home phlebotomy, under SO-BLOOD-2026-01.</span>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Carried from v0/lab-orders.html: the orders table, with v0's own five
+             columns. This is the one elevated holder on the screen, as it is in
+             v0, because it is the thing the screen exists to show. -->
+        <section class="pmod pmod--tier1">
+          <div class="pmod__head">
+            <h2>Orders</h2>
+            <span class="pmod__sub">Newest first. Status is vendor state; review is your signature on the returned result.</span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="pledger__scroll">
+              <table class="pledger">
+                <thead>
+                  <tr>
+                    <th scope="col">Order</th>
+                    <th scope="col">Placed</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Results</th>
+                    <th scope="col">Review</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <tr>
+                    <th scope="row">Blood order 4520
+                      <small class="pledger__prov">Liver Function Panel / LFTs, Creatine Kinase &middot; walk-in / PSC &middot; SO-BLOOD-2026-01</small>
+                    </th>
+                    <td>26 Aug 2026</td>
+                    <td>resulted</td>
+                    <td>Available 30 Aug</td>
+                    <td><span class="padv">unsigned</span></td>
+                  </tr>
+                  <tr>
+                    <td colspan="5">
+                      <div class="lo-sign">
+                        <div class="amd-field">
+                          <label class="amd-field__label" for="lo-signnote">Note, optional</label>
+                          <textarea class="amd-input" id="lo-signnote" rows="2">ALT 46 U/L, AST 31 U/L, CK 148 U/L. All within range for baseline before incretin therapy. No action.</textarea>
+                        </div>
+                        <div class="lo-sign__acts">
+                          <button class="amd-button" data-density="row" data-variant="tertiary" type="button">Cancel</button>
+                          <button class="amd-button" data-density="row" data-variant="primary" type="button" aria-disabled="true">Sign</button>
+                        </div>
+                        <p class="pbase">Signing records you as the reviewing physician on this result and appends the act to the audit log. It does not release anything to the patient.</p>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Blood order 4521
+                      <small class="pledger__prov">Hemoglobin A1c, Fasting Insulin &middot; at-home phlebotomy &middot; SO-BLOOD-2026-01</small>
+                    </th>
+                    <td>30 Aug 2026</td>
+                    <td>collection scheduled, 4 Sep</td>
+                    <td><span class="pna">pending</span></td>
+                    <td><span class="pna">nothing to sign</span></td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Genetic order 4472
+                      <small class="pledger__prov">Invitae 160-Gene Panel &middot; test kit &middot; SO-GEN-2026-02 &middot; counseling attested 6 Jun</small>
+                    </th>
+                    <td>8 Jun 2026</td>
+                    <td>resulted</td>
+                    <td>Available 23 Jun</td>
+                    <td>Signed 24 Jun
+                      <small class="pledger__prov">Dr. A. Okafor &middot; ATM heterozygous P/LP, routed to the required channel</small>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Blood order 4471
+                      <small class="pledger__prov">CMP, Lipid Panel, HbA1c, hs-CRP, Fasting Insulin, ApoB, Lp(a), UACR &middot; walk-in / PSC &middot; SO-BLOOD-2026-01</small>
+                    </th>
+                    <td>8 Jun 2026</td>
+                    <td>resulted</td>
+                    <td>Available 22 Jun</td>
+                    <td>Signed 22 Jun
+                      <small class="pledger__prov">Dr. A. Okafor &middot; 8 of 8 tests returned</small>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <details class="pdisc">
+          <summary>What authorizing an order actually does, and what it does not</summary>
+          <div class="pdisc__body">
+            <p>Role and Release Matrix v1 section 3 splits this act three ways. The member creates a request by
+            selecting a path, the physician approves it where approval is required, clinical ops coordinate
+            logistics, and the system transmits it. The physician act on this screen is the
+            approval, not the transmission.</p>
+            <p>Section 2 then closes the loop the other way: order state is <em>logistics visible</em> to the
+            member and results are <em>hidden until release</em>. Signing a result here makes you the reviewing
+            physician on it. It does not make the result visible to Ethan Park, and nothing on this screen can.
+            That happens once, on the release surface, for the whole package.</p>
+            <dl class="pfacts">
+              <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> sections 2 and 3</dd>
+              <dt>Authorization</dt><dd>Under the standing order for the catalog type. An order for a test with no configured id is refused, fail closed.</dd>
+              <dt>Genetics</dt><dd>Pre-test counseling attestation is enforced on this path. The mobile standing-order rail does not enforce it yet, which is a tracked gap.</dd>
+              <dt>Step-up</dt><dd>Recent Entra re-authentication (<code>2fa.recent</code>). A stale session returns 423 and re-auth returns here.</dd>
+              <dt>Patient sees</dt><dd>Logistics and sample state only. Never the values.</dd>
+            </dl>
+          </div>
+        </details>
+
+      </div>
+
+      <p class="wf-note" data-kind="new" style="margin: var(--air-section) 0;"><span class="wf-note__tag">new</span>
+        <span>Second specimen. Active and Screening schedule are the two halves of one switch, so
+        only one of them renders at a time; the screening panel is laid out below so both are
+        legible in one sitting.</span></p>
+
+      <!-- ===== Screening schedule panel ======================================
+           A screening schedule is a forward order plan: surveillance and early
+           detection, kept separate from risk reduction. ===== -->
+      <div class="or-panel">
+
+        <div class="sc-switch">
+          <span class="amd-segmented" role="radiogroup" aria-label="Screening view">
+            <button role="radio" aria-checked="true" type="button">List</button>
+            <button role="radio" aria-checked="false" type="button">Timeline</button>
+          </span>
+          <span class="pbase">Nine protocols &middot; three overdue</span>
+        </div>
+
+        <!-- The advisory that governs everything below it. An advisory is a word
+             in advisory colour and never a filled tile, so true hazards below it
+             outrank it by construction (P3). -->
+        <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-31" aria-label="Wireframe explanation, not part of the product">i</button><p class="pbound pbound--quiet wf-scaffold wf-ex__bubble" id="wf-ex-31" role="note">
+          <b>Illustrative schedule.</b> The cadence is Aleron's. The activation date is the order's own, set when it is placed.
+        </p></div>
+
+        <!-- ===== Overdue. The group that carries an act, and the only one with
+             filled tiles. It is flat rather than elevated because this file spends
+             its one elevation on the orders table in the Active panel (P8). ===== -->
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>Overdue</h2>
+            <span class="pmod__meta"><span class="ptile">3 overdue</span></span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="sc-head">
+              <span>Protocol</span>
+              <span>Cadence</span>
+              <span>Last</span>
+              <span>Next</span>
+            </div>
+
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>HbA1c</b>
+                <small>Prediabetes phenotype &middot; <span class="wf-scaffold">illustrative</span></small>
+              </span>
+              <span class="sc-cell">Annual</span>
+              <span class="sc-cell">Aug 2024</span>
+              <span class="sc-cell"><span class="pval">Aug 2025</span> <span class="ptile">overdue</span></span>
+            </div>
+
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Coronary artery calcium score</b>
+                <small>PREVENT intermediate risk &middot; <span class="wf-scaffold">illustrative</span> &middot; scored on the action map at 25 % reclassification odds</small>
+              </span>
+              <span class="sc-cell">Once, risk refinement</span>
+              <span class="sc-cell"><span class="pna">never</span></span>
+              <span class="sc-cell"><span class="pval">Aug 2026</span> <span class="ptile">overdue</span></span>
+            </div>
+
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Depression screen (PHQ-2)</b>
+                <small>USPSTF B &middot; <span class="wf-scaffold">illustrative</span></small>
+              </span>
+              <span class="sc-cell">Annual</span>
+              <span class="sc-cell">Jun 2025</span>
+              <span class="sc-cell"><span class="pval">Jun 2026</span> <span class="ptile">overdue</span></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>Due soon</h2>
+            <span class="pmod__meta"><span class="pbase">1 within 90 days</span></span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="sc-head">
+              <span>Protocol</span>
+              <span>Cadence</span>
+              <span>Last</span>
+              <span>Next</span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Lipid panel</b>
+                <small>Risk management &middot; <span class="wf-scaffold">illustrative</span></small>
+              </span>
+              <span class="sc-cell">Annual</span>
+              <span class="sc-cell">Nov 2025</span>
+              <span class="sc-cell"><span class="pval">Nov 2026</span> <span class="padv">in 75 days</span></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>Upcoming</h2>
+            <span class="pmod__meta"><span class="pbase">3 scheduled</span></span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="sc-head">
+              <span>Protocol</span>
+              <span>Cadence</span>
+              <span>Last</span>
+              <span>Next</span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Blood pressure</b>
+                <small>USPSTF A &middot; <span class="wf-scaffold">illustrative</span> &middot; a clinic reading of 142/90 mmHg is on file and unconfirmed</small>
+              </span>
+              <span class="sc-cell">Annual</span>
+              <span class="sc-cell">Jan 2026</span>
+              <span class="sc-cell"><span class="pval">Jan 2027</span></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Sleep apnea screen</b>
+                <small>Wearable phenotype &middot; <span class="wf-scaffold">illustrative</span> &middot; the action map prices the home test separately at 35 % reclassification odds</small>
+              </span>
+              <span class="sc-cell">Every 2 years</span>
+              <span class="sc-cell">Mar 2025</span>
+              <span class="sc-cell"><span class="pval">Mar 2027</span></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Colorectal cancer screening (colonoscopy)</b>
+                <small>USPSTF A &middot; <span class="wf-scaffold">illustrative</span></small>
+              </span>
+              <span class="sc-cell">Every 10 years</span>
+              <span class="sc-cell">Apr 2021</span>
+              <span class="sc-cell"><span class="pval">Apr 2031</span></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>Completed</h2>
+            <span class="pmod__meta"><span class="pbase">2 one-time protocols</span></span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="sc-head">
+              <span>Protocol</span>
+              <span>Cadence</span>
+              <span>Last</span>
+              <span>Next</span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Hepatitis C antibody</b>
+                <small>USPSTF B &middot; <span class="wf-scaffold">illustrative</span></small>
+              </span>
+              <span class="sc-cell">Once</span>
+              <span class="sc-cell">May 2023</span>
+              <span class="sc-cell"><span class="pna">not scheduled</span></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>HIV screen</b>
+                <small>USPSTF A &middot; <span class="wf-scaffold">illustrative</span></small>
+              </span>
+              <span class="sc-cell">Once</span>
+              <span class="sc-cell">May 2023</span>
+              <span class="sc-cell"><span class="pna">not scheduled</span></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Second specimen: Timeline mode ===== -->
+        <p class="wf-note" data-kind="new" style="margin: var(--air-section) 0 var(--air-tier);"><span class="wf-note__tag">new</span>
+          <span>Second specimen. List and Timeline are the two halves of one segmented switch, so
+          only one of them renders at a time; Timeline is shown below so both are legible in one
+          sitting.</span></p>
+
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>Timeline</h2>
+            <span class="sc-yearflip">
+              <button type="button" aria-label="Previous year">&lsaquo;</button>
+              <b>2026</b>
+              <button type="button" aria-label="Next year">&rsaquo;</button>
+            </span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="sc-tl" role="region" aria-label="Screening timeline for 2026">
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name"></span>
+                <span class="sc-months">
+                  <span style="left: 0%">J</span>
+                  <span style="left: 8.33%">F</span>
+                  <span style="left: 16.67%">M</span>
+                  <span style="left: 25%">A</span>
+                  <span style="left: 33.33%">M</span>
+                  <span style="left: 41.67%">J</span>
+                  <span style="left: 50%">J</span>
+                  <span style="left: 58.33%">A</span>
+                  <span style="left: 66.67%">S</span>
+                  <span style="left: 75%">O</span>
+                  <span style="left: 83.33%">N</span>
+                  <span style="left: 91.67%">D</span>
+                  <span class="sc-now" style="left: 66.58%"></span>
+                </span>
+                <span class="sc-tl-date"></span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">HbA1c</span>
+                <span class="sc-track">
+                  <span class="sc-now" style="left: 66.58%"></span>
+                  <span class="sc-dot" data-tone="hazard" style="left: 66.58%" title="Overdue since Aug 2025. Pinned to today."></span>
+                </span>
+                <span class="sc-tl-date">Aug 2025</span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Coronary artery calcium score</span>
+                <span class="sc-track">
+                  <span class="sc-now" style="left: 66.58%"></span>
+                  <span class="sc-dot" data-tone="hazard" style="left: 62.19%" title="Due Aug 2026, now overdue."></span>
+                </span>
+                <span class="sc-tl-date">Aug 2026</span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Depression screen (PHQ-2)</span>
+                <span class="sc-track">
+                  <span class="sc-now" style="left: 66.58%"></span>
+                  <span class="sc-dot" data-tone="hazard" style="left: 45.48%" title="Due Jun 2026, now overdue."></span>
+                </span>
+                <span class="sc-tl-date">Jun 2026</span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Lipid panel</span>
+                <span class="sc-track">
+                  <span class="sc-now" style="left: 66.58%"></span>
+                  <span class="sc-dot" data-tone="forward" style="left: 87.12%" title="Due Nov 2026."></span>
+                </span>
+                <span class="sc-tl-date">Nov 2026</span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Blood pressure</span>
+                <span class="sc-track"><span class="sc-now" style="left: 66.58%"></span></span>
+                <span class="sc-tl-date"><span class="pna">2027</span></span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Sleep apnea screen</span>
+                <span class="sc-track"><span class="sc-now" style="left: 66.58%"></span></span>
+                <span class="sc-tl-date"><span class="pna">2027</span></span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Colorectal cancer screening (colonoscopy)</span>
+                <span class="sc-track"><span class="sc-now" style="left: 66.58%"></span></span>
+                <span class="sc-tl-date"><span class="pna">2031</span></span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">Hepatitis C antibody</span>
+                <span class="sc-track"><span class="sc-now" style="left: 66.58%"></span></span>
+                <span class="sc-tl-date"><span class="pna">done 2023</span></span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name">HIV screen</span>
+                <span class="sc-track"><span class="sc-now" style="left: 66.58%"></span></span>
+                <span class="sc-tl-date"><span class="pna">done 2023</span></span>
+              </div>
+
+              <div class="sc-tl-row">
+                <span class="sc-tl-name"></span>
+                <span class="sc-months">
+                  <span class="sc-nowlabel" style="left: 66.58%">today</span>
+                </span>
+                <span class="sc-tl-date"></span>
+              </div>
+
+            </div>
+            <p class="sc-note" style="padding: var(--s-md);">Overdue items pin to today. Completed one-time screens mark their
+            completion year, so a protocol finished in 2023 shows an empty 2026 track rather than a
+            missing row. Five of the nine have nothing scheduled inside this year.</p>
+          </div>
+        </section>
+
+        <details class="pdisc">
+          <summary>Where this schedule comes from, and what it is not</summary>
+          <div class="pdisc__body">
+            <dl class="pfacts">
+              <dt>Status rule</dt><dd>Overdue if the next date has passed. Due soon inside 90 days. Upcoming beyond that. Completed if the protocol is one-time and has a recorded result.</dd>
+              <dt>Source</dt><dd>Prototype schedule. Cadence, dates and basis labels are placeholders pending the governed screening-schedule artifact, and every row says so on its own basis line.</dd>
+              <dt>Not an order</dt><dd>Nothing on this screen places an order. A screening that becomes action-changing is priced on the action map and ordered from Care Plan, which is the one place an order is authorised.</dd>
+              <dt>Not the required channel</dt><dd>The ATM heterozygous P/LP finding routes to the genetic must-do pipeline, not here. A required item is an obligation and is never ranked against a schedule.</dd>
+              <dt>Overlap with the map</dt><dd>Coronary artery calcium and the sleep apnea screen appear in both places, with different frames. Here they are cadence; there they are reclassification odds against value.</dd>
+            </dl>
+          </div>
+        </details>
+
+      </div>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-30" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-30" role="note">
+        Synthetic staging orders &middot; the test menu is the environment's configured catalog, not
+        a free-text field &middot; a signed result is a reviewing-physician record and is not a
+        patient release &middot; the screening half is an illustrative schedule whose cadence and
+        dates await a governed source &middot; nothing in the screening panel places an order.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>A Canvas plugin driving the vendor is buildable from documented parts, and it is a different
+    product than this screen.</b> Outbound HTTP exists with a 30 second cap; plugin secrets are
+    first-class and write-only once set; an inbound route with key authentication receives the vendor's
+    result webhook, and a cron handler polls if there is no webhook. The order is charted by originating
+    and committing a lab-order command against the generic partner and never calling send, because the
+    vendor does the transmitting. The results arrive through the lab-report effect. Every step is
+    documented except configuring the vendor as an electronically-ordering Canvas partner, which is not
+    needed under that shape and is not writable from a plugin
+    anyway.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>It also answers the iframe question, in the direction nobody asked. A layout effect takes a URL
+    to iframe into the Canvas UI, with the URL declared in the plugin manifest and permissions for
+    scripts and same-origin, alongside app-drawer entries, chart tabs, note tabs, docked panes, action
+    buttons and a custom command. <b>Aleron inside Canvas is documented.</b> Canvas inside Aleron is not
+    mentioned anywhere, in either direction, and the single response header that decides it is not
+    published. The staff single sign-on is real and independent of that: SAML 2.0 against the same
+    Microsoft directory Aleron already uses, with no just-in-time provisioning, which is also the
+    unstated cause of the missing-practitioner failure on <a href="emr.html">EMR</a>.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Results can be written into Canvas as real lab data, and an earlier note here said the
+    opposite.</b> The correction matters more than the mistake: the effects module publishes a lab-report
+    effect that creates a report from a plugin, <em>decoupled from its results, no order, no PDF and no
+    values required</em>, with no Health Gorilla dependency. Attaching results takes tests and values with
+    <b>units, a reference range and an abnormal flag</b>, plus LOINC codings, and the first attach commits
+    the report: Canvas then builds the diagnostic report and renders the document itself. So a
+    vendor-placed order can land in the chart as values a second clinician can trend and compare, not as a
+    PDF.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Why the earlier note was wrong is worth keeping, because it is the same mistake twice. The data
+    module lists lab reports and lab values with only read operations, and the FHIR endpoints for
+    observations and diagnostic reports are read only or vitals only. All true, and all beside the point:
+    writing happens through <em>effects</em>, which is a different module, and it was never checked. The
+    first version of this misread FHIR as the whole of Canvas; this one misread the data module as the
+    whole of the SDK.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Two things this does not settle. Whether a plugin-created report enters the clinician review
+    queue is undocumented, and it decides whether results reach anybody or merely reach the chart. And
+    egress from the plugin sandbox is undocumented: the sandbox page restricts imports, the filesystem and
+    the host, and says nothing about outbound network access or an allowlist. The HTTP helper exists and
+    the docs' own examples call arbitrary external endpoints with it, so the shape is clearly intended,
+    but a lab pipeline should not be committed to on an inference.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>The screen can exist, and the reason it can is not the one given before.</b> The Plugin SDK
+    publishes lab, imaging and referral order commands over HTTP, and Canvas's own guide says the point is
+    to let something outside Canvas write them. But <code>sign()</code> is imaging and referral only: a
+    lab order cannot be signed from outside Canvas. So the act on this screen is the authorization and
+    Aleron owns the transmission through Junction, which is what the screen already claims. The claim is
+    supportable; the earlier note's reasoning for it was not.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The diagnosis-code gap was filed against the wrong system.</b> A diagnosis code is required to
+    send a Canvas <code>LabOrderCommand</code>, and this screen is not that path. On the vendor's own
+    order, <code>icd_codes</code> is optional and documented as being for insurance billing, which a
+    membership programme with no patient billing does not do. So the missing field was never missing here.
+    The billing type that expresses the model is the one where the client is billed, not the
+    patient.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Four consequences of reading the vendor's order contract rather than guessing at it. The
+    collection methods are a closed set of four and the screen offered three:
+    <b>on-site collection</b> is now there, and for a clinic that draws blood in its own rooms it is
+    arguably the primary one. The <b>ordering physician</b> is a required field on the order, carrying a
+    name and an NPI, with licensed states beside it, so it is named on the card rather than inferred from
+    the session: a physician cannot order for a patient in a state they are not licensed in, and nothing
+    modelled that. An address is captured for <b>every</b> method, not only the shipped ones. And the
+    screening schedule's activation date is the order's own forward-dating, so the cadence is Aleron's and
+    the date is the order's.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Three that remain. The order's free-text clinical note caps at
+    <span class="pval">120</span> characters and the indication runs several hundred, so the reasoning
+    this set captures for defensibility cannot travel to the lab: only a summary can, and nothing decides
+    which summary. A note id is needed for anything that lands in Canvas and no note appears on this
+    screen. And referrals and imaging are absent from a screen called Orders, which is the sharpest of the
+    three: they are the only order types a third party can sign end to end, so the one place the design
+    would have real authority is the one it does not draw.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><b>Who carries the result is a product decision this screen assumes without stating.</b> The
+    vendor offers its own physician network, the customer's physicians, or a hybrid where it validates the
+    order and the customer validates the results. This set assumes the second everywhere, which puts
+    result validation and follow-up on Dr. Okafor with one documented backstop: critical results notify
+    the vendor's network whichever model is chosen. That backstop appears nowhere in these designs, and it
+    is the kind of thing a physician should be told exists.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>This screen never says where the order lives in Canvas, and the earlier version of this note got
+    the reason wrong. <code>ServiceRequest</code> having no create is true; concluding that no external
+    write path exists is not. The Plugin SDK publishes <code>LabOrderCommand</code>,
+    <code>ImagingOrderCommand</code> and <code>ReferCommand</code> over HTTP through CommandAPI, and
+    Canvas's own guide says the point is "to let something outside Canvas write them".
+    <b>But a lab order cannot be signed from outside Canvas:</b> <code>sign()</code> is imaging and
+    referral only, and <code>originate(commit=True)</code> is ignored for order commands. So the act on
+    this screen can be the authorization only if Aleron owns the transmission, which it does, through
+    Junction. What Canvas can hold is a staged order record, not one Aleron signed.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Lab orders and Screening are one screen now.</b> The spine is what has been ordered and
+    what is due: a screening schedule is a forward order plan, so the physician looking at what came
+    back is one tab away from what is owed instead of a rail hop away. That hop cost a click on every
+    visit and the two halves were read together anyway. The rail returns to the six sections that
+    register O4 fixes for this surface family, which also retires the unratified magnifier glyph
+    Screening was borrowing.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The switch is <code>interaction.tabs</code> (<code>.amd-tabs</code>) rather than the
+    <code>.amd-segmented</code> control the screening screen used for List and Timeline. A segmented
+    control changes how one set of rows is drawn; a tab changes which set of rows you are looking
+    at. Both appear here, one inside the other, and the distinction is the reason.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The entire active half, from <code>v0/lab-orders.html</code>. The reference surface can
+    propose an order intent inside a care plan and then has nowhere to place it, track it, or sign
+    what comes back. This is the clearest case in the set of v0 having a capability v1 simply
+    lacks.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The authorize-a-new-order card, from <code>v0/lab-orders.html</code>: the Blood and Genetic
+    radio pair, the test multi-select, the three collection methods, the genetics panel select, the
+    shipping address block and the optional note. All of it, in v0's own order.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The pre-test counseling attestation gate, from <code>v0/lab-orders.html</code>. v0 renders
+    it as a checkbox with the sentence beside it, which is correct: an attestation is an affirmation
+    of fact by a clinician, not a consent, so it is the one place a checkbox is right.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The orders table with v0's five columns, and the review-and-sign flow that opens in the row
+    with its optional note. Keeping the flow in the row rather than in a modal is v0's decision and
+    the better one. It is the one elevated holder in this file, as it is in v0.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The Entra step-up gate, from <code>v0/lab-orders.html</code> and
+    <code>v0/care-plan.html</code>, promoted from a quiet inset strip to a hazard boundary. It blocks
+    an act, and P3 says a thing that blocks an act is a tile.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The idea that a care gap is a first-class thing rather than a footnote, from
+    <code>v0/risk-models.html</code> and its
+    <code>resources/views/physician/partials/risk-summary-grid.blade.php</code>, where colorectal
+    screening appears as one required-care line inside the risk summary. v0 records the gap and
+    gives it nowhere to live; here it has a panel.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The screening half, from the later app build's <code>screeningView.js</code>. The
+    reference surface has no Screening pane at all. Nine protocols, four status groups, the List and
+    Timeline pair, and the advisory banner are all carried from that file.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Every order names the standing order that authorizes it and the collection method it used.
+    v0 shows the order type and the raw test keys; naming the authorization is what makes the
+    fail-closed behaviour on the standing-orders screen legible from here.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The catalog count line: 16 entries, 14 orderable, and the two that are not, named. v0 hides
+    unorderable entries from the picker entirely, so a physician looking for p-tau217 finds nothing and
+    no reason.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The line stating that signing a result is not a patient release. v0 has no release act, so
+    it never has to draw the distinction; in v2 it is the distinction that matters most.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Overdue dates are filled ember tiles per P3; <em>in 75 days</em> is an advisory word and
+    stays a word, so the three real hazards outrank it by construction. Overdue gives up the Tier-1
+    elevation it held as a screen of its own, because the merged file spends its one elevation on
+    the orders table.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Five of nine rows have nothing scheduled inside 2026 and the timeline shows them as
+    empty tracks rather than dropping them. An absent row would read as a protocol that does not
+    apply.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Neither the screening row nor the year track has a canonical component. Both are
+    screen-local layout; the row is close enough to <code>.pledger</code> to be worth a proposal if
+    a second surface needs it.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's <code>ds-pill</code> status chips (Available / Pending / Signed / Unsigned). Four pill
+    variants across two columns spend more emphasis than four states need, and the palette they lean
+    on has no green. The state is the word.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's raw <code>test_keys</code> rendering in the order row, which prints
+    <code>cmp, lipid-panel, hba1c</code>. The catalog already carries a display name for every key;
+    showing the key was a serialization leak, not a decision.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>The later app build's status colour classes, which paint the next-due date forward,
+    hazard or baseline as text. Ember as text on the night ground is exactly what P3 forbids, so
+    the overdue signal moved into a filled tile and the date itself stays in the voice
+    face.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>Any ordering affordance inside the screening panel. The release matrix names ordering as
+    one permission and the Active panel is where it lives; a second authorize control one tab away
+    would put the same act in two places on one screen.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>The Screening rail item and its provisional magnifier glyph, which had no canonical icon
+    and would have needed one ratified. Folding the schedule in here removes the need for a seventh
+    rail entry and the seventh icon it never had.</span></p>
+</div>
+
+</body>
+</html>

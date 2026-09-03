@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Journal</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Everything reusable is in physician-chrome.css.
+
+     The journal is a ledger with a time spine: a list of entries down the
+     left, one document open on the right. .pspine in the chrome is the
+     patient-data spine and a different pattern, so the time spine is local. */
+
+  .jn-shell { display: grid; grid-template-columns: minmax(230px, 290px) minmax(0, 1fr); gap: var(--s-2xl); align-items: start; }
+
+  .jn-list { display: grid; gap: var(--s-3xs); }
+  .jn-entry {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: var(--s-3xs) var(--s-sm);
+    align-items: baseline;
+    padding: var(--s-xs) var(--s-sm);
+    border: 0;
+    border-left: var(--line-signal) solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .jn-entry:hover { background: var(--surface-inset); color: var(--text-primary); }
+  .jn-entry[aria-selected="true"] { background: var(--surface-inset); border-left-color: var(--signal-forward); color: var(--text-primary); }
+  .jn-when { font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+  /* Spine node. A signed entry is a filled dot, a draft is an open dot, an
+     imported document is a square: an external mark is a different shape,
+     never a lighter tint. */
+  .jn-node {
+    position: relative;
+    width: var(--s-xs);
+    height: var(--s-xs);
+    border-radius: 50%;
+    background: var(--text-primary);
+    align-self: center;
+  }
+  .jn-node[data-kind="draft"] { background: transparent; border: var(--line-thin) solid var(--border-strong); }
+  .jn-node[data-kind="import"] { border-radius: 0; background: var(--signal-baseline); }
+  .jn-node::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: var(--line-thin);
+    height: var(--s-2xl);
+    background: var(--hairline);
+  }
+  .jn-entry:last-child .jn-node::after { display: none; }
+
+  .jn-title { grid-column: 3; font-size: var(--size-small); font-weight: var(--w-emphasis); line-height: 1.35; }
+  .jn-meta { grid-column: 3; font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.4; }
+  .jn-stat { grid-column: 3; font-size: var(--size-caption); }
+
+  /* The open document. */
+  .jn-doc__head { padding-bottom: var(--air-row); border-bottom: var(--line-thin) solid var(--hairline); margin-bottom: var(--air-group); }
+  .jn-doc__k { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .jn-doc__head h3 { margin: var(--s-2xs) 0 0; font-size: var(--size-h3); font-weight: var(--w-h3); line-height: 1.3; }
+  .jn-doc__by { margin-top: var(--s-2xs); font-size: var(--size-small); color: var(--text-secondary); }
+
+  .jn-sec { display: grid; gap: var(--air-row); margin-bottom: var(--air-group); }
+  .jn-sec > .jn-doc__k { margin: 0; }
+  .jn-sec p { margin: 0; font-size: var(--size-text); line-height: 1.65; color: var(--text-secondary); max-width: 76ch; }
+  .jn-sec p b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  /* The signature doctrine block. It closes the document and it is the part a
+     reviewer is meant to read twice, so it sits in the inset field. */
+  .jn-sig {
+    padding: var(--s-sm) var(--s-md);
+    border-radius: var(--radius-tile);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 84ch;
+  }
+  .jn-sig b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  /* Locked-record block, carried from v0's care-plan note. */
+  .jn-record {
+    margin-top: var(--air-group);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+  }
+  .jn-record__h {
+    padding: var(--s-xs) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .jn-record__b { padding: var(--s-md); }
+  .jn-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); padding: var(--s-sm) var(--s-md); border-top: var(--line-thin) solid var(--hairline); }
+
+  .jn-otype {
+    display: inline-block;
+    margin-right: var(--s-xs);
+    padding: var(--line-thin) var(--s-2xs);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tile);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .jn-jump {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--size-caption);
+    text-decoration: underline;
+    text-underline-offset: var(--s-3xs);
+    cursor: pointer;
+  }
+  .jn-note { font-size: var(--size-small); line-height: 1.55; color: var(--text-tertiary); max-width: 84ch; }
+
+  @media (max-width: 1100px) {
+    .jn-shell { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Journal</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/care-plan-note.html" title="v0 has no journal. Its nearest counterpart is the signed progress note inside the Care Plan composer, which is one document rather than a record.">v0</a>
+    <a href="../v1/journal.html">v1</a>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/journal</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+        <nav class="prail__nav">
+          <a class="prail__item" href="patient-data.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Patient Data
+          </a>
+          <a class="prail__item" href="risk-models.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+            Risk
+          </a>
+          <a class="prail__item" href="care-plan.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+            Care Plan
+          </a>
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <a class="prail__item" href="orders.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v13a2 2 0 0 0 4 0V3"/><path d="M10 11h4"/></svg>
+            Orders
+          </a>
+          <a class="prail__item" href="journal.html" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+            Journal
+          </a>
+          <a class="prail__item" href="aleron-ai.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+            Aleron AI
+          </a>
+        </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="emr.html">Open in Canvas &#8599;</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-27" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-27" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Journal</h1>
+          <span class="phead__aside"><span class="pbase">5 entries &middot; 1 unsigned</span></span>
+        </div>
+        <p>The chronological record. Every decision lives in a note; signed entries never change, and a changed decision is a new entry.</p>
+      </header>
+
+      <!-- Canvas mirror state. Quiet boundary, not a hazard tile: the signed
+           text on this surface is authoritative whether or not the mirror has
+           caught up, so this is an advisory about the mirror. -->
+      <p class="pbound pbound--quiet">
+        <b>Canvas mirror degraded.</b> The document integration last confirmed at 06:40 today and
+        two DocumentReference writes are unreconciled. Signed text on this surface is authoritative
+        and unaffected. Order statuses below still read live from the ledger; the Canvas links may
+        404 until the mirror catches up.
+      </p>
+
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Record</h2>
+          <span class="pmod__meta">Newest first &middot; a signed entry is never edited</span>
+        </div>
+        <div class="pmod__body">
+          <div class="jn-shell">
+
+            <!-- ===== the time spine ===== -->
+            <div class="jn-list" role="tablist" aria-label="Journal entries">
+              <button class="jn-entry" role="tab" aria-selected="false" type="button">
+                <span class="jn-when">7/1</span>
+                <span class="jn-node" data-kind="draft" aria-hidden="true"></span>
+                <span class="jn-title">Synthesis &amp; plan &middot; Cycle 1</span>
+                <span class="jn-stat"><span class="padv">draft</span></span>
+                <span class="jn-meta">cycle synthesis &middot; non-visit encounter</span>
+              </button>
+              <button class="jn-entry" role="tab" aria-selected="false" type="button">
+                <span class="jn-when">6/24</span>
+                <span class="jn-node" aria-hidden="true"></span>
+                <span class="jn-title">Baseline results &amp; genetics review</span>
+                <span class="jn-stat"><span class="pbase">signed</span></span>
+                <span class="jn-meta">lab review &middot; non-visit encounter</span>
+              </button>
+              <button class="jn-entry" role="tab" aria-selected="false" type="button">
+                <span class="jn-when">6/16</span>
+                <span class="jn-node" data-kind="import" aria-hidden="true"></span>
+                <span class="jn-title">Cardiology consult &middot; Pacific Heart (2024)</span>
+                <span class="jn-stat"><span class="pbase">imported</span></span>
+                <span class="jn-meta">external document &middot; read-only</span>
+              </button>
+              <button class="jn-entry" role="tab" aria-selected="false" type="button">
+                <span class="jn-when">6/14</span>
+                <span class="jn-node" aria-hidden="true"></span>
+                <span class="jn-title">CGM declined &middot; shared decision</span>
+                <span class="jn-stat"><span class="pbase">signed</span></span>
+                <span class="jn-meta">portal encounter &middot; change of direction</span>
+              </button>
+              <button class="jn-entry" role="tab" aria-selected="true" type="button">
+                <span class="jn-when">6/8</span>
+                <span class="jn-node" aria-hidden="true"></span>
+                <span class="jn-title">Intake &middot; history, exam &amp; baseline acquisition</span>
+                <span class="jn-stat"><span class="pbase">signed</span></span>
+                <span class="jn-meta">intake visit &middot; comprehensive</span>
+              </button>
+            </div>
+
+            <!-- ===== the open document ===== -->
+            <div>
+              <div class="jn-doc__head">
+                <span class="jn-doc__k">intake visit &middot; comprehensive</span>
+                <h3>Intake &middot; history, exam &amp; baseline acquisition</h3>
+                <p class="jn-doc__by">6/8/26 &middot; Dr. A. Okafor</p>
+              </div>
+
+              <div class="jn-sec">
+                <span class="jn-doc__k">Triggered by</span>
+                <p>New-member intake, in person.</p>
+              </div>
+
+              <div class="jn-sec">
+                <span class="jn-doc__k">Note</span>
+                <p>47M, metabolic-risk phenotype: BMI <span class="pval">29.4<span class="pval__u">kg/m&sup2;</span></span>
+                with central adiposity, waist <span class="pval">105<span class="pval__u">cm</span></span>,
+                BP <span class="pval">142/90<span class="pval__u">mmHg</span></span> untreated, low activity,
+                family history of T2D and hypertension. Plan: acquire the baseline packet before any
+                therapy decision.</p>
+              </div>
+
+              <div class="jn-sec">
+                <span class="jn-doc__k">Orders in this note</span>
+                <div class="pledger__scroll">
+                  <table class="pledger">
+                    <thead>
+                      <tr>
+                        <th scope="col">Order</th>
+                        <th scope="col">Status &middot; live from the ledger</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="jn-otype">Lab</span>Baseline metabolic &amp; lipid panel</td>
+                        <td>resulted 6/22, reviewed <button class="jn-jump" type="button">6/24 review</button></td>
+                      </tr>
+                      <tr>
+                        <td><span class="jn-otype">Lab</span>MBTA 163-gene panel</td>
+                        <td>resulted 6/23, ATM P/LP, required channel <button class="jn-jump" type="button">6/24 review</button></td>
+                      </tr>
+                      <tr>
+                        <td><span class="jn-otype">Device</span>Overnight pulse oximetry</td>
+                        <td>resulted, SpO&#8322; nadir <span class="pval">89<span class="pval__u">%</span></span>, feeds the sleep-apnea candidate <button class="jn-jump" type="button">Cycle 1 draft</button></td>
+                      </tr>
+                      <tr>
+                        <td><span class="jn-otype">Device</span>CGM 14-day trial</td>
+                        <td><span class="padv">canceled 6/14</span> <button class="jn-jump" type="button">portal encounter</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <p class="jn-sig">
+                Orders authorized &amp; released 6/8 11:02. Note signed 6/8 18:47 &middot;
+                <b>Dr. A. Okafor</b>. Visit medicine splits the two clocks: orders cannot wait,
+                documentation can. Statuses above are live reads from the ledger; the signed text
+                below them never changes.
+              </p>
+
+              <!-- Carried from v0's locked-note record block. -->
+              <div class="jn-record">
+                <p class="jn-record__h">Legal record: locked notes amend by appending, never by editing</p>
+                <div class="jn-record__b">
+                  <dl class="pfacts">
+                    <dt>Orders signed</dt><dd>6/8/26 11:02 &middot; 4 orders released to Junction</dd>
+                    <dt>Order record</dt><dd><code>ServiceRequest</code> in Canvas, placed by command and read back</dd>
+                    <dt>Note locked</dt><dd>6/8/26 18:47 &middot; by Dr. A. Okafor</dd>
+                    <dt>Note record</dt><dd><code>DocumentReference cnv-doc-4471a9</code>, written to Canvas</dd>
+                    <dt>Problem list</dt><dd>2 Conditions pushed to Canvas &middot; <span class="pna">1 push pending reconciliation</span></dd>
+                    <dt>Addenda</dt><dd><span class="pna">None.</span> An addendum would appear here as a linked, separately signed entry.</dd>
+                  </dl>
+                </div>
+                <div class="jn-acts">
+                  <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Append addendum</button>
+                  <button class="amd-button" data-density="row" data-wide data-variant="tertiary" type="button">Export PDF</button>
+                  <span class="pbase">The original note is never altered. This is the HIPAA amendment path.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Second specimen: the imported external document ===== -->
+      <p class="wf-note" data-kind="new" style="margin: var(--air-section) 0 var(--air-tier);"><span class="wf-note__tag">new</span>
+        <span>Second specimen. Only one entry is open at a time. The imported external document is
+        shown because it is the one entry with a different set of affordances: no signature, no
+        addendum, and a link out to the system that owns it.</span></p>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Imported entry</h2>
+          <span class="pmod__meta">Read-only &middot; not authored here</span>
+        </div>
+        <div class="pmod__body">
+          <div class="jn-doc__head">
+            <span class="jn-doc__k">external document &middot; read-only</span>
+            <h3>Cardiology consult &middot; Pacific Heart (2024)</h3>
+            <p class="jn-doc__by">6/16/26 &middot; L. Ferreira, MD &middot; fax import</p>
+          </div>
+
+          <div class="jn-sec">
+            <span class="jn-doc__k">Triggered by</span>
+            <p>Filed to chart 6/16 through the Canvas document integration; linked to the
+            cardiovascular history.</p>
+          </div>
+
+          <div class="jn-sec">
+            <span class="jn-doc__k">Note</span>
+            <p>Exercise stress echocardiogram, 11/2024: no inducible ischemia at
+            <span class="pval">91<span class="pval__u">% predicted max HR</span></span>; normal left
+            ventricular size and function. Impression: atypical chest discomfort, low likelihood of
+            obstructive coronary disease.</p>
+          </div>
+
+          <div class="jn-sec">
+            <span class="jn-doc__k">Orders in this note</span>
+            <p class="jn-note">None carried in this system. External orders live with their external author.</p>
+          </div>
+
+          <p class="jn-sig">
+            Not authored here. External documents enter the journal <b>read-only</b>: the journal is
+            the whole record, not only Aleron's entries. Nothing on this entry can be signed,
+            amended or exported from Aleron, because Aleron is not its custodian.
+          </p>
+
+          <div class="jn-record">
+            <p class="jn-record__h">Source system</p>
+            <div class="jn-record__b">
+              <dl class="pfacts">
+                <dt>Custodian</dt><dd>Canvas EMR &middot; system of record for the full chart</dd>
+                <dt>Document</dt><dd><code>DocumentReference cnv-doc-2f81c4</code> &middot; Canvas patient <code>cnv-pt-9d20</code></dd>
+                <dt>Received</dt><dd>16 Jun 2026 07:22 &middot; fax intake, indexed by the document integration</dd>
+                <dt>Mirror state</dt><dd><span class="pna">last confirmed 06:40 today</span> &middot; the deep link may 404 until the mirror reconciles</dd>
+              </dl>
+            </div>
+            <div class="jn-acts">
+              <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Open in EMR tab</button>
+              <span class="pbase">Opens the Canvas chart in a new tab through Aleron MD single sign-on. While SSO is being enabled you may see a one-time Canvas sign-in.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>What a signature does, and what it does not</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Two clocks</dt><dd>Signing orders and locking the note are separate acts. Sign and send transmits the orders; an order can transmit from a note that is not yet locked. Locking freezes the note and generates the archival PDF and the Canvas DocumentReference.</dd>
+            <dt>Asynchronous</dt><dd>A non-visit encounter collapses the two clocks: the note is drafted at the decision moment, so nothing is left to catch up on.</dd>
+            <dt>Amendment</dt><dd>A locked note amends by appending a linked, separately signed addendum. The original text is never altered.</dd>
+            <dt>Change of direction</dt><dd>A changed decision is a new entry, never an edit. The 6/14 portal encounter cancels an order placed on 6/8, and the 6/8 note is unchanged.</dd>
+            <dt>Release</dt><dd>Neither signing nor locking makes a plan patient-visible. Release is a third, separate act and it happens in Care Plan.</dd>
+            <dt>One signature</dt><dd>One authenticated signature covers every order enumerated in it. CLIA requires a valid request from an authorized person, not a per-test signature; state law or the performing lab may require more.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-26" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-26" role="note">
+        Synthetic record &middot; order statuses are live reads from the ledger and the signed text
+        beside them never changes &middot; external documents are read-only and keep their external
+        author &middot; a changed decision is a new entry.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The record rows name the resource and stop there. <em>The API cannot create one</em> and
+    <em>the API has no update for one</em> came off: both are true, neither is the physician's to act on,
+    and both are already in the annotation list and in <code>BRIEF.md</code>.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The order record named a resource that does not exist. <code>Lab Order Authorization, mirrored
+    to Canvas</code> is now <code>ServiceRequest</code>, placed by command and read back, because the
+    Canvas FHIR API has no create for it.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>This screen's amendment doctrine turns out to be the only thing the API permits. <em>Locked
+    notes amend by appending, never by editing</em> was argued from HIPAA custody; independently,
+    <code>DocumentReference</code> supports create, read and search and <b>no update</b>, so appending is
+    not merely the right policy, it is the only implementable one. The note record row now says so. This
+    is the one place in the set where the doctrine and the API already agreed.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The journal itself, from the reference surface: five entries on a time spine, the
+    <code>Order | Status &middot; live from the ledger</code> table, cross-entry jump buttons, and
+    the signature doctrine that closes every document. v0 has no journal; it has one progress note
+    inside the Care Plan composer.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span><b>Append addendum</b> and <b>Export PDF</b> on locked entries, with the legal-record
+    block above them, from <code>v0/care-plan-note.html</code> and its source
+    <code>resources/views/physician/patients/care-plan.blade.php</code>. v1 states the doctrine
+    that a locked note amends by appending and then gives the physician no way to append. The
+    controls, the record dl, and the HIPAA amendment sentence are all v0's.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span><b>Open in EMR tab</b> on the Canvas-sourced entry, from <code>v0/emr.html</code> and its
+    source <code>resources/views/physician/patients/emr.blade.php</code>, along with its single
+    sign-on caveat verbatim. v1 shows the imported document and does not say where it lives; the
+    link is the only thing v0's EMR tab was ever for, and here it attaches to the one entry it
+    belongs to instead of occupying a whole tab.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The Canvas-degraded warning, from <code>emr.blade.php</code>'s unlinked and pending
+    states. It renders as <code>.pbound--quiet</code> rather than the filled hazard boundary,
+    because the signed text on this surface is authoritative whether or not the mirror has caught
+    up. A degraded mirror is an advisory about another system, not a hazard in this
+    one.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Entry state rides on the spine node's shape, not on a tint: a filled dot is signed, an
+    open dot is a draft, a square is imported. An external mark is a different shape.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The time spine, the document layout and the locked-record block have no canonical
+    component. All three are screen-local; the locked-record block is the strongest candidate for
+    section B, because Care Plan needs the same thing and a second copy would be the silent
+    dialect AGENTS.md forbids. It is left local here only because Care Plan is being built in
+    parallel and the two should agree before the class is proposed.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Screening has no canonical icon. The magnifier with a plus is drawn inline in the
+    canonical stroke grammar and flagged provisional in the markup.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's inline note editing inside the journal. v0's composer lets a physician click any
+    line of the drafted note to edit it, and gates that on <code>noteLocked</code>. In v2 the
+    journal is read-only in every state: drafting happens in Care Plan, and a surface that can both
+    display the legal record and edit it invites an edit where an addendum belongs.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's mono face on document identifiers and timestamps. The identifiers stay in
+    <code>&lt;code&gt;</code> inside the disclosure body, which is the one place the chrome still
+    permits the audit face; everything on the surface itself is voice with tabular
+    figures.</span></p>
+</div>
+
+</body>
+</html>

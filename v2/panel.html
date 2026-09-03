@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Panel</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only.
+
+     Panel is where v0's /patients list lands. Same inbox rail as inbox.html,
+     same row anatomy, different question: the inbox asks what is waiting on
+     me, the panel asks who is on my list at all. So this one keeps the whole
+     cohort and adds v0's only real affordance, the six-domain risk read, as a
+     density toggle rather than as an always-on encoded strip. */
+
+  .pn-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--s-md);
+    margin-bottom: var(--air-tier);
+  }
+  .pn-tools .amd-field { flex: 1 1 20ch; max-width: 34ch; }
+  .pn-tools__spacer { margin-left: auto; }
+  .pn-density { display: grid; gap: var(--s-xs); }
+  .pn-density > span { font-size: var(--size-caption); color: var(--text-tertiary); }
+
+  /* Cohort row. Five columns, with the risk read on an optional second line
+     so the columns never have to shrink to admit it. */
+  .pn-row,
+  .pn-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(120px, 0.9fr) minmax(0, 1.3fr) minmax(76px, auto) 8rem;
+    gap: var(--s-md);
+    align-items: center;
+    padding: var(--s-sm) var(--s-md);
+  }
+  .pn-head {
+    padding-top: var(--s-xs);
+    padding-bottom: var(--s-xs);
+    border-bottom: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .pn-row {
+    position: relative;
+    border-bottom: var(--line-thin) solid var(--hairline);
+    color: inherit;
+    text-decoration: none;
+  }
+  /* The name is the link and it stretches over the row, so the whole row stays
+     clickable without an anchor wrapping the act button, which is what the
+     markup used to do and is not valid HTML. */
+  .pn-open { color: inherit; text-decoration: none; }
+  .pn-open::after { content: ""; position: absolute; inset: 0; }
+  .pn-open:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+  .pn-grip, .pn-act { position: relative; z-index: 1; }
+
+  /* Next act. The column was auto-sized with its contents right-aligned, so
+     labels of different lengths gave different button widths and a ragged left
+     edge. One fixed track, button stretched to it, done on the cell rather than
+     on .amd-button. */
+  .pn-act { display: grid; justify-items: stretch; }
+
+  .pn-sort { width: 11rem; }
+  .pn-grip {
+    display: none;
+    place-items: center;
+    width: var(--s-lg);
+    height: var(--s-lg);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-tile);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: grab;
+  }
+  .pn-grip svg { width: var(--s-md); height: var(--s-md); fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; }
+  .pn-grip:hover { color: var(--text-primary); background: var(--surface-inset); }
+  .pn-grip:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+  .pn-head__grip { display: none; }
+  #pn-rows[data-order="custom"] .pn-grip { display: inline-grid; }
+  #pn-rows[data-order="custom"] .pn-head__grip { display: block; }
+  #pn-rows[data-order="custom"] .pn-row { cursor: grab; }
+  #pn-rows[data-order="custom"] .pn-row,
+  #pn-rows[data-order="custom"] .pn-head { grid-template-columns: var(--s-lg) minmax(0, 1.6fr) minmax(120px, 0.9fr) minmax(0, 1.3fr) minmax(76px, auto) 8rem; }
+  .pn-row.is-dragging { opacity: 0.4; }
+  .pn-row.is-over-before { box-shadow: inset 0 var(--line-signal) 0 var(--signal-forward); }
+  .pn-row.is-over-after { box-shadow: inset 0 calc(var(--line-signal) * -1) 0 var(--signal-forward); }
+  .pn-row:last-of-type { border-bottom: 0; }
+  .pn-row:hover { background: var(--surface-inset); }
+  .pn-who { display: grid; gap: var(--s-2xs); min-width: 0; }
+  .pn-name { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+  .pn-code { font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .pn-prog { font-size: var(--size-small); color: var(--text-secondary); line-height: 1.4; }
+  .pn-prog small { display: block; font-size: var(--size-caption); color: var(--text-tertiary); }
+  .pn-state { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-secondary); }
+  .pn-state[data-tone="ready"] { color: var(--text-primary); }
+  .pn-state[data-tone="advisory"] { color: var(--signal-advisory); }
+  .pn-run { font-size: var(--size-small); color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums; }
+  .pn-act { text-align: right; }
+
+  /* The carried risk read. v0 encoded six domains as six three-letter tiles
+     whose tier lived in font weight, with the legend 200 px below. Here the
+     tier is the word, so the row needs no legend at all, and hazard is a
+     filled tile because P3 says a hazard always is. */
+  /* Row density. Lifecycle only drops the domain read; the risk is a second
+     question the physician sometimes asks of the same list, not a column the
+     queue needs. */
+  #pn-list[data-density="lifecycle"] .pn-dom { display: none; }
+
+  .pn-dom {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2xs) var(--s-sm);
+    padding-top: var(--air-row);
+    margin-top: var(--s-2xs);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-caption);
+  }
+  .pn-dom__k { color: var(--text-tertiary); }
+
+  .pn-more {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-md);
+    padding: var(--s-sm) var(--s-md);
+    border-top: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-small);
+    color: var(--text-secondary);
+  }
+  .pn-more__spacer { margin-left: auto; }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Panel</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/patients.html">v0</a>
+    <span aria-disabled="true" title="v1 has no cohort surface: the reference surface opens straight into one patient's chart and never lists a second">v1</span>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/panel</span>
+  </div>
+
+  <div class="pshell">
+
+    <!-- The inbox rail, verbatim from inbox.html. Register O4: rails are fixed
+         per surface family, so this set does not change between its screens. -->
+    <aside class="prail" aria-label="Sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">AO</span>
+        <span class="prail__who">
+          <span class="prail__name">Dr. A. Okafor</span>
+          <span class="prail__code">Physician &middot; LASO Wellness</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <nav class="prail__nav">
+        <a class="prail__item" href="inbox.html">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5h4l1.5 2.5h6l1.5-2.5h4"/><path d="M5.2 5.5h13.6l1.7 8v4a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2v-4Z"/></svg>
+          Inbox <span class="prail__count">7</span>
+        </a>
+        <a class="prail__item" href="panel.html" aria-current="page">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 6.2a3.2 3.2 0 0 1 0 6.1M18 20c0-2.4-.9-4.2-2.4-5.3"/></svg>
+          Panel <span class="prail__count">146</span>
+        </a>
+        <a class="prail__item" href="reviews.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Reviews <span class="prail__count">3</span>
+        </a>
+        <a class="prail__item" href="messages.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Messages <span class="prail__count">2</span>
+        </a>
+      </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-34" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-34" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Panel</h1>
+          <span class="phead__aside"><span class="pbase">146 patients assigned to you</span></span>
+        </div>
+        <p>Everyone on your list, including the ones with nothing waiting. The inbox is the subset that needs an act today; this is the cohort it is drawn from.</p>
+      </header>
+
+      <div class="pn-tools">
+        <div class="amd-field">
+          <label class="amd-field__label" for="pn-q">Search by name or patient code</label>
+          <input class="amd-input" id="pn-q" type="search" placeholder="Ethan Park, AL-47M">
+        </div>
+
+        <span class="pn-tools__spacer"></span>
+
+        <!-- Carried from v0/patients.html: the six-domain read. In v0 it was
+             always on and always encoded. Here it is a density choice, because
+             the lifecycle queue is the primary sort and a risk read is a second
+             question the physician sometimes asks of the same list. -->
+        <div class="pn-density">
+          <span id="pn-sort-label">Sort by</span>
+          <span class="amd-select-wrap pn-sort">
+            <select class="amd-select" id="pn-sort" aria-labelledby="pn-sort-label">
+              <option value="lifecycle" selected>Lifecycle rank</option>
+              <option value="held">Held longest</option>
+              <option value="fresh">Held shortest</option>
+              <option value="name">Patient name</option>
+              <option value="custom">Custom order</option>
+            </select>
+          </span>
+        </div>
+
+        <div class="pn-density">
+          <span id="pn-density-label">Row density</span>
+          <div class="amd-segmented" role="radiogroup" aria-labelledby="pn-density-label" id="pn-density">
+            <button role="radio" aria-checked="false" type="button" data-density="lifecycle">Lifecycle only</button>
+            <button role="radio" aria-checked="true" type="button" data-density="domain">With risk by domain</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="pmod pmod--tier1" id="pn-list">
+        <div class="pmod__head">
+          <h2>Assigned panel</h2>
+          <span class="pmod__sub" id="pn-sortnote" role="status" aria-live="polite">Lifecycle rank, then the longest held first.</span>
+          <span class="pmod__meta">Showing <span class="pval">9<span class="pval__u">of 146</span></span></span>
+        </div>
+        <div class="pmod__body pmod__body--flush" id="pn-rows">
+
+          <div class="pn-head" role="row">
+            <span class="pn-head__grip" aria-hidden="true"></span>
+            <span>Patient</span>
+            <span>Program</span>
+            <span>Lifecycle state</span>
+            <span style="text-align: right;">Last run</span>
+            <span style="text-align: right;">Next act</span>
+          </div>
+
+          <div class="pn-row" data-id="AL-47M" data-name="Ethan Park">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="patient-data.html">Ethan Park</a></span>
+              <span class="pn-code">AL-47M &middot; 47M</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>with genetics</small></span>
+            <span class="pn-state" data-tone="ready">Physician review pending</span>
+            <span class="pn-run">2 d ago</span>
+            <span class="pn-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Start review</button></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="padv">CVD moderate</span>
+              <span class="pbase">CKD low</span>
+              <span class="padv">CAN moderate</span>
+              <span class="ptile">MET high</span>
+              <span class="padv">NEU moderate</span>
+              <span class="padv">SYS moderate</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-56F" data-name="Mara Chen">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="care-plan.html">Mara Chen</a></span>
+              <span class="pn-code">AL-56F &middot; 56F</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>genetics declined</small></span>
+            <span class="pn-state">Plan editing</span>
+            <span class="pn-run">6 h ago</span>
+            <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Resume</button></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="padv">CVD moderate</span>
+              <span class="pbase">CKD low</span>
+              <span class="padv">CAN moderate</span>
+              <span class="pbase">MET low</span>
+              <span class="padv">NEU moderate</span>
+              <span class="padv">SYS moderate</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-58F" data-name="Helena Vasquez">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="care-plan.html">Helena Vasquez</a></span>
+              <span class="pn-code">AL-58F &middot; 58F</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>with genetics</small></span>
+            <span class="pn-state" data-tone="ready">Plan ready for signature</span>
+            <span class="pn-run">1 d ago</span>
+            <span class="pn-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Preview</button></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="pbase">CVD low</span>
+              <span class="ptile">CKD high</span>
+              <span class="pbase">CAN low</span>
+              <span class="padv">MET moderate</span>
+              <span class="padv">NEU moderate</span>
+              <span class="padv">SYS moderate</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-44F" data-name="Priya Raghunathan">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="care-plan.html">Priya Raghunathan</a></span>
+              <span class="pn-code">AL-44F &middot; 44F</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>with genetics</small></span>
+            <span class="pn-state" data-tone="advisory">Signature blocked <span class="ptile">blocked</span></span>
+            <span class="pn-run">3 d ago</span>
+            <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Open blocker</button></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="pbase">CVD low</span>
+              <span class="pbase">CKD low</span>
+              <span class="padv">CAN moderate</span>
+              <span class="pbase">MET low</span>
+              <span class="pbase">NEU low</span>
+              <span class="pbase">SYS low</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-52M" data-name="Tomas Lindqvist">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="care-plan.html">Tomas Lindqvist</a></span>
+              <span class="pn-code">AL-52M &middot; 52M</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>genetics declined</small></span>
+            <span class="pn-state" data-tone="advisory">Physician hold</span>
+            <span class="pn-run">7 d ago</span>
+            <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Review hold</button></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="padv">CVD moderate</span>
+              <span class="pbase">CKD low</span>
+              <span class="pbase">CAN low</span>
+              <span class="ptile">MET high</span>
+              <span class="pbase">NEU low</span>
+              <span class="padv">SYS moderate</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-49F" data-name="Ana Beatriz Rocha">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="patient-data.html">Ana Beatriz Rocha</a></span>
+              <span class="pn-code">AL-49F &middot; 49F</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>with genetics</small></span>
+            <span class="pn-state" data-tone="advisory">Monitoring update requires review</span>
+            <span class="pn-run">9 h ago</span>
+            <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Open</button></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="padv">CVD moderate</span>
+              <span class="pbase">CKD low</span>
+              <span class="padv">CAN moderate</span>
+              <span class="padv">MET moderate</span>
+              <span class="pbase">NEU low</span>
+              <span class="padv">SYS moderate</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-39M" data-name="Marcus Bell">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="patient-data.html">Marcus Bell</a></span>
+              <span class="pn-code">AL-39M &middot; 39M</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>with genetics</small></span>
+            <span class="pn-state">Results partially received</span>
+            <span class="pn-run"><span class="pna">no run</span></span>
+            <span class="pn-act"><span class="pbase">Ops follow-up</span></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="punmod">CVD insufficient data</span>
+              <span class="punmod">CKD insufficient data</span>
+              <span class="punmod">CAN insufficient data</span>
+              <span class="punmod">MET insufficient data</span>
+              <span class="punmod">NEU insufficient data</span>
+              <span class="punmod">SYS insufficient data</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-63M" data-name="Joseph Ferreira">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="journal.html">Joseph Ferreira</a></span>
+              <span class="pn-code">AL-63M &middot; 63M</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>with genetics</small></span>
+            <span class="pn-state">Patient plan available</span>
+            <span class="pn-run">12 d ago</span>
+            <span class="pn-act"><span class="pbase">Read receipt 26 Aug</span></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="ptile">CVD high</span>
+              <span class="padv">CKD moderate</span>
+              <span class="pbase">CAN low</span>
+              <span class="padv">MET moderate</span>
+              <span class="padv">NEU moderate</span>
+              <span class="padv">SYS moderate</span>
+            </span>
+          </div>
+
+          <div class="pn-row" data-id="AL-41F" data-name="Grace Okonjo">
+            <button class="pn-grip" type="button" tabindex="-1" aria-hidden="true"
+              title="Drag to reorder, or focus and use the arrow keys">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></svg>
+            </button>
+
+            <span class="pn-who">
+              <span class="pn-name"><a class="pn-open" href="journal.html">Grace Okonjo</a></span>
+              <span class="pn-code">AL-41F &middot; 41F</span>
+            </span>
+            <span class="pn-prog">Longevity core <small>genetics declined</small></span>
+            <span class="pn-state">Action tracking active</span>
+            <span class="pn-run">21 d ago</span>
+            <span class="pn-act"><span class="pbase">4 of 6 actions started</span></span>
+            <span class="pn-dom">
+              <span class="pn-dom__k">Risk by domain</span>
+              <span class="pbase">CVD low</span>
+              <span class="pbase">CKD low</span>
+              <span class="padv">CAN moderate</span>
+              <span class="pbase">MET low</span>
+              <span class="pbase">NEU low</span>
+              <span class="pbase">SYS low</span>
+            </span>
+          </div>
+
+          <div class="pn-more">
+            <span>137 more patients on this panel, all in states with no physician act outstanding.</span>
+            <span class="pn-more__spacer"></span>
+            <button class="amd-button" data-variant="secondary" type="button">Load next 25</button>
+          </div>
+
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>How the panel differs from the inbox, and what the risk read is worth</summary>
+        <div class="pdisc__body">
+          <p>The inbox is filtered to states whose <em>Physician visible</em> column in Role and Release Matrix v1
+          section 4 permits an act. The panel drops that filter, which is why released and tracking patients appear
+          here and not there. Neither list ranks patients by the action layer's own output: the lifecycle is the sort
+          key, because a packet that is ready outranks one that is merely alarming.</p>
+          <p>The domain read is a summary of five modelled domains plus a systemic roll-up. Only cardiovascular
+          carries a validated model today; the rest are shown with their tier and carry
+          <span class="pna">model provenance pending</span> inside the chart, where the claim can be qualified
+          properly rather than compressed into one word on a list row.</p>
+          <dl class="pfacts">
+            <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> section 4</dd>
+            <dt>Panel</dt><dd>Patients assigned to this physician, all lifecycle states</dd>
+            <dt>Domains</dt><dd>Cardiovascular, kidney, cancer, metabolic, neurodegenerative, systemic</dd>
+            <dt>Unmodelled</dt><dd>Shown as <span class="punmod">insufficient data</span> in indigo, never as low. An unassessed risk is not a low risk.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-33" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-33" role="note">
+        Synthetic staging cohort &middot; lifecycle state is read from backend state, not from local fixtures &middot;
+        the domain read is a tier summary, and the model behind each tier is named in the patient's Risk screen.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The inbox's sort pass, applied here. Lifecycle rank, held longest, held shortest, patient name,
+    and a custom drag order with a keyboard path through the handle. A patient with no run sorts last on
+    held rather than being given an invented age.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The same invalid nesting the inbox had: <code>&lt;a class="pn-row"&gt;</code> wrapped the act
+    button, and left nowhere legal for a drag handle. Nine rows are now <code>div</code>s with the patient
+    name carrying a link that stretches over the row. Verified: the row centre hit-tests to the link, the
+    button and the handle to themselves.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Act buttons were auto-sized and right-aligned, so six labels gave six widths. One fixed track,
+    button stretched to it: all six are 128px on a shared left edge. On the cell, not on
+    <code>.amd-button</code>.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Lifecycle sort put the blocked patient last.</b> The state cell carries a hazard tile beside
+    the words, so <code>textContent</code> read <em>Signature blocked blocked</em>, matched no rank and
+    fell to the default. Only the cell's own text nodes are the state now. It surfaced because the sort
+    had to parse a cell that had until then only ever been read by eye, which is the usual way a rendering
+    detail turns out to be a data problem.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Row density works. <b>Lifecycle only</b> drops the domain read and takes a row from 112px to
+    64px; <b>With risk by domain</b> restores it. The risk read is a second question the physician
+    sometimes asks of the same list, which is the argument the control was already making in prose and can
+    now demonstrate. <code>aria-checked</code> on the segmented control is the source of truth and the list
+    follows it.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The cohort list itself, from <code>v0/patients.html</code>. v0's search field, patient count
+    and row-to-chart navigation all survive; v0's grid becomes the same row anatomy the inbox
+    uses, so the two list surfaces read as one family.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The six-domain risk strip, from <code>v0/patients.html</code>, as a density toggle. v0
+    encoded the tier in font weight across six three-letter tiles and put the legend 200 px below
+    the thing it explained. Here the tier is the word, so no legend is needed, hazard is a filled
+    tile per P3, and an unmodelled domain says <span class="punmod">insufficient data</span>
+    instead of borrowing the low treatment.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The <code>Lifecycle</code> and <code>Next act</code> columns. v0 sorted by nothing and
+    offered no notion of what a patient is waiting for; every state word here is a literal from
+    Role and Release Matrix v1 section 4.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Released and tracking patients are on the list. v0's cohort had no way to show a patient
+    whose plan is already out, which made the list read as a work queue that was missing most of
+    its work.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's criticality pill (Critical / High / Routine). It ranked patients by the action
+    layer's own output before a physician had looked at anything. The lifecycle is the honest
+    sort key, and the counts behind the pill survive inside the chart's action map.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>MRN as the row's second line. v0 showed a raw MRN, and for one unclaimed patient it
+    showed an email address instead, which is an identifier leaking into a list view. The patient
+    code with age and sex carries the identification a physician actually scans by.</span></p>
+</div>
+
+<script>
+/* Row density, client only. Nothing is persisted; a reload returns the panel to
+   the density the markup ships with. aria-checked on the segmented control is
+   the single source of truth and the list follows it. */
+(function () {
+  var group = document.getElementById("pn-density");
+  var list = document.getElementById("pn-list");
+  if (!group || !list) return;
+  var opts = [].slice.call(group.querySelectorAll('[role="radio"]'));
+
+  function pick(btn) {
+    opts.forEach(function (o) { o.setAttribute("aria-checked", String(o === btn)); });
+    list.setAttribute("data-density", btn.getAttribute("data-density"));
+  }
+
+  opts.forEach(function (btn, i) {
+    btn.addEventListener("click", function () { pick(btn); });
+    btn.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var next = opts[(i + d + opts.length) % opts.length];
+      pick(next);
+      next.focus();
+    });
+  });
+
+  pick(group.querySelector('[aria-checked="true"]') || opts[0]);
+})();
+
+/* Panel sorting and custom order. Same model as the inbox: the fixture is the
+   lifecycle rank table, every other key is already on the row, and nothing is
+   persisted. The rank list is the panel's own, which is longer than the
+   inbox's because the panel drops the "permits an act" filter and so carries
+   released and tracking states too. */
+
+const PN_LIFECYCLE_RANK = {
+  "Physician review pending": 1,
+  "Plan editing": 2,
+  "Plan ready for signature": 3,
+  "Signature blocked": 4,
+  "Physician hold": 5,
+  "Monitoring update requires review": 6,
+  "Results partially received": 7,
+  "Patient plan available": 8,
+  "Action tracking active": 9
+};
+
+(function () {
+  var list = document.getElementById("pn-rows");
+  var select = document.getElementById("pn-sort");
+  var note = document.getElementById("pn-sortnote");
+  if (!list || !select) return;
+
+  var rows = [].slice.call(list.querySelectorAll(".pn-row"));
+  var custom = rows.slice();
+
+  /* The state cell can carry a hazard tile beside the words, so Signature
+     blocked read as "Signature blocked blocked" through textContent, matched no
+     rank and sorted last. Only the cell's own text nodes are the state. */
+  function stateOf(r) {
+    var cell = r.querySelector(".pn-state"), out = "";
+    for (var i = 0; i < cell.childNodes.length; i++) {
+      if (cell.childNodes[i].nodeType === 3) out += cell.childNodes[i].textContent;
+    }
+    return out.trim();
+  }
+  function rank(r) {
+    return PN_LIFECYCLE_RANK[stateOf(r)] || 99;
+  }
+  /* "2 d ago" is what the column renders, so it is what gets parsed. A row with
+     no run says "no run" and sorts last on held-longest rather than being given
+     an invented age. */
+  function hours(r) {
+    var t = r.querySelector(".pn-run").textContent.trim();
+    var n = parseFloat(t);
+    if (isNaN(n)) return -1;
+    if (/d/.test(t)) return n * 24;
+    if (/w/.test(t)) return n * 168;
+    return n;
+  }
+  function name(r) { return r.getAttribute("data-name") || ""; }
+
+  var SORTS = {
+    lifecycle: { note: "Lifecycle rank, then the longest held first.",
+      cmp: function (a, b) { return rank(a) - rank(b) || hours(b) - hours(a); } },
+    held: { note: "Longest held first. A patient with no run sorts last.",
+      cmp: function (a, b) { return hours(b) - hours(a); } },
+    fresh: { note: "Most recently run first.",
+      cmp: function (a, b) { return hours(b) - hours(a); } },
+    name: { note: "Patient name, A to Z.",
+      cmp: function (a, b) { return name(a).localeCompare(name(b)); } }
+  };
+  SORTS.fresh.cmp = function (a, b) {
+    var x = hours(a), y = hours(b);
+    if (x < 0) return 1;
+    if (y < 0) return -1;
+    return x - y;
+  };
+
+  function paint(order) { order.forEach(function (r) { list.appendChild(r); }); }
+
+  function apply() {
+    var mode = select.value;
+    if (mode === "custom") {
+      list.setAttribute("data-order", "custom");
+      rows.forEach(function (r) {
+        r.setAttribute("draggable", "true");
+        var g = r.querySelector(".pn-grip");
+        g.tabIndex = 0;
+        g.removeAttribute("aria-hidden");
+        g.setAttribute("aria-label", "Reorder " + name(r) + ". Press the up or down arrow to move it.");
+      });
+      paint(custom);
+      note.textContent = "Custom order. Drag a row by its handle, or focus a handle and press the up or down arrow. Nothing is saved.";
+      return;
+    }
+    list.removeAttribute("data-order");
+    rows.forEach(function (r) {
+      r.removeAttribute("draggable");
+      var g = r.querySelector(".pn-grip");
+      g.tabIndex = -1;
+      g.setAttribute("aria-hidden", "true");
+      g.removeAttribute("aria-label");
+    });
+    var srt = SORTS[mode] || SORTS.lifecycle;
+    paint(rows.slice().sort(srt.cmp));
+    note.textContent = srt.note;
+  }
+
+  select.addEventListener("change", apply);
+
+  var dragged = null;
+  function clearMarks() {
+    rows.forEach(function (r) { r.classList.remove("is-over-before", "is-over-after"); });
+  }
+  function move(row, insertAt) {
+    var from = custom.indexOf(row);
+    if (from < 0) return;
+    custom.splice(from, 1);
+    if (insertAt > from) insertAt -= 1;
+    custom.splice(insertAt, 0, row);
+    paint(custom);
+    note.textContent = name(row) + " moved to position " + (custom.indexOf(row) + 1) +
+      " of " + custom.length + ". Nothing is saved.";
+  }
+
+  rows.forEach(function (row) {
+    row.addEventListener("dragstart", function (e) {
+      dragged = row;
+      row.classList.add("is-dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", row.getAttribute("data-id"));
+    });
+    row.addEventListener("dragend", function () {
+      row.classList.remove("is-dragging");
+      clearMarks();
+      dragged = null;
+    });
+    row.addEventListener("dragover", function (e) {
+      if (!dragged || dragged === row) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      var box = row.getBoundingClientRect();
+      clearMarks();
+      row.classList.add(e.clientY > box.top + box.height / 2 ? "is-over-after" : "is-over-before");
+    });
+    row.addEventListener("drop", function (e) {
+      if (!dragged || dragged === row) return;
+      e.preventDefault();
+      var box = row.getBoundingClientRect();
+      var after = e.clientY > box.top + box.height / 2;
+      clearMarks();
+      move(dragged, custom.indexOf(row) + (after ? 1 : 0));
+    });
+    row.querySelector(".pn-grip").addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+      if (!d || select.value !== "custom") return;
+      e.preventDefault();
+      var from = custom.indexOf(row);
+      var to = from + d;
+      if (to < 0 || to >= custom.length) return;
+      move(row, to > from ? to + 1 : to);
+      row.querySelector(".pn-grip").focus();
+    });
+  });
+
+  list.addEventListener("click", function (e) {
+    if (list.getAttribute("data-order") === "custom" && e.target.closest(".pn-grip")) e.preventDefault();
+  });
+
+  apply();
+})();
+</script>
+</body>
+</html>

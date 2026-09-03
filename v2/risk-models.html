@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Risk, models</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Everything reusable is in physician-chrome.css.
+
+     Four arrangements live here and nowhere else: the domain rail, the hero
+     split, the three-card meaning strip, and the sensitivity bar inside the
+     variables ledger. The carried v0 depth needs no new component: it is
+     .pdisc holding .pfacts and .pledger. */
+
+  /* Domain rail. Six domains, one row, horizontally scrollable rather than
+     wrapped, because the order is the reading order. Selection is the inset
+     field with a forward-gold edge: on an instrument the gold budget is spent
+     on selection focus and nothing else (P2). */
+  .rm-rail {
+    display: flex;
+    gap: var(--s-2xs);
+    overflow-x: auto;
+    padding-bottom: var(--s-2xs);
+    margin-bottom: var(--air-group);
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .rm-rail__item {
+    display: grid;
+    gap: var(--s-2xs);
+    align-content: start;
+    flex: 1 0 auto;
+    min-width: 8.25rem;
+    padding: var(--s-xs) var(--s-sm);
+    border: 0;
+    border-left: var(--line-signal) solid transparent;
+    border-radius: 0 var(--radius-tile) var(--radius-tile) 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .rm-rail__item:hover { color: var(--text-primary); background: var(--surface-inset); }
+  .rm-rail__item[aria-selected="true"] {
+    background: var(--surface-inset);
+    border-left-color: var(--signal-forward);
+    color: var(--text-primary);
+  }
+  .rm-rail__name { font-size: var(--size-small); font-weight: var(--w-emphasis); }
+  .rm-rail__val { font-size: var(--size-text); }
+
+  /* Hero. Interpretation left, the number right, so the sentence is read
+     before the score rather than after it. */
+  .rm-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, auto);
+    gap: var(--air-group) var(--s-2xl);
+    align-items: start;
+  }
+  .rm-eyebrow { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-hero h3 { margin: var(--s-2xs) 0 0; font-size: var(--size-h3); font-weight: var(--w-h3); line-height: 1.35; }
+  .rm-hero p { margin: var(--air-row) 0 0; font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); max-width: 68ch; }
+  .rm-route {
+    margin-top: var(--air-tier);
+    padding-top: var(--air-row);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-small);
+    line-height: 1.55;
+    color: var(--text-tertiary);
+    max-width: 68ch;
+  }
+  .rm-score { display: grid; gap: var(--s-2xs); justify-items: start; }
+  .rm-score__h { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.5; }
+
+  /* Three equal cards: levers, evidence, confidence. Equal weight, because
+     this is a reading aid and not a ranking. */
+  .rm-meaning {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-md);
+  }
+  .rm-card {
+    display: grid;
+    gap: var(--s-2xs);
+    align-content: start;
+    padding: var(--s-sm) var(--s-md);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tier2);
+  }
+  .rm-card__k { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-card__v { font-size: var(--size-small); font-weight: var(--w-emphasis); line-height: 1.5; }
+  .rm-card__m { font-size: var(--size-caption); line-height: 1.5; color: var(--text-tertiary); }
+
+  /* Next moves. Numbered because they are a sequence, not a menu. */
+  .rm-moves { display: grid; gap: var(--air-tier); counter-reset: rmmove; }
+  .rm-move {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-2xs) var(--s-sm);
+    align-items: baseline;
+  }
+  .rm-move::before {
+    counter-increment: rmmove;
+    content: counter(rmmove);
+    grid-row: span 3;
+    font-size: var(--size-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
+  }
+  .rm-move b { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+  .rm-move span { font-size: var(--size-small); line-height: 1.55; color: var(--text-secondary); max-width: 74ch; }
+  .rm-move em { font-style: normal; font-size: var(--size-small); line-height: 1.55; color: var(--text-tertiary); }
+
+  /* Sensitivity bar inside the variables ledger. Furniture, so both the track
+     and the fill resolve through ink tokens (P6). Width is set per row. */
+  .rm-bar { display: block; width: 100%; min-width: 4.25rem; height: var(--s-2xs); background: var(--border-subtle); }
+  .rm-bar i { display: block; height: 100%; background: var(--signal-baseline); }
+
+  /* Systemic patterns. A pattern is prose plus a signal list, so the card is a
+     reading column, not a data table. */
+  .rm-pattern {
+    display: grid;
+    gap: var(--air-row);
+    padding: var(--s-md) 0;
+    border-top: var(--line-thin) solid var(--hairline);
+  }
+  .rm-pattern:first-of-type { border-top: 0; }
+  .rm-pattern__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs) var(--s-sm); }
+  .rm-pattern__id { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-pattern__head h4 { margin: 0; font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.4; }
+  .rm-pattern p { margin: 0; font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); max-width: 82ch; }
+  .rm-chips { display: flex; flex-wrap: wrap; gap: var(--s-2xs); }
+  .rm-chips span {
+    padding: var(--s-3xs) var(--s-xs);
+    border: var(--line-thin) solid var(--border-subtle);
+    border-radius: var(--radius-tile);
+    font-size: var(--size-caption);
+    color: var(--text-secondary);
+  }
+
+  .rm-note { font-size: var(--size-small); line-height: 1.55; color: var(--text-tertiary); max-width: 82ch; }
+  .rm-grouprule { margin-left: auto; font-size: var(--size-caption); color: var(--text-tertiary); }
+  .rm-groupfoot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-sm);
+    padding: var(--s-xs) var(--s-sm);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+  }
+  .rm-groupfoot span:first-child { font-size: var(--size-caption); color: var(--text-tertiary); }
+
+  @media (max-width: 1100px) {
+    .rm-hero { grid-template-columns: minmax(0, 1fr); }
+    .rm-meaning { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Risk, models</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/risk-models.html">v0</a>
+    <a href="../v1/risk-models.html">v1</a>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/risk/models</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Chart sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">EP</span>
+        <span class="prail__who">
+          <span class="prail__name">Ethan Park</span>
+          <span class="prail__code">AL-47M &middot; 47M</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+        <nav class="prail__nav">
+          <a class="prail__item" href="patient-data.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Patient Data
+          </a>
+          <a class="prail__item" href="risk-models.html" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+            Risk
+          </a>
+          <a class="prail__item" href="care-plan.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+            Care Plan
+          </a>
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <a class="prail__item" href="orders.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v13a2 2 0 0 0 4 0V3"/><path d="M10 11h4"/></svg>
+            Orders
+          </a>
+          <a class="prail__item" href="journal.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h3M13.5 14H16M8 17h3"/></svg>
+            Journal
+          </a>
+          <a class="prail__item" href="aleron-ai.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+            Aleron AI
+          </a>
+        </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="emr.html">Open in Canvas &#8599;</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-43" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-43" role="note">Synthetic staging profile. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Risk</h1>
+          <span class="phead__aside">
+            <span class="amd-tabs" role="tablist" aria-label="Risk views">
+              <button class="amd-button" role="tab" aria-selected="true" type="button">Models</button>
+              <button class="amd-button" role="tab" aria-selected="false" type="button" onclick="location.href='risk-actions.html'">Actions</button>
+            </span>
+          </span>
+        </div>
+        <p>Five disease models read the packet, a sixth pass reads across them, and the action map prices every lever and gate they expose.</p>
+      </header>
+
+      <!-- Domain rail. v1 carried five; Systemic is the sixth, and it is the
+           only entry with no score, because it emits patterns rather than a
+           probability. -->
+      <div class="rm-rail" role="tablist" aria-label="Risk domains">
+        <button class="rm-rail__item" role="tab" aria-selected="true" type="button">
+          <span class="rm-rail__name">Cardiovascular</span>
+          <span class="rm-rail__val"><span class="pval">16<span class="pval__u">%</span></span></span>
+          <span class="pbase">moderate</span>
+        </button>
+        <button class="rm-rail__item" role="tab" aria-selected="false" type="button">
+          <span class="rm-rail__name">Metabolic</span>
+          <span class="rm-rail__val"><span class="pval">34<span class="pval__u">%</span></span></span>
+          <span class="ptile">high</span>
+        </button>
+        <button class="rm-rail__item" role="tab" aria-selected="false" type="button">
+          <span class="rm-rail__name">Neuro</span>
+          <span class="rm-rail__val"><span class="pval">~5<span class="pval__u">%</span></span></span>
+          <span class="pbase">moderate</span>
+        </button>
+        <button class="rm-rail__item" role="tab" aria-selected="false" type="button">
+          <span class="rm-rail__name">Cancer</span>
+          <span class="rm-rail__val"><span class="pval">4<span class="pval__u">engines</span></span></span>
+          <span class="pbase">moderate</span>
+        </button>
+        <button class="rm-rail__item" role="tab" aria-selected="false" type="button">
+          <span class="rm-rail__name">Kidney</span>
+          <span class="rm-rail__val"><span class="pval">~3<span class="pval__u">%</span></span></span>
+          <span class="pbase">low</span>
+        </button>
+        <button class="rm-rail__item" role="tab" aria-selected="false" type="button">
+          <span class="rm-rail__name">Systemic</span>
+          <span class="rm-rail__val"><span class="pval">3<span class="pval__u">patterns</span></span></span>
+          <span class="punmod">no score</span>
+        </button>
+      </div>
+
+      <!-- ===== Cardiovascular panel. The one Tier-1 holder on the screen. ==== -->
+      <section class="pmod pmod--tier1">
+        <div class="pmod__head">
+          <h2>Cardiovascular</h2>
+          <span class="pmod__meta">Current model output &middot; one intake timepoint</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-hero">
+            <div>
+              <div class="rm-eyebrow">Risk interpretation</div>
+              <h3>Moderate long-horizon ASCVD risk with blood pressure and lipid drivers.</h3>
+              <p>The cardiovascular read is carried by age, systolic blood pressure, lipid profile
+              and kidney function, with ApoB, Lp(a), inflammation, insulin resistance and
+              cardiorespiratory fitness kept as modifier context rather than folded into the
+              published equation.</p>
+              <p class="rm-route">PREVENT supplies the base estimate. Aleron modifier signals are shown separately so
+              the physician can see what is published equation input and what is clinical
+              overlay. Phenotype modifiers remain separate from the six PREVENT endpoints.</p>
+            </div>
+            <div class="rm-score">
+              <div class="rm-eyebrow">Current read</div>
+              <div><span class="pval pval--xl">16</span><span class="pval__u">% absolute</span></div>
+              <span class="pbase">moderate</span>
+              <div class="rm-score__h">30-yr ASCVD<br>AHA PREVENT base<br>10-yr total CVD <span class="pval">2.7<span class="pval__u">%</span></span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>What it means here</h2>
+          <span class="pmod__sub">Grouped by physician actionability, not model plumbing.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-meaning">
+            <div class="rm-card">
+              <div class="rm-card__k">Actionable levers</div>
+              <div class="rm-card__v">Cardiorespiratory fitness, Lp(a) context, HOMA-IR and hs-CRP</div>
+              <div class="rm-card__m">Prioritised from the current modifier sensitivity list. Age, blood pressure and eGFR carry more weight but only blood pressure is movable.</div>
+            </div>
+            <div class="rm-card">
+              <div class="rm-card__k">Patient evidence</div>
+              <div class="rm-card__v">Lp(a) <span class="pval">25<span class="pval__u">nmol/L</span></span>; ApoB <span class="pval">112<span class="pval__u">mg/dL</span></span> with LDL-C <span class="pval">132<span class="pval__u">mg/dL</span></span>; hs-CRP <span class="pval">3.0<span class="pval__u">mg/L</span></span></div>
+              <div class="rm-card__m">The current fields the physician can verify in chart review.</div>
+            </div>
+            <div class="rm-card">
+              <div class="rm-card__k">Confidence note</div>
+              <div class="rm-card__v">Moderate confidence, provenance visible</div>
+              <div class="rm-card__m">Single intake timepoint. Blood pressure is one clinic setting, so the strongest base input is also the least confirmed one.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Next moves</h2>
+          <span class="pmod__sub">Three, in order. Each names the field it acts on and the act itself.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-moves">
+            <div class="rm-move">
+              <b>Reconcile blood-pressure control</b>
+              <span>Current BP <span class="pval">142/90<span class="pval__u">mmHg</span></span> drives both the ASCVD and the heart-failure endpoint, and it is the single largest movable term in the linear predictor.</span>
+              <em>Confirm with a home or ambulatory series before treatment sequencing. The gate is scored on the action map at 65 % reclassification odds.</em>
+            </div>
+            <div class="rm-move">
+              <b>Clarify the ApoB and LDL strategy</b>
+              <span>ApoB <span class="pval">112<span class="pval__u">mg/dL</span></span> and LDL-C <span class="pval">132<span class="pval__u">mg/dL</span></span> are actionable lipid signals; non-HDL enters PREVENT directly, ApoB does not.</span>
+              <em>Decide whether lipid lowering belongs in the active plan or waits behind the metabolic lever.</em>
+            </div>
+            <div class="rm-move">
+              <b>Keep Lp(a) separate</b>
+              <span>Lp(a) <span class="pval">25<span class="pval__u">nmol/L</span></span> is normal here and is shown as context, not folded into PREVENT.</span>
+              <em>Measured once. Genetically set, so it does not need repeating, and it is not a risk-enhancer discussion point at this value.</em>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Variables</h2>
+          <span class="pmod__sub">Value against reference frame, and how much each moves the score.</span>
+        </div>
+        <div class="pmod__body pmod__body--flush">
+          <div class="pledger__scroll">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Variable</th>
+                  <th scope="col">Patient value</th>
+                  <th scope="col">Reference frame</th>
+                  <th scope="col">Layer</th>
+                  <th scope="col">Model sensitivity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><th scope="rowgroup" colspan="5" class="pledger__groupname">Published equation inputs</th></tr>
+                <tr>
+                  <td>Age</td>
+                  <td><span class="pval">47<span class="pval__u">yr</span></span></td>
+                  <td>30 to 79 yr</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 100%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>Systolic BP</td>
+                  <td><span class="pval">142<span class="pval__u">mmHg</span></span> <span class="ptile">stage 2</span></td>
+                  <td>90 to 200 mmHg, split at 110</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 82%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>eGFR</td>
+                  <td><span class="pval">93<span class="pval__u">mL/min/1.73m&sup2;</span></span></td>
+                  <td>15 to 140, split at 60</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 66%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>Total cholesterol / HDL-C</td>
+                  <td><span class="pval">205 / 40<span class="pval__u">mg/dL</span></span></td>
+                  <td>130 to 320 / 20 to 100 mg/dL</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 54%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>Diabetes</td>
+                  <td><span class="pval">no</span>
+                    <small class="pledger__prov">HbA1c 6.0 % is below the 6.5 % flag. Post-load status not emitted.</small>
+                  </td>
+                  <td>no / yes</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 46%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>Smoking</td>
+                  <td><span class="pval">never</span></td>
+                  <td>never / current</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 36%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>BP medication / statin</td>
+                  <td><span class="pval">no / no</span></td>
+                  <td>no / yes</td>
+                  <td><span class="pbase">base</span></td>
+                  <td><span class="rm-bar"><i style="width: 22%"></i></span></td>
+                </tr>
+                <tr><th scope="rowgroup" colspan="5" class="pledger__groupname">Aleron phenotype modifiers</th></tr>
+                <tr>
+                  <td>Cardiorespiratory fitness</td>
+                  <td><span class="pval">28<span class="pval__u">mL/kg/min</span></span> <span class="ptile">low</span></td>
+                  <td>1st to 99th percentile for age and sex</td>
+                  <td><span class="pbase">modifier</span></td>
+                  <td><span class="rm-bar"><i style="width: 60%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>Lp(a)</td>
+                  <td><span class="pval">25<span class="pval__u">nmol/L</span></span></td>
+                  <td>5 to 400 nmol/L</td>
+                  <td><span class="pbase">modifier</span></td>
+                  <td><span class="rm-bar"><i style="width: 28%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>ApoB / LDL-C discordance</td>
+                  <td><span class="pval">112 / 132<span class="pval__u">mg/dL</span></span>
+                    <small class="pledger__prov">Concordant. The A4 discordance modifier needs ApoB above 130 with LDL-C below 130.</small>
+                  </td>
+                  <td>ApoB 50 to 200; LDL-C 50 to 220 mg/dL</td>
+                  <td><span class="pbase">modifier</span></td>
+                  <td><span class="rm-bar"><i style="width: 24%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>HOMA-IR / hs-CRP</td>
+                  <td><span class="pval">4.3</span> / <span class="pval">3.0<span class="pval__u">mg/L</span></span></td>
+                  <td>0.5 to 8 / 0.2 to 12 mg/L</td>
+                  <td><span class="pbase">modifier</span></td>
+                  <td><span class="rm-bar"><i style="width: 20%"></i></span></td>
+                </tr>
+                <tr>
+                  <td>Social deprivation index</td>
+                  <td><span class="pna">not emitted</span></td>
+                  <td>1 to 100 percentile</td>
+                  <td><span class="pbase">enhanced base</span></td>
+                  <td><span class="pna">not scored</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="rm-note" style="padding: var(--s-md);">Bar length is model sensitivity, not effect size, and not a
+          patient-specific projection. Reference ranges are the equation's admitted domain.</p>
+        </div>
+      </section>
+
+      <!-- ===== Carried v0 depth. P8: under load, content yields to disclosure
+           and collapse, so every analytic step is a closed <details>. The first
+           one is open because the baseline model is what a reader checks
+           first. ===== -->
+      <details class="pdisc" open>
+        <summary>Step 1 &middot; Baseline model</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Inputs</dt><dd>age 47 yr &middot; sex male &middot; total-C 205 mg/dL &middot; HDL-C 40 mg/dL &middot; SBP 142 mmHg &middot; eGFR 93 mL/min/1.73m&sup2; &middot; non-diabetic &middot; never smoked &middot; no BP treatment &middot; no statin</dd>
+            <dt>Base P</dt><dd>16.0 % at the 30-yr ASCVD endpoint &middot; 2.7 % at 10-yr total CVD</dd>
+            <dt>Base model</dt><dd><code>aha-prevent-v1</code></dd>
+            <dt>Engine</dt><dd><code>cvd-risk-engine-algorithm 2.1</code> &middot; total CVD, ASCVD plus heart failure, sex-specific, competing-risk adjusted</dd>
+            <dt>Predictor set</dt><dd>Core ten. The enhanced predictors UACR, HbA1c in place of the binary diabetes flag, and the social deprivation index require a distinct coefficient table that has not been imported, so they are <span class="pna">not consumed</span> rather than imputed.</dd>
+            <dt>Formula</dt><dd>logit(p) = &alpha; + &beta;<sub>logAge</sub>&middot;ln(age/55) + &beta;<sub>nonHDL</sub>&middot;(non-HDL<sub>mmol</sub> &minus; 3.5) + &beta;<sub>HDL</sub>&middot;((HDL<sub>mmol</sub> &minus; 1.3)/0.3) + &beta;<sub>SBP&minus;</sub>&middot;((min(SBP,110) &minus; 110)/20) + &beta;<sub>SBP+</sub>&middot;((max(SBP,110) &minus; 110)/20) + &beta;<sub>DM</sub>&middot;DM + &beta;<sub>smk</sub>&middot;smk + &beta;<sub>eGFR&minus;</sub>&middot;((min(eGFR,60) &minus; 60)/&minus;15) + &beta;<sub>eGFR+</sub>&middot;((max(eGFR,60) &minus; 60)/&minus;15) + &beta;<sub>BPtx</sub>&middot;BPtx + &beta;<sub>statin</sub>&middot;statin + 8 interaction terms (logAge &times; {nonHDL, HDL, SBP+, DM, smk, eGFR&minus;}; BPtx &times; SBP+; statin &times; nonHDL); then p = 1 / (1 + exp(&minus;logit))</dd>
+            <dt>Centering</dt><dd>Cholesterol converted mg/dL to mmol/L at 38.67 before centering. Age on ln(age/55), non-HDL on 3.5 mmol/L, HDL on 1.3 mmol/L scaled by 0.3, SBP piecewise at 110 mmHg scaled by 20, eGFR piecewise at 60 mL/min/1.73m&sup2; scaled by &minus;15.</dd>
+          </dl>
+          <div class="pledger__scroll" style="margin-top: var(--air-group);">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Term</th>
+                  <th scope="col" data-role="value">&beta;, male 30-yr total CVD</th>
+                  <th scope="col">Patient centered value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>intercept &alpha;</td><td data-role="value">&minus;1.518587</td><td><span class="pna">not applicable</span></td></tr>
+                <tr><td>logAge</td><td data-role="value">+0.4995532</td><td><span class="pval">&minus;0.1568</span></td></tr>
+                <tr><td>nonHDL</td><td data-role="value">+0.0535040</td><td><span class="pval">+0.7677<span class="pval__u">mmol/L</span></span></td></tr>
+                <tr><td>HDL</td><td data-role="value">&minus;0.0772942</td><td><span class="pval">&minus;0.8845</span></td></tr>
+                <tr><td>SBP&minus;</td><td data-role="value">&minus;0.3525616</td><td><span class="pval">0.0000</span></td></tr>
+                <tr><td>SBP+</td><td data-role="value">+0.2901171</td><td><span class="pval">+1.6000</span></td></tr>
+                <tr><td>diabetes</td><td data-role="value">+0.6526438</td><td><span class="pval">0</span></td></tr>
+                <tr><td>smoking</td><td data-role="value">+0.3848590</td><td><span class="pval">0</span></td></tr>
+                <tr><td>eGFR&minus;</td><td data-role="value">+0.1041018</td><td><span class="pval">0.0000</span></td></tr>
+                <tr><td>eGFR+</td><td data-role="value">&minus;0.0288403</td><td><span class="pval">&minus;2.2000</span></td></tr>
+                <tr><td>BP treatment</td><td data-role="value">+0.2403751</td><td><span class="pval">0</span></td></tr>
+                <tr><td>statin</td><td data-role="value">&minus;0.0653779</td><td><span class="pval">0</span></td></tr>
+                <tr><td>BPtx &times; SBP+</td><td data-role="value">&minus;0.0810419</td><td><span class="pval">0.0000</span></td></tr>
+                <tr><td>statin &times; nonHDL</td><td data-role="value">&minus;0.1011477</td><td><span class="pval">0.0000</span></td></tr>
+                <tr><td>logAge &times; nonHDL</td><td data-role="value">&minus;0.0498938</td><td><span class="pval">&minus;0.1204</span></td></tr>
+                <tr><td>logAge &times; HDL</td><td data-role="value">+0.0763795</td><td><span class="pval">+0.1387</span></td></tr>
+                <tr><td>logAge &times; SBP+</td><td data-role="value">&minus;0.3360432</td><td><span class="pval">&minus;0.2509</span></td></tr>
+                <tr><td>logAge &times; diabetes</td><td data-role="value">&minus;0.4137391</td><td><span class="pval">0.0000</span></td></tr>
+                <tr><td>logAge &times; smoking</td><td data-role="value">&minus;0.1395175</td><td><span class="pval">0.0000</span></td></tr>
+                <tr><td>logAge &times; eGFR&minus;</td><td data-role="value">+0.0644619</td><td><span class="pval">0.0000</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="rm-note" style="margin-top: var(--air-row);">Coefficients are the published AHA PREVENT 2024 supplementary
+          tables (Khan SS et al., PMID 37947085). The engine ships four tables, sex by horizon; this is
+          the one this patient routes to. The engine throws rather than imputing when a core predictor is
+          missing, because a model that silently fills in a value undermines the read.</p>
+        </div>
+      </details>
+
+      <details class="pdisc">
+        <summary>Step 2 &middot; Baseline modifiers, groups A to D</summary>
+        <div class="pdisc__body">
+          <p class="rm-note">Four groups, each capped, each aggregating by its own declared rule.
+          A group with no active modifier prints its empty state rather than disappearing: an
+          unassessed modifier is not an absent one.</p>
+
+          <!-- Group A -->
+          <div style="margin-top: var(--air-group);">
+            <div class="pmod__head">
+              <h3>Group A &middot; Lipid &amp; inflammatory</h3>
+              <span class="rm-grouprule">PRODUCT &middot; cap 2.5&times;</span>
+            </div>
+            <p class="rm-note" style="padding: var(--air-row) var(--s-sm) 0;">Circulating particles that drive endothelial injury and plaque deposition. The most modifiable lever in this domain.</p>
+            <div class="pledger__scroll">
+              <table class="pledger">
+                <thead><tr><th scope="col">Modifier</th><th scope="col" data-role="value">Effect</th><th scope="col">Citation</th></tr></thead>
+                <tbody>
+                  <tr><td>A1 &middot; Lp(a) continuous, 25.0 nmol/L</td><td data-role="value">&uarr; <span class="pval">1.11<span class="pval__u">&times;</span></span></td><td>PMID 19906021 &middot; &beta; = 0.11 on nmol/L, clamped to 1.0 to 1.5</td></tr>
+                  <tr><td>A6 &middot; hs-CRP at or above 2.0 mg/L on two or more measurements</td><td data-role="value">&uarr; <span class="pval">1.25<span class="pval__u">&times;</span></span></td><td>Spec &sect;3.1 A6</td></tr>
+                  <tr><td>A7 &middot; hs-CRP at or above 5.0 mg/L persistent, infection excluded</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>JUPITER &middot; spec &sect;3.1 A7, supersedes A6 on the same marker</td></tr>
+                  <tr><td>A4 &middot; ApoB above 130 with LDL-C below 130, discordance</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>CTT meta-analysis &middot; ApoB above LDL-C as particle proxy</td></tr>
+                  <tr><td>A8 &middot; Omega-3 index below 4 %</td><td data-role="value">&middot; <span class="pna">no data submitted</span></td><td>Spec &sect;3.1 A8</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="rm-groupfoot"><span>Group A composite</span><span><span class="pval">1.11 &times; 1.25 = 1.39<span class="pval__u">&times;</span></span></span></p>
+          </div>
+
+          <!-- Group B -->
+          <div style="margin-top: var(--air-group);">
+            <div class="pmod__head">
+              <h3>Group B &middot; Hemodynamic &amp; autonomic</h3>
+              <span class="rm-grouprule">PRODUCT &middot; cap 2.0&times;</span>
+            </div>
+            <p class="rm-note" style="padding: var(--air-row) var(--s-sm) 0;">Pressure and conduction state affecting vessel-wall stress and chronotropic reserve. Every component here needs a series, and this patient has one clinic reading.</p>
+            <div class="pledger__scroll">
+              <table class="pledger">
+                <thead><tr><th scope="col">Modifier</th><th scope="col" data-role="value">Effect</th><th scope="col">Citation</th></tr></thead>
+                <tbody>
+                  <tr><td>B3 &middot; Reverse dip on ABPM, night SBP above day SBP</td><td data-role="value">&middot; <span class="pna">no data submitted</span></td><td>MAPEC &middot; spec &sect;3.2 B3</td></tr>
+                  <tr><td>B2 &middot; Nocturnal dip below 10 %</td><td data-role="value">&middot; <span class="pna">no data submitted</span></td><td>MAPEC &middot; spec &sect;3.2 B2</td></tr>
+                  <tr><td>B1 &middot; Home cuff SBP standard deviation above 15 mmHg</td><td data-role="value">&middot; <span class="pna">no data submitted</span></td><td>Spec &sect;3.2 B1 &middot; needs 14 readings inside 30 days</td></tr>
+                  <tr><td>B4 to B7 &middot; Autonomic tiers on RHR and RMSSD</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>Spec &sect;3.2 B4 to B7 &middot; thresholds are RHR above 80 bpm and RMSSD below 20 ms; measured 38 bpm and 34 ms</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="rm-groupfoot"><span>Group B composite</span><span><span class="pval">= 1.00<span class="pval__u">&times;</span></span> <span class="pna">neutral by absence, not by evidence</span></span></p>
+          </div>
+
+          <!-- Group C -->
+          <div style="margin-top: var(--air-group);">
+            <div class="pmod__head">
+              <h3>Group C &middot; Metabolic &amp; glycemic</h3>
+              <span class="rm-grouprule">PRODUCT of two MAX pairs &middot; cap 2.0&times;</span>
+            </div>
+            <p class="rm-note" style="padding: var(--air-row) var(--s-sm) 0;">Insulin resistance and glycemic dysregulation. Within each pair the dominant marker wins so the same physiology is not counted twice.</p>
+            <div class="pledger__scroll">
+              <table class="pledger">
+                <thead><tr><th scope="col">Modifier</th><th scope="col" data-role="value">Effect</th><th scope="col">Citation</th></tr></thead>
+                <tbody>
+                  <tr><td>C1 &middot; HOMA-IR 4.30, above 3.0</td><td data-role="value">&uarr; <span class="pval">1.15<span class="pval__u">&times;</span></span></td><td>Spec &sect;3.3 C1 &middot; non-diabetic only</td></tr>
+                  <tr><td>C2 &middot; Metabolic syndrome, 4 of 5 ATP-III criteria</td><td data-role="value">&uarr; <span class="pval">1.20<span class="pval__u">&times;</span></span></td><td>NCEP ATP-III &middot; spec &sect;3.3 C2 &middot; waist, triglycerides, blood pressure, glucose</td></tr>
+                  <tr><td>C3 &middot; HbA1c 6.0 %, prediabetic range</td><td data-role="value">&uarr; <span class="pval">1.10<span class="pval__u">&times;</span></span></td><td>Spec &sect;3.3 C3</td></tr>
+                  <tr><td>C4 &middot; HbA1c above 8.0 %, diabetic</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>Spec &sect;3.3 C4 &middot; halved if the enhanced base already consumed HbA1c</td></tr>
+                  <tr><td>C5 &middot; SGLT2 inhibitor active</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>EMPA-REG / CANVAS / DECLARE &middot; spec &sect;3.3 C5 &middot; protective at 0.75&times;</td></tr>
+                  <tr><td>C6 &middot; GLP-1 receptor agonist active</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>SUSTAIN-6 / LEADER / REWIND &middot; spec &sect;3.3 C6 &middot; protective at 0.80&times;</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="rm-groupfoot"><span>Group C composite</span><span><span class="pval">max(1.15, 1.20) &times; max(1.10, 1.00) = 1.32<span class="pval__u">&times;</span></span></span></p>
+          </div>
+
+          <!-- Group D -->
+          <div style="margin-top: var(--air-group);">
+            <div class="pmod__head">
+              <h3>Group D &middot; Genetic &amp; familial</h3>
+              <span class="rm-grouprule">MAX within the variant family, then PRODUCT with one family term &middot; cap 3.0&times;</span>
+            </div>
+            <p class="rm-note" style="padding: var(--air-row) var(--s-sm) 0;">Fixed architecture amplifying endothelial injury. The dominant lesion wins; variants do not stack. This patient's P/LP finding is real and is routed elsewhere.</p>
+            <div class="pledger__scroll">
+              <table class="pledger">
+                <thead><tr><th scope="col">Modifier</th><th scope="col" data-role="value">Effect</th><th scope="col">Citation</th></tr></thead>
+                <tbody>
+                  <tr><td>D1 &middot; P/LP in an FH gene, LDLR / APOB / PCSK9</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>Spec &sect;3.4 D1 &middot; 3.0&times; when present</td></tr>
+                  <tr><td>D3 / D4 &middot; P/LP in an HCM or arrhythmia gene</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>Spec &sect;3.4 D3, D4 &middot; probability override, not a multiplier</td></tr>
+                  <tr><td>D6 &middot; P/LP in another cardiovascular gene</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>Spec &sect;3.4 D6 &middot; ATM heterozygous P/LP is a cancer-predisposition finding and is not on the cardiovascular gene list</td></tr>
+                  <tr><td>D7 / D8 / D9 &middot; First-degree family history of premature MI or stroke, CVD at any age, or sudden cardiac death before 50</td><td data-role="value">&middot; <span class="pna">not fired</span></td><td>ARIC &middot; spec &sect;3.4 D7 to D9 &middot; recorded history is T2D and hypertension, neither of which is a cardiovascular family term</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="rm-groupfoot"><span>Group D composite</span><span><span class="pval">= 1.00<span class="pval__u">&times;</span></span> <span class="pbase">ATM P/LP routes to the required channel</span></span></p>
+          </div>
+        </div>
+      </details>
+
+      <details class="pdisc">
+        <summary>Step 3 &middot; Composite risk</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Sum log-HR</dt><dd>ln(1.39) + ln(1.00) + ln(1.32) + ln(1.00) = +0.607</dd>
+            <dt>Composite modifier</dt><dd>exp(+0.607) = 1.835</dd>
+            <dt>Group caps</dt><dd>A 2.5&times;, B 2.0&times;, C 2.0&times;, D 3.0&times;. No group reached its cap on this profile.</dd>
+            <dt>Base &times; composite</dt><dd>16.0 % &times; 1.835 = 29.4 % phenotype-adjusted 30-yr ASCVD</dd>
+            <dt>Reported figure</dt><dd>16.0 %, the PREVENT base output. The phenotype-adjusted product is shown for transparency and is <span class="pna">not</span> the number the action map prices against.</dd>
+            <dt>Tier rule</dt><dd>Tier classifier reads the base output, so the band word is MODERATE. The adjusted product would fall in the high band, and that disagreement is the finding, not a rounding artifact.</dd>
+          </dl>
+          <p class="rm-note" style="margin-top: var(--air-row);">A composite that silently replaced the published output would
+          make the equation unauditable. Both numbers stay visible, and the frame of each is stated in place.</p>
+        </div>
+      </details>
+
+      <details class="pdisc">
+        <summary>Information gaps</summary>
+        <div class="pdisc__body">
+          <p class="rm-note">Conditional inputs absent from the record that would materially refine
+          the posterior. <em>An unassessed risk is not a low risk.</em></p>
+          <div class="pledger__scroll" style="margin-top: var(--air-row);">
+            <table class="pledger">
+              <thead>
+                <tr>
+                  <th scope="col">Input</th>
+                  <th scope="col">Why missing matters</th>
+                  <th scope="col">If obtained &middot; effect</th>
+                  <th scope="col">Cadence</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Home or ambulatory BP series</td>
+                  <td>Systolic BP is the largest movable term in the linear predictor and it is recorded from one clinic setting. Group B cannot fire at all without a night series.</td>
+                  <td>Confirms or removes stage 2. Scored on the action map at 65 % reclassification odds and <span class="pval">0.63<span class="pval__u">QALY</span></span> if reclassified.</td>
+                  <td>7 days, morning and evening</td>
+                </tr>
+                <tr>
+                  <td>75 g 2-hour OGTT</td>
+                  <td>HbA1c 6.0 % with HOMA-IR 4.3 leaves post-load status unknown. Diabetes is a base-model term worth +0.653 log-HR, not a modifier.</td>
+                  <td>Would move <code>diabetes</code> from 0 to 1 in the equation. 4 % reclassification odds and <span class="pval">0.85<span class="pval__u">QALY</span></span> if reclassified.</td>
+                  <td>Once, then annual while impaired</td>
+                </tr>
+                <tr>
+                  <td>hs-CRP repeat</td>
+                  <td>The A6 tier requires two or more measurements above 2.0 mg/L. One draw of 3.0 mg/L cannot separate chronic inflammation from an acute phase.</td>
+                  <td>Confirms or withdraws the 1.25&times; A6 modifier, which is the larger half of group A.</td>
+                  <td>Repeat at 4 to 6 weeks</td>
+                </tr>
+                <tr>
+                  <td>FIB-4 with AST, ALT, platelets</td>
+                  <td>Fibrosis stage is unmodelled here. Hepatic risk drives the metabolic group and the engine cannot see it.</td>
+                  <td>Stages MASLD. 20 % reclassification odds and <span class="pval">0.70<span class="pval__u">QALY</span></span> if reclassified.</td>
+                  <td>Once, then every 2 years</td>
+                </tr>
+                <tr>
+                  <td>UACR trend</td>
+                  <td>A single UACR of 14 mg/g cannot separate stable from rising albuminuria. eGFR is a core input; UACR belongs to the enhanced table.</td>
+                  <td>With HbA1c and the deprivation index, unlocks the PREVENT-enhanced coefficient set.</td>
+                  <td>Every 6 months</td>
+                </tr>
+                <tr>
+                  <td>12-lead ECG</td>
+                  <td>Overnight RHR 38 bpm is discordant with VO&#8322;max 28 mL/kg/min. The autonomic group has no term that reads bradycardia.</td>
+                  <td>15 % reclassification odds and <span class="pval">0.40<span class="pval__u">QALY</span></span> if reclassified. Changes exercise clearance more than it changes the score.</td>
+                  <td>Once, then patch or Holter if persistent</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details class="pdisc">
+        <summary>Evidence &amp; provenance</summary>
+        <div class="pdisc__body">
+          <p>AHA PREVENT 2024 total-CVD equations, Khan SS et al., PMID 37947085, published
+          supplementary coefficient tables for ASCVD plus heart failure at 10 and 30 years,
+          sex-specific and competing-risk adjusted; PMID 19906021 for the Lp(a) continuous
+          exponent; JUPITER for the hs-CRP inflammatory tier; CTT meta-analysis for ApoB as a
+          particle proxy above LDL-C; MAPEC for nocturnal dipping; NCEP ATP-III for the
+          metabolic-syndrome criteria; ARIC for premature family history; EMPA-REG, CANVAS and
+          DECLARE for the SGLT2 protective term; SUSTAIN-6, LEADER and REWIND for the GLP-1
+          protective term.</p>
+          <dl class="pfacts" style="margin-top: var(--air-group);">
+            <dt>Document</dt><dd><code>cvd-risk-engine-algorithm 2.1</code></dd>
+            <dt>Engine</dt><dd><code>aha-prevent-v1</code> with the Aleron modifier layer</dd>
+            <dt>Run</dt><dd>24 Jun 2026 09:04 &middot; packet <code>patient_packet.v1</code></dd>
+            <dt>Schema</dt><dd><code>risk_envelope.v2</code></dd>
+            <dt>Validation</dt><dd>Coefficients are fixture-validated against the AHA PREVENT online calculator. That validation is the acceptance gate and it is not a clinical clearance.</dd>
+            <dt>Other domains</dt><dd>Metabolic, Neuro, Cancer and Kidney all carry <span class="pna">model provenance pending</span>. Cardiovascular is the only domain whose baseline model is materialised, which is why this panel opens first.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <!-- ===== Second specimen: the Systemic panel. Only one domain panel
+           renders at a time in the product; both are shown here so the sixth
+           entry is legible rather than a label with nothing behind it. ===== -->
+      <p class="wf-note" data-kind="new" style="margin: var(--air-section) 0 var(--air-tier);"><span class="wf-note__tag">new</span>
+        <span>Second specimen. In the product only one domain panel renders at a time; the
+        Systemic panel below is what the sixth rail entry opens.</span></p>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Systemic</h2>
+          <span class="pmod__meta">Cross-domain synthesis &middot; narrative, not scored</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-hero">
+            <div>
+              <div class="rm-eyebrow">Systemic synthesis</div>
+              <h3>Three cross-domain patterns the five disease models cannot see individually.</h3>
+              <p>Each of the five domain engines reads part of this patient and none of them reads
+              the whole. This pass looks across the packet for patterns that live between the
+              silos, and it emits no score, no horizon and no tier, because there is no honest
+              unit for a pattern.</p>
+              <p class="rm-route">Read this before the domain panels, not after. It is the only place the sleep,
+              hepatic and rhythm questions appear together, and those three are what the action
+              map sequences first.</p>
+            </div>
+            <div class="rm-score">
+              <div class="rm-eyebrow">Current read</div>
+              <div><span class="pval pval--lg">3</span><span class="pval__u">cross-domain patterns</span></div>
+              <span class="punmod">no score emitted</span>
+              <div class="rm-score__h">Data rows <span class="pval">47</span><br>Verification <span class="pna">unverified narrative</span><br>Run 3f9c1a20</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Patient picture</h2>
+        </div>
+        <div class="pmod__body">
+          <p class="rm-note">A 47-year-old man whose central adiposity sits upstream of almost
+          everything else in the packet. Blood pressure, glycemia, triglycerides, inflammation and
+          low fitness are all consistent with one visceral-adiposity story, and two findings do not
+          fit it: an overnight oxygen nadir of 89 % and an overnight heart rate of 38 bpm. Those
+          two are the reason the plan starts with a sleep and rhythm question rather than with a
+          prescription.</p>
+        </div>
+      </section>
+
+      <section class="pmod pmod--flat">
+        <div class="pmod__head">
+          <h2>Patterns</h2>
+          <span class="pmod__sub">Each names its mechanism, the signals it rests on, and what would settle it.</span>
+        </div>
+        <div class="pmod__body">
+          <div class="rm-pattern">
+            <div class="rm-pattern__head">
+              <span class="rm-pattern__id">P1</span>
+              <h4>Sleep-disordered breathing as an upstream driver of blood pressure, insulin resistance and fatigue</h4>
+              <span class="padv">medium confidence</span>
+              <span class="pbase">snapshot</span>
+            </div>
+            <p>Four findings that three different engines each own a piece of are consistent with one
+            untreated upstream driver. No engine tests for it, because none of them has a sleep input.</p>
+            <dl class="pfacts">
+              <dt>Mechanism</dt><dd>Intermittent nocturnal hypoxia drives sympathetic surge and cortisol, which raises nocturnal and morning blood pressure and worsens hepatic insulin resistance; unrefreshing sleep then presents as low energy and low clarity.</dd>
+              <dt>Signals</dt><dd>SpO&#8322; nadir 89 % &middot; BP 142/90 mmHg untreated &middot; HOMA-IR 4.3 &middot; waist 105 cm &middot; energy 4 of 10 &middot; clarity 4 of 10</dd>
+              <dt>Would settle it</dt><dd>STOP-BANG, then a home sleep apnea test. Scored on the action map at 35 % reclassification odds.</dd>
+            </dl>
+            <div class="rm-chips"><span>overnight oximetry</span><span>clinic vitals</span><span>fasting labs</span><span>patient-reported outcome</span></div>
+          </div>
+
+          <div class="rm-pattern">
+            <div class="rm-pattern__head">
+              <span class="rm-pattern__id">P2</span>
+              <h4>Visceral adiposity with probable hepatic involvement that no domain stages</h4>
+              <span class="padv">high confidence</span>
+              <span class="pbase">snapshot</span>
+            </div>
+            <p>The cardiovascular, metabolic and kidney models each read one facet of this and none
+            of them stages the liver, so a fibrosis question that changes drug selection sits in no
+            domain's output.</p>
+            <dl class="pfacts">
+              <dt>Mechanism</dt><dd>Visceral fat drives portal free fatty acid delivery, hepatic steatosis and hepatic insulin resistance, which raises triglycerides and hs-CRP and lowers HDL-C. The pattern is the same physiology the metabolic group reads as C1 and C2.</dd>
+              <dt>Signals</dt><dd>waist 105 cm &middot; waist-to-height 0.59 &middot; triglycerides 180 mg/dL &middot; HDL-C 40 mg/dL &middot; HOMA-IR 4.3 &middot; hs-CRP 3.0 mg/L</dd>
+              <dt>Would settle it</dt><dd>FIB-4 from AST, ALT and platelets, then FibroScan if indicated. It gates resmetirom and it changes alcohol guidance.</dd>
+            </dl>
+            <div class="rm-chips"><span>anthropometry</span><span>lipid panel</span><span>inflammation</span><span>insulin dynamics</span></div>
+          </div>
+
+          <div class="rm-pattern">
+            <div class="rm-pattern__head">
+              <span class="rm-pattern__id">P3</span>
+              <h4>Nocturnal bradycardia discordant with measured fitness</h4>
+              <span class="padv">low confidence</span>
+              <span class="pbase">trend</span>
+            </div>
+            <p>The single finding in the packet that argues against the visceral-adiposity story,
+            which is exactly why it is listed rather than smoothed away.</p>
+            <dl class="pfacts">
+              <dt>Mechanism</dt><dd>An overnight heart rate of 38 bpm normally accompanies high aerobic capacity. Here VO&#8322;max is 28 mL/kg/min and self-reported activity is low, so athletic bradycardia is not the default explanation and conduction disease is not excluded. Sleep-disordered breathing can also produce cyclical bradycardia, which would fold this into P1.</dd>
+              <dt>Signals</dt><dd>overnight RHR 38 bpm &middot; VO&#8322;max 28 mL/kg/min &middot; activity low &middot; SpO&#8322; nadir 89 %</dd>
+              <dt>Would settle it</dt><dd>12-lead ECG, then patch or Holter with overnight oximetry if persistent. It changes exercise clearance before it changes any score.</dd>
+            </dl>
+            <div class="rm-chips"><span>wearable rhythm</span><span>fitness estimate</span><span>self-report</span></div>
+          </div>
+        </div>
+      </section>
+
+      <details class="pdisc">
+        <summary>Root-causes hypothesis, open questions, and what was excluded</summary>
+        <div class="pdisc__body">
+          <dl class="pfacts">
+            <dt>Root causes</dt><dd>One hypothesis explains most of the picture: untreated sleep-disordered breathing on a background of visceral adiposity. Weight, blood pressure, glycemia and fatigue read as downstream of those two, which is why the map prices the sleep gate ahead of the antihypertensive.</dd>
+            <dt>Open questions</dt><dd>Is the nocturnal bradycardia a consequence of sleep-disordered breathing or an independent conduction finding? Does alcohol intake account for any of the triglyceride and hepatic pattern? Is the hs-CRP of 3.0 mg/L chronic, or a single acute-phase draw?</dd>
+            <dt>Absent but expected</dt><dd>Ambulatory night blood-pressure series &middot; FIB-4 &middot; alcohol intake in drinks per day &middot; 12-lead ECG &middot; a second hs-CRP</dd>
+            <dt>Noise excluded</dt><dd>eGFR 93 mL/min/1.73m&sup2; and UACR 14 mg/g are both normal and were considered and dropped. Lp(a) 25 nmol/L is normal and carries no overlay here. Never-smoker status removes the lung engine from the cancer question. None of these four is part of any pattern above.</dd>
+            <dt>Verification</dt><dd><span class="pna">unverified narrative</span> &middot; 47 data rows assembled &middot; run 3f9c1a20 &middot; no pattern here is a diagnosis and none of them changes a domain score</dd>
+          </dl>
+        </div>
+      </details>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-42" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-42" role="note">
+        Synthetic profile &middot; five domain models plus one cross-domain pass &middot; the domain
+        figure is the published base output and phenotype modifiers are shown separately &middot;
+        every domain but cardiovascular carries model provenance pending, and an unassessed risk
+        is not a low risk.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The hero, the meaning strip, next moves and the variables ledger all carry forward from
+    the reference surface's Models pane unchanged in structure.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>Steps 1 to 3, the information-gaps table and the evidence block, from
+    <code>v0/risk-models-domain.html</code> and its source
+    <code>resources/views/physician/partials/domain-panel.blade.php</code> with
+    <code>resources/js/portal.js</code>. This is v0's single best feature and v1 has nothing like
+    it: the real AHA PREVENT formula, the real male 30-yr coefficient table, the A to D modifier
+    groups with per-modifier multiplier, effect and citation, the group rule and composite
+    footer, and the composite arithmetic.</span></p>
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The <b>Systemic</b> domain, from <code>v0/risk-models-systemic.html</code> and its source
+    <code>partials/systemic-panel.blade.php</code>: patient picture, annotated pattern cards with
+    mechanism and signals, root causes, open questions, absent but expected, and the
+    noise-excluded audit trail. It becomes the sixth entry on v1's five-domain rail.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>P8 decides the arrangement: every carried block is a closed <code>.pdisc</code>
+    disclosure, because under load content yields to disclosure and collapse and air is never
+    shrunk to fit more in. v0 stacked all eight sections open and the page ran to four
+    screens.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The panel opens on Cardiovascular, not on the highest band. v1 selects the high-band
+    domain, which is Metabolic; but Metabolic carries <code>model provenance pending</code> and the
+    carried transparency blocks would render as five pending rows. Metabolic stays flagged high in
+    the rail, and the reason for the choice is stated in the evidence block.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Composite risk shows both numbers. v0 promotes base times composite to the headline;
+    the reference surface keeps phenotype modifiers separate from the published PREVENT endpoints.
+    Both are printed with their frames stated, and the disagreement between the band words is
+    named as a finding rather than reconciled silently.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Group letters follow the engine, not v0's UI. <code>portal.js</code> hard-codes MAX for
+    group C and describes C as fixed genetic architecture, but the engine's C is
+    <code>MetabolicGlycemicDomain</code> and its D is <code>GeneticFamilialDomain</code>. v0's
+    labels and rules are off by one group; v2 uses the engine's.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The domain rail, the hero split, the meaning cards and the sensitivity bar have no
+    canonical component. All four are screen-local layout here rather than additions to
+    <code>physician-chrome.css</code>, because each occurs once; if a second risk surface needs
+    them they graduate to section B.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Screening has no canonical icon. The magnifier with a plus is drawn inline in the
+    canonical stroke grammar and flagged provisional in the markup.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's mono face on formulas, coefficients and composite arithmetic. P4 retires the audit
+    face from product surfaces; the formula and the coefficient table read in the voice face with
+    tabular figures, which is the harder discipline and the one v1 and v2 accept.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's per-domain <b>Model audit trail</b> output grid, six PREVENT endpoints as tiles.
+    Five of the six are the same equation at another horizon or endpoint, and the reference
+    surface already states the two that matter in the scorecard. The rest would spend a whole
+    module restating the header.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0's <code>.ds-skeleton</code> loading block and its per-domain eager parallel fetch
+    spinner. Skeletons are on BRIEF.md's forbidden list; the canonical instrument is three
+    pulsing dots.</span></p>
+</div>
+
+</body>
+</html>

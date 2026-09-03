@@ -1,0 +1,810 @@
+/* v0-tokens.css — the baseline replica's own visual language.
+ *
+ * v0 is a faithful record of the physician portal as it stands in
+ * Aleron-Web today (Laravel + Blade + Tailwind + Alpine). It exists so the
+ * v1 and v2 proposals have something honest to be compared against at a demo.
+ * That only works if v0 looks like v0, so this file reproduces the shipped
+ * app's own deviations from the canonical design system rather than quietly
+ * correcting them.
+ *
+ * Loaded after tokens.css / components.css / physician-chrome.css, scoped to
+ * .v0 so nothing here can reach a v1 or v2 screen sitting in the same folder
+ * tree.
+ *
+ * Every value is transcribed from Aleron-Web's own files:
+ *   resources/css/tokens.css      (the deviations + the status shim)
+ *   resources/css/app.css         (.ds-* utilities)
+ *   resources/css/care-plan.css   (the #cp prototype port)
+ *   resources/views/layouts/physician.blade.php  (the shell)
+ *
+ * NONE OF IT IS A PROPOSAL. Where a value is wrong by the design system's own
+ * rules the comment says so and the value stays wrong, because that is the
+ * point of a baseline.
+ */
+
+.v0 {
+  /* --- Declared deviations from the canonical kit -----------------------
+     Aleron-Web's tokens.css marks both of these as deviations in its own
+     comments (its T5 acceptance note). Reproduced, not fixed. */
+
+  /* Canonical ships --text-gold (#8A6A2F). The app shipped --gold-800, which
+     is darker and sits outside the ratified advisory value. */
+  --signal-advisory: var(--gold-800);
+
+  /* Canonical rail is 188px (and the physician register fixes it there).
+     The app's token says 200px. It is unused today because v0 has no rail at
+     all, which is itself the finding. */
+  --nav-w: 200px;
+
+  /* --- Clinical status shim -------------------------------------------
+     Verbatim from the app, including its own admission: "Aleron's palette
+     has no success-green and one severity signal." The consequence is the
+     single most visible difference between v0 and the canonical registers:
+     severity is carried by neutral weight plus one ember, with no green and
+     no amber anywhere in the product. */
+  --steel-lit: #97A6B3;
+  --status-ok: var(--signal-baseline);
+  --status-warn: var(--steel);
+  --status-crit: var(--signal-hazard);
+  --status-crit-bg: rgba(164, 69, 44, 0.12);
+  --status-crit-ring: rgba(164, 69, 44, 0.35);
+  --status-warn-bg: rgba(70, 85, 95, 0.12);
+  --status-warn-ring: rgba(70, 85, 95, 0.35);
+  --status-ok-bg: rgba(90, 99, 120, 0.12);
+  --status-ok-ring: rgba(90, 99, 120, 0.30);
+
+  /* --- care-plan.css extras, labelled "Provisional Meridian extension
+     tokens" in the app. Meridian is the pre-Aleron brand; the name is still
+     in the codebase, and the localStorage key is still `meridian-register`. */
+  --sev-low: var(--signal-baseline);
+  --sev-mod: var(--steel);
+  --sev-high: var(--ember);
+  --bar-bg: color-mix(in srgb, var(--ground) 92%, transparent);
+  --shadow-sheet: 0 1px 2px rgba(29, 27, 24, 0.05), 0 16px 48px rgba(29, 27, 24, 0.10);
+}
+.v0[data-register="flight-deck"] {
+  --signal-advisory: var(--lit-gold);
+  /* Canonical ships 0.55. The app raised it to 0.62 and declared the change. */
+  --text-tertiary: rgba(245, 241, 232, 0.62);
+  --status-warn: var(--steel-lit);
+}
+
+.v0 {
+  background: var(--ground);
+  color: var(--text-primary);
+  font-family: var(--voice);
+  font-size: var(--size-text);
+  /* App-wide, in app.css. */
+  font-feature-settings: 'tnum' 1;
+  min-height: 700px;
+  display: flex;
+  flex-direction: column;
+}
+.v0 :focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
+.v0 h1, .v0 h2, .v0 h3, .v0 p, .v0 ul, .v0 ol, .v0 table, .v0 figure { margin: 0; }
+
+
+/* ==========================================================================
+   SHELL — layouts/physician.blade.php
+   ==========================================================================
+   56px header, centred main, and that is the whole shell. There is no
+   sidebar, no footer, and no persistent patient-context bar; each patient
+   page re-renders its own identity block and tab strip inside its content
+   section. That duplication is the single biggest structural fact about v0
+   and the reason four of the tab strips are subtly different from each other.
+   ========================================================================== */
+
+.v0-header {
+  border-bottom: var(--line-thin) solid var(--hairline);
+  background: var(--surface-card);
+}
+.v0-header__bar {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  height: 56px;
+  padding: 0 var(--s-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-md);
+}
+.v0-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-xs);
+  color: var(--text-primary);
+  font-weight: var(--w-emphasis);
+  letter-spacing: -0.0275em;
+  text-decoration: none;
+}
+/* The app's comment calls this "the single sanctioned gold detail" and it is
+   accurate: this 18x3 bar is the only piece of brand ornament in the entire
+   product. */
+.v0-wordmark::before {
+  content: "";
+  width: 18px;
+  height: var(--line-signal);
+  border-radius: var(--radius-tile);
+  background: var(--signal-forward);
+}
+.v0-header__right { display: flex; align-items: center; gap: var(--s-xs); }
+.v0-header__user { color: var(--text-secondary); font-size: var(--size-small); }
+.v0-header__proto { color: var(--text-tertiary); font-size: var(--size-small); }
+/* The register toggle is real and works; it is one of the few things v0 has
+   that the canonical reference surface does not. */
+.v0-header .amd-button { min-height: var(--s-xl); }
+
+.v0-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--air-section) var(--s-lg);
+}
+
+/* Per-page identity block. Repeated in every patient view. */
+.v0-ident { display: grid; gap: var(--s-2xs); min-width: 0; }
+.v0-back {
+  font-size: var(--size-small);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.v0-back:hover { color: var(--text-primary); }
+.v0-ident h1 {
+  font-size: var(--size-h2);
+  font-weight: var(--w-emphasis);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v0-ident__sub { font-size: var(--size-small); color: var(--text-secondary); }
+.v0-identrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-md) var(--air-group);
+  margin-bottom: var(--air-section);
+}
+
+/* Section tab strip. Four variants ship in the app; this is the Risk Models
+   one, which is the closest to intended. The others differ by holder radius,
+   holder surface, and whether the holder has a border. Where a screen uses a
+   different variant it carries a `data-variant` and a note. */
+.v0-tabs {
+  display: inline-flex;
+  gap: var(--s-2xs);
+  padding: var(--s-2xs);
+  border-radius: var(--radius-control);
+  background: var(--surface-inset);
+}
+.v0-tabs[data-variant="bordered"] { border: var(--line-thin) solid var(--border-subtle); }
+.v0-tabs[data-variant="card"] { border-radius: var(--radius-tier2); background: var(--surface-card); }
+.v0-tabs a,
+.v0-tabs span {
+  padding: var(--s-xs) var(--s-sm);
+  border-radius: var(--radius-control);
+  font-size: var(--size-small);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.v0-tabs[data-variant="tile"] a,
+.v0-tabs[data-variant="tile"] span { border-radius: var(--radius-tile); }
+.v0-tabs a:hover { color: var(--text-primary); }
+.v0-tabs [aria-current="page"] {
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-weight: var(--w-emphasis);
+}
+.v0-tabs[data-variant="card"] [aria-current="page"] { background: var(--surface-selected); }
+/* Trajectory has shipped disabled since the portal launched: a non-clickable
+   span titled "Coming in a later milestone". */
+.v0-tabs [aria-disabled="true"] {
+  color: var(--control-disabled-fg);
+  cursor: not-allowed;
+}
+
+/* Sub-tab strip (Risk Models' seven domains). Underline, not segmented — a
+   second switcher mechanism on the same page as the segmented one above it. */
+.v0-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-lg);
+  border-bottom: var(--line-thin) solid var(--hairline);
+  margin-bottom: var(--air-section);
+}
+.v0-subtabs a {
+  padding: var(--s-xs) 0;
+  margin-bottom: calc(var(--line-thin) * -1);
+  border-bottom: var(--line-focus) solid transparent;
+  font-size: var(--size-small);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.v0-subtabs a:hover { color: var(--text-primary); }
+.v0-subtabs [aria-current="page"] {
+  border-bottom-color: var(--text-primary);
+  color: var(--text-primary);
+  font-weight: var(--w-emphasis);
+}
+
+
+/* ==========================================================================
+   .ds-* UTILITIES — resources/css/app.css
+   ========================================================================== */
+
+/* Domain severity tile in the cohort list. 28x22, radius 4, letter inside.
+   Severity by weight and one ember, never by hue. */
+.ds-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 22px;
+  border-radius: var(--radius-tile);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  background: var(--status-ok-bg);
+  color: var(--text-secondary);
+  box-shadow: inset 0 0 0 1px var(--status-ok-ring);
+}
+.ds-dot[data-tier="moderate"] {
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+  box-shadow: inset 0 0 0 1px var(--status-warn-ring);
+}
+.ds-dot[data-tier="high"] {
+  background: var(--status-crit-bg);
+  color: var(--status-crit);
+  box-shadow: inset 0 0 0 1px var(--status-crit-ring);
+}
+.ds-dot[data-tier="none"] {
+  background: transparent;
+  color: var(--text-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+.ds-pill {
+  display: inline-block;
+  padding: 2px var(--s-xs);
+  border-radius: var(--radius-tile);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  white-space: nowrap;
+  background: var(--status-ok-bg);
+  color: var(--text-secondary);
+  box-shadow: inset 0 0 0 1px var(--status-ok-ring);
+}
+.ds-pill--ok {
+  background: var(--status-ok-bg);
+  color: var(--signal-baseline);
+  box-shadow: inset 0 0 0 1px var(--status-ok-ring);
+}
+.ds-pill--accent {
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+  box-shadow: inset 0 0 0 1px var(--status-warn-ring);
+}
+.ds-pill--crit {
+  background: var(--status-crit-bg);
+  color: var(--status-crit);
+  box-shadow: inset 0 0 0 1px var(--status-crit-ring);
+}
+.ds-criticality-none { color: var(--text-tertiary); }
+
+/* The app loads with skeleton bars. The canonical system forbids skeletons
+   outright ("no skeleton screens, shimmer, spinners"; the only sanctioned
+   loading instrument is three pulsing dots) — so this is a real, tracked
+   violation, kept here because v0 really does render it. */
+.ds-skeleton {
+  height: 56px;
+  border-radius: var(--radius-tier2);
+  background: var(--surface-inset);
+}
+
+/* Mono eyebrow / provenance / formula face. The canonical system retires the
+   audit face from product surfaces and keeps it for the wordmark tag only
+   (P4). v0 uses it heavily, which is most of why v0 reads as an instrument
+   panel and is also the rule v1 has to give up. */
+.ds-audit {
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.ds-audit--plain { text-transform: none; letter-spacing: 0.02em; }
+
+.ds-caption { font-size: var(--size-caption); color: var(--text-secondary); }
+.ds-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-xs) var(--s-lg);
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+}
+
+/* Definition rows used through the risk-model panels. */
+.ds-defrows { display: grid; gap: var(--air-row); }
+.ds-defrow {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: var(--s-md);
+  align-items: baseline;
+  font-size: var(--size-small);
+}
+.ds-defrow--wide { grid-template-columns: 160px minmax(0, 1fr); }
+.ds-defrow dt { color: var(--text-secondary); }
+.ds-defrow dd { margin: 0; }
+.ds-mono { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-primary); word-break: break-word; }
+
+/* Plain table, the shape the citation tables take in the app. */
+.ds-table { width: 100%; border-collapse: collapse; font-size: var(--size-small); }
+.ds-table th,
+.ds-table td {
+  padding: var(--s-xs) var(--s-sm);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--line-thin) solid var(--hairline);
+}
+.ds-table thead th {
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.ds-table td[data-role="value"] { font-variant-numeric: tabular-nums; font-weight: var(--w-emphasis); }
+.ds-table__empty { padding: var(--air-group); text-align: center; color: var(--text-secondary); }
+
+/* Cohort list. A CSS grid pretending to be a table, which is what ships. */
+.ds-cohort { display: grid; }
+.ds-cohort__legend,
+.ds-cohort__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto) minmax(110px, auto) minmax(90px, auto);
+  gap: var(--s-md);
+  align-items: center;
+  padding: var(--s-sm) var(--s-md);
+}
+.ds-cohort__legend {
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+  border-bottom: var(--line-thin) solid var(--hairline);
+}
+.ds-cohort__row {
+  border-bottom: var(--line-thin) solid var(--hairline);
+  color: inherit;
+  text-decoration: none;
+}
+.ds-cohort__row:last-child { border-bottom: 0; }
+.ds-cohort__row:hover { background: var(--surface-inset); }
+.ds-cohort__name { font-weight: var(--w-emphasis); }
+.ds-cohort__mrn { font-size: var(--size-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.ds-cohort__domains { display: flex; gap: var(--s-2xs); justify-content: center; }
+.ds-cohort__crit { text-align: center; }
+.ds-cohort__run { text-align: right; font-size: var(--size-small); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* Section eyebrow + naked section, the risk-summary pattern (no wrapping
+   card, air does the grouping). */
+.ds-section { margin-bottom: var(--air-section); }
+.ds-section__label {
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--air-tier);
+}
+.ds-grid { display: grid; gap: var(--s-md); }
+.ds-grid--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ds-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ds-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1080px) {
+  .ds-grid--5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Scoreboard tile. */
+.ds-tile {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-md);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--border-base);
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+}
+.ds-tile:hover { border-color: var(--border-strong); }
+.ds-tile__top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-xs); }
+.ds-tile__name { font-size: var(--size-small); font-weight: var(--w-emphasis); }
+.ds-tile__value { font-size: var(--size-h2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ds-tile__drivers {
+  padding-top: var(--air-row);
+  border-top: var(--line-thin) solid var(--hairline);
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Numbered action row on the summary tab. */
+.ds-action { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s-sm); }
+.ds-action__n {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: var(--line-thin) solid var(--border-base);
+  font-size: var(--size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.ds-action__body { display: grid; gap: var(--s-2xs); }
+.ds-action__title { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+.ds-action__reason { font-size: var(--size-small); color: var(--text-secondary); line-height: 1.5; }
+.ds-action__src { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); }
+.ds-action__src button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+/* Severity bullet used by the gaps list. */
+.ds-bullet {
+  display: inline-block;
+  width: var(--s-xs);
+  height: var(--s-xs);
+  border-radius: 50%;
+  background: var(--status-warn);
+  flex: 0 0 auto;
+  margin-top: 0.45em;
+}
+.ds-bullet[data-sev="high"] { background: var(--status-crit); }
+.ds-bullet[data-sev="low"] { background: var(--status-ok); }
+
+.v0 .amd-annunciator__hazard,
+.v0 .amd-annunciator__advisory { font-size: var(--size-caption); font-weight: var(--w-emphasis); }
+
+
+/* ==========================================================================
+   #cp — the care-plan prototype port (care-plan.css)
+   ==========================================================================
+   Care Plan is a wholesale port of a separate prototype with its own class
+   vocabulary, scoped under #cp so it cannot collide with the .amd-* pages.
+   It is visually and structurally the odd one out in the app, and the
+   replica keeps it that way.
+   ========================================================================== */
+
+.v0 .cp { display: grid; gap: var(--air-tier); }
+
+.cp-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-sm) var(--air-group);
+  padding-bottom: var(--air-row);
+  border-bottom: var(--line-thin) solid var(--hairline);
+  font-size: var(--size-small);
+}
+.cp-runmeta {
+  text-align: right;
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+.cp-pagenav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-lg);
+  border-bottom: var(--line-thin) solid var(--hairline);
+  margin-bottom: var(--air-tier);
+}
+.cp-pagenav a {
+  padding: var(--s-xs) 0;
+  margin-bottom: calc(var(--line-thin) * -1);
+  border-bottom: var(--line-focus) solid transparent;
+  font-size: var(--size-small);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.cp-pagenav [aria-current="page"] { border-bottom-color: var(--text-primary); color: var(--text-primary); font-weight: var(--w-emphasis); }
+.cp-pagenav__right { margin-left: auto; font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); }
+
+/* Two-step wizard rail. */
+.cp-wizard { display: flex; flex-wrap: wrap; gap: var(--air-group); margin-bottom: var(--air-tier); }
+.cp-wizard__step { display: flex; align-items: center; gap: var(--s-xs); font-size: var(--size-small); color: var(--text-tertiary); }
+.cp-wizard__step[data-state="current"] { color: var(--text-primary); font-weight: var(--w-emphasis); }
+.cp-wizard__step[data-state="done"] { color: var(--text-secondary); }
+.cp-wizard__b {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--border-base);
+  font-size: var(--size-caption);
+  font-variant-numeric: tabular-nums;
+}
+.cp-wizard__step[data-state="current"] .cp-wizard__b { background: var(--control-primary-bg); color: var(--control-primary-fg); border-color: transparent; }
+
+/* Ranked action card, role=checkbox. */
+.cp-acts { display: grid; gap: var(--s-sm); }
+.cp-act {
+  position: relative;
+  display: grid;
+  grid-template-columns: 19px minmax(0, 1fr) auto;
+  gap: var(--s-sm) var(--s-md);
+  padding: var(--s-md) var(--s-md) var(--s-md) var(--s-lg);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--border-base);
+  background: var(--surface-card);
+}
+.cp-act[data-mandatory] { background: var(--surface-tier2); }
+/* 3px left severity rail. */
+.cp-act::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--s-sm);
+  bottom: var(--s-sm);
+  width: var(--line-signal);
+  border-radius: var(--radius-tile);
+  background: var(--sev-low);
+}
+.cp-act[data-sev="mod"]::before { background: var(--sev-mod); }
+.cp-act[data-sev="high"]::before { background: var(--sev-high); }
+/* The checked checkbox is one of the few places gold is a fill in v0. */
+.cp-box {
+  width: 19px;
+  height: 19px;
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--border-strong);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  margin-top: 2px;
+}
+.cp-box[aria-checked="true"] { background: var(--signal-forward); border-color: var(--signal-forward); }
+.cp-box svg { width: 12px; height: 12px; stroke: var(--ink); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.cp-box[aria-checked="true"] svg { opacity: 1; }
+.cp-act__body { display: grid; gap: var(--s-2xs); min-width: 0; }
+.cp-act__title { font-size: var(--size-text); font-weight: var(--w-emphasis); line-height: 1.35; }
+.cp-act__meta {
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.cp-act__why { font-size: var(--size-small); line-height: 1.5; color: var(--text-secondary); }
+.cp-act__eng { text-align: right; display: grid; gap: 2px; align-content: start; }
+.cp-act__top { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; color: var(--signal-advisory); }
+.cp-act__rank { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; color: var(--text-tertiary); }
+.cp-ochips { display: flex; flex-wrap: wrap; gap: var(--s-2xs); margin-top: var(--s-2xs); }
+.cp-ochip {
+  padding: 2px var(--s-xs);
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--border-subtle);
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+}
+
+/* Sticky dock. */
+.cp-dock {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-md) var(--air-group);
+  padding: var(--s-sm) var(--s-md);
+  margin-top: var(--air-tier);
+  border-top: var(--line-thin) solid var(--border-base);
+  background: var(--bar-bg);
+  backdrop-filter: blur(8px);
+}
+.cp-dock__count { font-size: var(--size-small); font-weight: var(--w-emphasis); }
+.cp-dock__domains { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+.cp-dock__right { margin-left: auto; display: flex; align-items: center; gap: var(--s-xs); }
+
+/* The note sheet. The one extra elevation in the app, outside the
+   one-shadow-per-screen rule the design system states. */
+.cp-sheet {
+  border-radius: var(--radius-tier1);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+}
+.cp-sheet__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-sm) var(--air-group);
+  padding: var(--s-sm) var(--s-lg);
+  border-bottom: var(--line-thin) solid var(--hairline);
+}
+.cp-badge {
+  padding: 2px var(--s-xs);
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--border-base);
+  font-size: var(--size-caption);
+  font-weight: var(--w-emphasis);
+  color: var(--text-secondary);
+}
+.cp-badge[data-state="locked"] { background: var(--control-primary-bg); color: var(--control-primary-fg); border-color: transparent; }
+.cp-sheet__autosave {
+  margin-left: auto;
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.cp-sheet__sec { padding: var(--s-lg); border-bottom: var(--line-thin) solid var(--hairline); display: grid; gap: var(--air-row); }
+.cp-sheet__sec:last-child { border-bottom: 0; }
+.cp-sheet__sechead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-sm) var(--air-group); }
+.cp-sheet__sechead h3 { font-size: var(--size-h3); font-weight: var(--w-h3); }
+.cp-sheet__secmeta { margin-left: auto; font-size: var(--size-small); color: var(--text-tertiary); }
+.cp-metagrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--air-row) var(--air-group);
+  font-size: var(--size-small);
+}
+.cp-metagrid dt {
+  font-family: var(--audit);
+  font-size: var(--size-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.cp-metagrid dd { margin: 0; }
+.cp-textarea {
+  width: 100%;
+  min-height: 84px;
+  padding: var(--s-sm);
+  border: var(--line-thin) solid var(--border-base);
+  border-radius: var(--radius-control);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--size-small);
+  line-height: 1.55;
+  resize: vertical;
+}
+/* Per-problem card inside the note. */
+.cp-pcard {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-md);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--border-subtle);
+  background: var(--surface-tier2);
+}
+.cp-pcard__head { display: flex; align-items: baseline; gap: var(--s-sm); }
+.cp-pcard__n { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.cp-pcard__title { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+.cp-pcard__dom { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+.cp-field { display: grid; gap: var(--s-2xs); }
+.cp-field > span { font-size: var(--size-caption); font-weight: var(--w-emphasis); color: var(--text-secondary); }
+
+.cp-selbox {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-md);
+  border-radius: var(--radius-tier2);
+  background: var(--surface-inset);
+}
+.cp-selrow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: var(--s-md);
+  align-items: baseline;
+  padding: var(--air-row) 0;
+  border-top: var(--line-thin) solid var(--hairline);
+  font-size: var(--size-small);
+}
+.cp-selrow:first-of-type { border-top: 0; }
+.cp-selrow__n { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.cp-selrow__dom { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+
+.cp-attest {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: var(--s-sm);
+  align-items: start;
+  padding: var(--s-md);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--border-base);
+  font-size: var(--size-small);
+  line-height: 1.55;
+}
+.cp-attest__box {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-tile);
+  border: var(--line-thin) solid var(--border-strong);
+  background: transparent;
+}
+.cp-hint { font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.5; }
+.cp-gate {
+  padding: var(--s-sm) var(--s-md);
+  border-radius: var(--radius-tier2);
+  background: var(--surface-inset);
+  font-size: var(--size-caption);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.cp-gate code { font-family: var(--audit); }
+
+/* Lock console + locked record. */
+.cp-console {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-md);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--border-base);
+}
+.cp-console__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-sm); }
+.cp-console__head h3 { font-size: var(--size-h3); font-weight: var(--w-h3); }
+.cp-console__tag { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+.cp-console__actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); align-items: center; }
+
+.cp-notesrow {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto auto;
+  gap: var(--s-md);
+  align-items: center;
+  padding: var(--s-sm) var(--s-md);
+  border-bottom: var(--line-thin) solid var(--hairline);
+}
+.cp-notesrow__date { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); line-height: 1.4; }
+.cp-notesrow__title { font-size: var(--size-small); font-weight: var(--w-emphasis); }
+.cp-notesrow__sub { font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+
+.cp-footnote {
+  margin-top: var(--air-section);
+  padding-top: var(--air-tier);
+  border-top: var(--line-thin) solid var(--hairline);
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+  line-height: 1.55;
+}
+.cp-footnote code { font-family: var(--audit); }
+
+.cp-so {
+  display: grid;
+  gap: var(--air-row);
+  padding: var(--s-md);
+  border-radius: var(--radius-tier2);
+  border: var(--line-thin) solid var(--border-base);
+  margin-bottom: var(--s-md);
+}
+.cp-so__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-sm) var(--air-group); }
+.cp-so__title { font-size: var(--size-text); font-weight: var(--w-emphasis); }
+.cp-so__ref { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-tertiary); }
+.cp-so__status { margin-left: auto; font-family: var(--audit); font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; }
+.cp-so__dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--air-row) var(--air-group);
+  font-size: var(--size-small);
+  margin: 0;
+}
+.cp-so__dl dt { font-size: var(--size-caption); color: var(--text-tertiary); }
+.cp-so__dl dd { margin: 0; }

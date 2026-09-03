@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v1 — Flow map</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only. Every flow-map component (.wf-lane, .wf-fork,
+     .wf-node, .wf-connector, .wf-legend) lives in section A of
+     physician-chrome.css, which is the one structural improvement this set
+     makes over the patient wireframes: their flow styling was copy-pasted into
+     six <style> blocks and drifted. Only the two arrangements below are local.
+
+     A six-across fork at the rail width, so the chart rail's six sections read
+     as the peers they are rather than as a ranked list. */
+  .fl-six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  /* Handoffs are pairs: the surface that offers the link, and where it lands. */
+  .fl-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--s-md); align-items: center; }
+  .fl-arrow { font-size: var(--size-small); color: var(--wf-dim); white-space: nowrap; }
+
+  @media (max-width: 1000px) {
+    .fl-six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fl-pair { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+
+<!-- ── reviewer chrome ─────────────────────────────────────────────────── -->
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><b>v1 flow</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <a href="../v0/_flow.html">v0</a>
+    <span aria-current="page">v1</span>
+    <a href="../v2/_flow.html">v2</a>
+  </span>
+</nav>
+
+<div class="wf-doc wf-doc--wide">
+
+  <p class="wf-eyebrow">Version 1</p>
+  <h1 class="wf-title">The canonical reference surface, recreated</h1>
+  <p class="wf-lede">v1 is not a proposal. It is the ratified reference surface
+    (<code>aleron-actionmap-al47m-ds.html</code>) rebuilt against the physician register and the
+    canonical component set, so that the thing the team already agreed to can be compared, screen for
+    screen, against what ships today. Where the reference surface violates a law it ratified later,
+    this recreation follows the law and the divergence is annotated on the screen.</p>
+
+  <p class="wf-prose">One patient throughout: <b>AL-47M, Ethan Park</b>, 47, metabolic-risk phenotype.
+    The reference surface is a single-page chart with a six-section rail and no route above it, so
+    there is no navigation to draw: the flow below is what a physician can reach from where, not a
+    sequence they walk through.</p>
+
+  <p class="wf-sectionlabel">Where a chart is entered</p>
+  <div class="wf-lane">
+    <div class="wf-node" data-state="new">
+      <span class="wf-node__step">Entry</span>
+      <span class="wf-node__title">Deep link into one patient&rsquo;s chart</span>
+      <span class="wf-node__route">aleron.md/chart/AL-47M/…</span>
+    </div>
+  </div>
+  <p class="wf-prose wf-prose--dim">There is no step before this one. The reference surface has no login
+    and no patient list: the chart is opened by URL, already scoped to a patient, and the patient
+    switcher in the rail is a select element over a fixture array. Everything a physician does before
+    reaching a chart is what v2 has to build.</p>
+
+  <div class="wf-connector" role="presentation"></div>
+
+  <p class="wf-sectionlabel">The rail &middot; six sections, fixed per surface family</p>
+  <div class="wf-fork fl-six">
+    <a class="wf-node" data-state="new" href="patient-data.html">
+      <span class="wf-node__step">1</span>
+      <span class="wf-node__title">Patient Data</span>
+      <span class="wf-node__route">patient-data.html</span>
+    </a>
+    <a class="wf-node" data-state="new" href="risk-models.html">
+      <span class="wf-node__step">2</span>
+      <span class="wf-node__title">Risk</span>
+      <span class="wf-node__route">risk-models.html</span>
+    </a>
+    <a class="wf-node" data-state="new" href="vitality.html">
+      <span class="wf-node__step">3</span>
+      <span class="wf-node__title">Vitality</span>
+      <span class="wf-node__route">vitality.html</span>
+    </a>
+    <a class="wf-node" data-state="new" href="care-plan.html">
+      <span class="wf-node__step">4</span>
+      <span class="wf-node__title">Care Plan</span>
+      <span class="wf-node__route">care-plan.html</span>
+    </a>
+    <a class="wf-node" data-state="new" href="journal.html">
+      <span class="wf-node__step">5</span>
+      <span class="wf-node__title">Journal</span>
+      <span class="wf-node__route">journal.html</span>
+    </a>
+    <a class="wf-node" data-state="new" href="aleron-ai.html">
+      <span class="wf-node__step">6</span>
+      <span class="wf-node__title">Aleron AI</span>
+      <span class="wf-node__route">aleron-ai.html</span>
+    </a>
+  </div>
+  <p class="wf-prose wf-prose--dim">The rail is identical on all six screens and its order never changes.
+    Register O4 fixes rails per surface family, which is why the rail is a component with a declared
+    item set rather than a free-form nav.</p>
+
+  <div class="wf-connector" role="presentation"></div>
+
+  <p class="wf-sectionlabel">Risk splits in two</p>
+  <div class="wf-fork">
+    <a class="wf-node" data-state="new" href="risk-models.html">
+      <span class="wf-node__step">2a &middot; Models tab</span>
+      <span class="wf-node__title">Five disease models, one selected domain</span>
+      <span class="wf-node__route">risk-models.html</span>
+    </a>
+    <a class="wf-node" data-state="new" href="risk-actions.html">
+      <span class="wf-node__step">2b &middot; Actions tab</span>
+      <span class="wf-node__title">The action map and the evidence ledger</span>
+      <span class="wf-node__route">risk-actions.html</span>
+    </a>
+  </div>
+  <p class="wf-prose wf-prose--dim">Two tabs under one heading, not two rail sections. The split is the
+    argument: a model output is a description, and the action map is what that description is worth.
+    Vitality carries the same Models / Actions switch, but its Actions pane plots the same levers on a
+    second, non-QALY scale and its own caption warns that it is not a new score. That pane is left out
+    of this recreation and flagged on the Vitality screen.</p>
+
+  <div class="wf-connector" role="presentation"></div>
+
+  <p class="wf-sectionlabel">Cross-surface handoffs</p>
+  <p class="wf-prose">Three, and only three. The reference surface is deliberately shy about linking
+    between sections: the rail is the navigation, and a link inside a screen has to be earned by the
+    physician actually needing to be somewhere else at that moment.</p>
+
+  <div class="wf-lane">
+    <div class="fl-pair">
+      <div class="wf-node" data-state="new">
+        <span class="wf-node__step">From Risk</span>
+        <span class="wf-node__title">Continue in Aleron AI</span>
+        <span class="wf-node__route">risk-actions.html</span>
+      </div>
+      <span class="fl-arrow" aria-hidden="true">&rarr;</span>
+      <a class="wf-node" data-state="new" href="aleron-ai.html">
+        <span class="wf-node__step">Lands on</span>
+        <span class="wf-node__title">Aleron AI, patient context already loaded</span>
+        <span class="wf-node__route">aleron-ai.html</span>
+      </a>
+    </div>
+
+    <div class="fl-pair">
+      <div class="wf-node" data-state="new">
+        <span class="wf-node__step">From Care Plan</span>
+        <span class="wf-node__title">Open Action Space</span>
+        <span class="wf-node__route">care-plan.html</span>
+      </div>
+      <span class="fl-arrow" aria-hidden="true">&rarr;</span>
+      <a class="wf-node" data-state="new" href="risk-actions.html">
+        <span class="wf-node__step">Lands on</span>
+        <span class="wf-node__title">The action map that priced the draft</span>
+        <span class="wf-node__route">risk-actions.html</span>
+      </a>
+    </div>
+
+    <div class="fl-pair">
+      <div class="wf-node" data-state="new">
+        <span class="wf-node__step">From Care Plan</span>
+        <span class="wf-node__title">View as the journal entry it will become</span>
+        <span class="wf-node__route">care-plan.html</span>
+      </div>
+      <span class="fl-arrow" aria-hidden="true">&rarr;</span>
+      <a class="wf-node" data-state="new" href="journal.html">
+        <span class="wf-node__step">Lands on</span>
+        <span class="wf-node__title">Journal, the draft selected on the spine</span>
+        <span class="wf-node__route">journal.html</span>
+      </a>
+    </div>
+  </div>
+
+  <p class="wf-prose wf-prose--dim">The Care Plan pair is the doctrine in two links. A care plan is a
+    note before its signature, so it points backwards at the map that priced it and forwards at the
+    entry it is about to become. Nothing points at a release step, because there is no release step to
+    point at.</p>
+
+  <div class="wf-connector" role="presentation"></div>
+
+  <p class="wf-sectionlabel">Where v1 stops</p>
+  <p class="wf-prose">These are not omissions from the recreation. They are absent from the reference
+    surface itself, and they are the reason v2 exists.</p>
+
+  <ul class="wf-notelist">
+    <li><strong>No queue.</strong> Nothing tells a physician which chart to open next. There is no inbox,
+      no panel, no review list and no unread state anywhere on the surface. A physician who does not
+      already know the patient&rsquo;s code cannot get in.</li>
+    <li><strong>No login.</strong> No authentication, no session, no role. The surface has one implied
+      user, Dr. A. Okafor, and no way to be anyone else, which also means no way to model who is allowed
+      to sign, prescribe or release.</li>
+    <li><strong>No ordering UI.</strong> Orders appear as rows with statuses, and both places a
+      physician would act on one are inert: <code>Sign &amp; release</code> ships permanently disabled,
+      and there is no lab-order screen, no standing-order screen, and no authorization step. The surface
+      can describe an order and cannot place one.</li>
+    <li><strong>No patient list and no cohort.</strong> The rail&rsquo;s patient switcher is a select
+      element over two fixtures. Everything a practice needs in order to run, rather than to demonstrate,
+      sits outside this surface.</li>
+  </ul>
+
+  <p class="wf-prose">v0 has all four of those and none of the instrument. v1 has the instrument and none
+    of those. v2 is the argument that the second set is easier to add to the first than the reverse.</p>
+
+  <p class="wf-sectionlabel">Reading the map</p>
+  <div class="wf-legend">
+    <span><i class="is-new"></i>new in v1, from the reference surface</span>
+    <span><i class="is-carried"></i>carried from v0</span>
+    <span><i class="is-gap"></i>no canonical component, proposed</span>
+    <span><i class="is-absent"></i>absent in this version</span>
+  </div>
+
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Notes for review</p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Every node on this map is <code>new</code>. Not one screen in v1 has a counterpart in the
+    shipped portal except Care Plan, and that one shares only its name.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The three handoffs are the entire cross-surface link set. That is defensible on a
+    demonstration surface and thin on a working one: from Patient Data there is no way to reach the
+    gate that would resolve a missing field, and from Journal there is no way back to the map state a
+    signed note was drawn from. Both are v2 questions.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>Two blocks were added to section B of <code>physician-chrome.css</code> while building this
+    set: <code>PROPOSED domain.chart-legend</code> (<code>.plegend</code>),
+    <code>PROPOSED domain.proportion-bar</code> (<code>.pbar</code>), and
+    <code>PROPOSED token.instrument-furniture</code> (<code>--p-ladder</code>,
+    <code>--p-goldwash</code>). The token block is the one that needs a decision rather than a
+    ratification: P2 fixes five signals and the VO&#8322;max ladder wants a sixth.</span></p>
+</div>
+
+</body>
+</html>

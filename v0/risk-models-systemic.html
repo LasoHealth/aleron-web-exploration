@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v0 — Risk Models · Systemic</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<link rel="stylesheet" href="v0-tokens.css">
+<style>
+  /* Screen-local layout only. The v0 vocabulary (.v0-*, .ds-*) is in
+     v0-tokens.css, which reproduces Aleron-Web's own CSS rather than
+     proposing anything.
+
+     This screen is partials/systemic-panel.blade.php. It is the only panel
+     in the product whose pills are declared in Tailwind ring utilities
+     rather than .ds-pill, which is why it needs its own pill class here. */
+  .v0-sys { display: grid; gap: var(--air-group); }
+  .v0-syshead { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s-lg); }
+  .v0-syshead__count { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-sm); margin-top: var(--s-2xs); }
+  .v0-syshead__count .amd-value { font-size: var(--size-h2); font-weight: 600; color: var(--text-primary); }
+  .v0-syshead__meta { display: grid; grid-template-columns: repeat(3, minmax(0, auto)); gap: var(--s-sm) var(--s-lg); }
+  .v0-syshead__meta p + p { margin-top: var(--s-2xs); }
+  .v0-block { display: grid; gap: var(--s-xs); }
+  .v0-block p.body { font-size: var(--size-text); line-height: 1.6; color: var(--text-primary); }
+  .v0-pats { display: grid; gap: var(--s-sm); }
+  .v0-pat__top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s-sm); }
+  .v0-pat__top h3 { margin-top: var(--s-2xs); font-size: var(--size-lede); font-weight: 600; line-height: 1.3; color: var(--text-primary); }
+  .v0-pat__pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2xs); flex: 0 0 auto; }
+  .v0-pat__desc { margin-top: var(--s-sm); font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); }
+  .v0-pat__row { display: grid; grid-template-columns: 11ch minmax(0, 1fr); gap: var(--s-sm); margin-top: var(--s-md); }
+  .v0-pat__row dt { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-secondary); }
+  .v0-pat__row dd { margin: 0; font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); }
+  .v0-pat__row ul { display: grid; gap: var(--s-2xs); list-style: none; padding: 0; }
+  .v0-pat__row li { font-family: var(--audit); font-size: var(--size-audit); color: var(--text-secondary); }
+  .v0-pat__types { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-xs); margin-top: var(--s-md); }
+  .v0-pat__types > span:first-child { font-family: var(--audit); font-size: var(--size-caption); color: var(--text-secondary); }
+  /* Fifth pill vocabulary in the product: mono, radius-control, ring inset. */
+  .v0-cpill {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--s-2xs) var(--s-xs);
+    border-radius: var(--radius-control);
+    font-family: var(--audit);
+    font-size: var(--size-caption);
+    white-space: nowrap;
+    background: var(--surface-card);
+    color: var(--text-tertiary);
+    box-shadow: inset 0 0 0 var(--line-thin) var(--border-subtle);
+  }
+  .v0-cpill[data-c="high"] { background: var(--status-ok-bg); color: var(--signal-baseline); box-shadow: inset 0 0 0 var(--line-thin) var(--status-ok-ring); }
+  .v0-cpill[data-c="medium"],
+  .v0-cpill[data-c="review"] { background: var(--status-warn-bg); color: var(--status-warn); box-shadow: inset 0 0 0 var(--line-thin) var(--status-warn-ring); }
+  .v0-lists { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-md); }
+  .v0-lists ul { display: grid; gap: var(--s-xs); list-style: none; padding: 0; margin: 0; }
+  .v0-lists li { font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); }
+  .v0-lists li span.b { margin-right: var(--s-2xs); color: var(--text-tertiary); }
+  @media (max-width: 1080px) {
+    .v0-lists { grid-template-columns: minmax(0, 1fr); }
+    .v0-syshead__meta { grid-template-columns: repeat(2, minmax(0, auto)); }
+  }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v0 flow</a> / <a href="risk-models.html">Risk Models</a> / <b>Systemic</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-current="page">v0</span>
+    <a href="../v1/risk-models.html">v1</a>
+    <a href="../v2/risk-models.html">v2</a>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">portal.aleronmd.health/patients/1/risk-models</span>
+  </div>
+
+  <!-- ── the shipped app ─────────────────────────────────────────────────
+       Systemic is the one narrative panel: no score, no horizon, no tier
+       arithmetic. It reads from the stored LLM output, and its whole
+       vocabulary (confidence, temporal consistency, data types, noise
+       excluded) exists nowhere else in the product. -->
+  <div class="v0">
+
+    <header class="v0-header">
+      <div class="v0-header__bar">
+        <a class="v0-wordmark" href="patients.html">Aleron MD</a>
+        <div class="v0-header__right">
+          <button class="amd-button" data-variant="tertiary" type="button" aria-label="Switch to flight deck register">Flight deck</button>
+          <span class="v0-header__user">Dr. A. Okafor</span>
+          <button class="amd-button" data-variant="secondary" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="v0-main">
+
+      <div class="v0-identrow">
+        <div class="v0-ident">
+          <a class="v0-back" href="patients.html"><span aria-hidden="true">&larr;</span> All patients</a>
+          <h1>Ethan Park</h1>
+          <p class="v0-ident__sub">MRN 4471-2208 &middot; Last run 2d ago</p>
+        </div>
+        <nav class="v0-tabs" aria-label="Patient sections">
+          <a href="care-plan.html">Care Plan</a>
+          <span aria-disabled="true" title="Coming in a later milestone">Trajectory</span>
+          <span aria-current="page">Risk Models</span>
+          <a href="lab-orders.html">Lab Orders</a>
+          <a href="standing-orders.html">Standing Orders</a>
+          <a href="emr.html">EMR</a>
+        </nav>
+      </div>
+
+      <nav class="v0-subtabs" aria-label="Risk model domains">
+        <a href="risk-models.html">Summary</a>
+        <a href="risk-models-systemic.html" aria-current="page">Systemic</a>
+        <a href="risk-models-domain.html">Cardiovascular</a>
+        <a href="risk-models-domain.html">Metabolic</a>
+        <a href="risk-models-domain.html">Kidney</a>
+        <a href="risk-models-domain.html">Cancer</a>
+        <a href="risk-models-domain.html">Neurodegenerative</a>
+      </nav>
+
+      <div class="v0-sys">
+
+        <!-- 1. HEADER CARD, the single elevated Tier-1 holder. -->
+        <section class="amd-card" data-tier="1" style="padding: var(--s-lg);">
+          <div class="v0-syshead">
+            <div style="min-width: 0;">
+              <p style="font-size: var(--size-caption); color: var(--text-secondary);">Systemic synthesis</p>
+              <div class="v0-syshead__count">
+                <span class="amd-value">4 cross-domain patterns</span>
+                <span class="ds-pill ds-pill--accent">severity assessment</span>
+              </div>
+              <p class="ds-audit ds-audit--plain" style="margin-top: var(--s-xs);">Aleron Systemic Synthesis Spec &middot; v1.4 &middot; systemic-llm-v2</p>
+            </div>
+
+            <div class="v0-syshead__meta">
+              <div>
+                <p style="font-size: var(--size-caption); color: var(--text-secondary);">Data rows</p>
+                <p class="ds-mono">1284</p>
+              </div>
+              <div>
+                <p style="font-size: var(--size-caption); color: var(--text-secondary);">Verification</p>
+                <p class="ds-mono">passed</p>
+              </div>
+              <div>
+                <p style="font-size: var(--size-caption); color: var(--text-secondary);">Run</p>
+                <p class="ds-mono" title="a3f91c2b-6d04-4e77-9b21-7c5f0ab84e19">a3f91c2b</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. PATIENT PICTURE -->
+        <section class="v0-block">
+          <p style="font-size: var(--size-caption); color: var(--text-secondary);">Patient picture</p>
+          <p class="body">A 47-year-old man whose record reads as one metabolic process expressed in five places rather than five independent findings. Insulin resistance, central adiposity, untreated stage 2 hypertension and low-grade inflammation move together, and the overnight oximetry adds a plausible driver that nothing in the record has yet tested for. Aerobic capacity is low and self-reported energy and cognitive clarity are both at 4 of 10, which is consistent with the same picture rather than with a separate mood or sleep complaint. The heritable finding, an ATM pathogenic variant, sits outside that process and is on its own track.</p>
+        </section>
+
+        <!-- 3. PATTERNS -->
+        <section class="v0-block">
+          <p style="padding-left: var(--s-2xs); font-size: var(--size-caption); color: var(--text-secondary);">Cross-domain patterns (4)</p>
+          <div class="v0-pats">
+
+            <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+              <div class="v0-pat__top">
+                <div style="min-width: 0; flex: 1 1 0;">
+                  <p class="ds-audit ds-audit--plain">SYS-P1</p>
+                  <h3>Insulin resistance driving both lipid particle burden and blood pressure</h3>
+                </div>
+                <div class="v0-pat__pills">
+                  <span class="v0-cpill" data-c="high">high</span>
+                  <span class="v0-cpill">trend</span>
+                </div>
+              </div>
+              <p class="v0-pat__desc">HOMA-IR 4.3 with fasting insulin 16 &micro;IU/mL sits alongside triglycerides 180 mg/dL, HDL-C 40 mg/dL, ApoB 112 mg/dL and clinic BP 142/90 mmHg. Three of the five domain models are reading the same underlying state through different inputs, so their tiers are not independent and should not be added.</p>
+              <dl class="v0-pat__row">
+                <dt>Mechanism</dt>
+                <dd>Hyperinsulinemia increases hepatic VLDL secretion and renal sodium reabsorption at the same time, which raises triglyceride-rich particle count and intravascular volume together. Sympathetic tone rises with both.</dd>
+              </dl>
+              <dl class="v0-pat__row">
+                <dt>Signals</dt>
+                <dd>
+                  <ul>
+                    <li>&middot; HOMA-IR 4.3 (insulin-resistant, threshold 3.0)</li>
+                    <li>&middot; triglyceride/HDL-C ratio 4.5</li>
+                    <li>&middot; waist 105 cm with BMI 29.4</li>
+                    <li>&middot; BP 142/90 mmHg untreated, no ABPM on file</li>
+                  </ul>
+                </dd>
+              </dl>
+              <div class="v0-pat__types">
+                <span>Data types</span>
+                <span class="v0-cpill">labs</span>
+                <span class="v0-cpill">vitals</span>
+                <span class="v0-cpill">anthropometrics</span>
+              </div>
+            </article>
+
+            <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+              <div class="v0-pat__top">
+                <div style="min-width: 0; flex: 1 1 0;">
+                  <p class="ds-audit ds-audit--plain">SYS-P2</p>
+                  <h3>Untested sleep-disordered breathing as a shared upstream cause</h3>
+                </div>
+                <div class="v0-pat__pills">
+                  <span class="v0-cpill" data-c="medium">medium</span>
+                  <span class="v0-cpill">snapshot</span>
+                  <span class="v0-cpill" data-c="review">manual review</span>
+                </div>
+              </div>
+              <p class="v0-pat__desc">Overnight SpO2 nadir 89 % with an overnight resting heart rate of 38 bpm, on 82 % wearable coverage. Nocturnal desaturation of this degree, in a man with a waist of 105 cm and untreated stage 2 hypertension, is the single cheapest explanation available for the hypertension, the insulin resistance and the reported energy and clarity scores at once. No sleep study is on file, so the pattern is asserted from wearable data alone.</p>
+              <dl class="v0-pat__row">
+                <dt>Mechanism</dt>
+                <dd>Repeated intermittent hypoxia raises sympathetic outflow and cortisol, which impairs peripheral glucose disposal and sustains nocturnal pressure. The bradycardia is consistent with high vagal tone between events rather than with athletic conditioning at a VO2max of 28 mL/kg/min.</dd>
+              </dl>
+              <dl class="v0-pat__row">
+                <dt>Signals</dt>
+                <dd>
+                  <ul>
+                    <li>&middot; SpO2 nadir 89 % (desaturation)</li>
+                    <li>&middot; overnight RHR 38 bpm against VO2max 28 mL/kg/min</li>
+                    <li>&middot; HRV 34 ms against a 42 ms baseline</li>
+                    <li>&middot; self-reported energy 4/10, cognitive clarity 4/10</li>
+                  </ul>
+                </dd>
+              </dl>
+              <div class="v0-pat__types">
+                <span>Data types</span>
+                <span class="v0-cpill">wearable</span>
+                <span class="v0-cpill">patient-reported</span>
+                <span class="v0-cpill">vitals</span>
+              </div>
+            </article>
+
+            <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+              <div class="v0-pat__top">
+                <div style="min-width: 0; flex: 1 1 0;">
+                  <p class="ds-audit ds-audit--plain">SYS-P3</p>
+                  <h3>Inflammation elevated out of proportion to the lipid panel</h3>
+                </div>
+                <div class="v0-pat__pills">
+                  <span class="v0-cpill" data-c="medium">medium</span>
+                  <span class="v0-cpill">trend</span>
+                </div>
+              </div>
+              <p class="v0-pat__desc">hs-CRP 3.0 mg/L is high while LDL-C 132 mg/dL and Lp(a) 25 nmol/L are unremarkable. Adiposity accounts for part of it. The residual is unexplained, and infection has not been formally excluded in the record.</p>
+              <dl class="v0-pat__row">
+                <dt>Mechanism</dt>
+                <dd>Visceral adipose tissue secretes IL-6, which drives hepatic CRP production independently of particle burden. Intermittent hypoxia adds to the same pathway, which is why this pattern and SYS-P2 are not independent.</dd>
+              </dl>
+              <dl class="v0-pat__row">
+                <dt>Signals</dt>
+                <dd>
+                  <ul>
+                    <li>&middot; hs-CRP 3.0 mg/L (high)</li>
+                    <li>&middot; LDL-C 132 mg/dL, Lp(a) 25 nmol/L (both unremarkable)</li>
+                    <li>&middot; no second hs-CRP draw on file</li>
+                  </ul>
+                </dd>
+              </dl>
+              <div class="v0-pat__types">
+                <span>Data types</span>
+                <span class="v0-cpill">labs</span>
+                <span class="v0-cpill">anthropometrics</span>
+              </div>
+            </article>
+
+            <article class="amd-card" data-tier="flat" style="padding: var(--s-md);">
+              <div class="v0-pat__top">
+                <div style="min-width: 0; flex: 1 1 0;">
+                  <p class="ds-audit ds-audit--plain">SYS-P4</p>
+                  <h3>ATM heterozygosity is unrelated to the metabolic picture and needs its own track</h3>
+                </div>
+                <div class="v0-pat__pills">
+                  <span class="v0-cpill" data-c="high">high</span>
+                  <span class="v0-cpill">n/a</span>
+                </div>
+              </div>
+              <p class="v0-pat__desc">A pathogenic ATM variant is on file. It carries surveillance and cascade-testing obligations that do not interact with any of the three metabolic patterns above and must not be traded off against them.</p>
+              <dl class="v0-pat__row">
+                <dt>Mechanism</dt>
+                <dd>Loss of one functional copy of ATM reduces double-strand break repair capacity. The consequence is a lifetime cancer risk modifier and a radiosensitivity consideration, neither of which is affected by glycemic or hemodynamic control.</dd>
+              </dl>
+              <dl class="v0-pat__row">
+                <dt>Signals</dt>
+                <dd>
+                  <ul>
+                    <li>&middot; ATM heterozygous P/LP, reported on the 160-gene panel</li>
+                    <li>&middot; no first-degree relative testing recorded</li>
+                    <li>&middot; family history T2D and HTN, no premature cancer reported</li>
+                  </ul>
+                </dd>
+              </dl>
+              <div class="v0-pat__types">
+                <span>Data types</span>
+                <span class="v0-cpill">genetics</span>
+                <span class="v0-cpill">family-history</span>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- 4. ROOT CAUSES HYPOTHESIS -->
+        <section class="v0-block">
+          <p style="font-size: var(--size-caption); color: var(--text-secondary);">Root-causes hypothesis</p>
+          <p class="body">One process, two possible entry points. If sleep-disordered breathing is present, it is upstream of the insulin resistance, the blood pressure and part of the inflammation, and treating it first would move four domain tiers at once. If it is absent, the entry point is visceral adiposity and the order of operations is aerobic capacity and weight first, pharmacology second. The record cannot currently distinguish these two cases, and a home sleep apnea test is the cheapest thing that would.</p>
+        </section>
+
+        <!-- 5/6/7. Three tier-2 cards in one row. -->
+        <div class="v0-lists">
+          <section class="amd-card" data-tier="2" style="padding: var(--s-md);">
+            <p style="margin-bottom: var(--s-sm); font-size: var(--size-caption); color: var(--text-secondary);">Open questions</p>
+            <ul>
+              <li><span class="b">&middot;</span><span>Is the overnight resting heart rate of 38 bpm explained by conditioning, by medication, or by high vagal tone between apneic events? VO2max of 28 mL/kg/min argues against conditioning.</span></li>
+              <li><span class="b">&middot;</span><span>Has infection been excluded before treating hs-CRP 3.0 mg/L as a chronic inflammatory signal?</span></li>
+              <li><span class="b">&middot;</span><span>Is the untreated hypertension sustained or clinic-only? No ambulatory series is on file.</span></li>
+              <li><span class="b">&middot;</span><span>Was the ATM result returned with a genetic counseling encounter, and were first-degree relatives informed?</span></li>
+            </ul>
+          </section>
+
+          <section class="amd-card" data-tier="2" style="padding: var(--s-md);">
+            <p style="margin-bottom: var(--s-sm); font-size: var(--size-caption); color: var(--text-secondary);">Absent but expected</p>
+            <ul>
+              <li><span class="b">&middot;</span><span>Sleep study of any kind, given a documented SpO2 nadir of 89 %.</span></li>
+              <li><span class="b">&middot;</span><span>Ambulatory blood pressure monitoring in a patient carrying an untreated stage 2 reading.</span></li>
+              <li><span class="b">&middot;</span><span>Colorectal cancer screening, due at 45 and never performed.</span></li>
+              <li><span class="b">&middot;</span><span>Liver imaging or a fibrosis score, given HOMA-IR 4.3 with a waist of 105 cm.</span></li>
+              <li><span class="b">&middot;</span><span>Any repeat of hs-CRP, ApoB or Lp(a). Every value on file is a single draw.</span></li>
+            </ul>
+          </section>
+
+          <section class="amd-card" data-tier="2" style="padding: var(--s-md);">
+            <p style="margin-bottom: var(--s-sm); font-size: var(--size-caption); color: var(--text-secondary);">Noise excluded</p>
+            <ul>
+              <li><span class="b">&middot;</span><span>eGFR 93 mL/min/1.73m&sup2; with UACR 14 mg/g: within range, and the small UACR elevation is accounted for by the blood pressure rather than by a separate renal process.</span></li>
+              <li><span class="b">&middot;</span><span>Mood 6 of 10 and body ease 5 of 10: not separable from the energy and clarity scores at this sample size, so no independent affective pattern is asserted.</span></li>
+              <li><span class="b">&middot;</span><span>Single low overnight heart-rate readings on 3 of 14 nights: within the coverage error of an 82 %-complete wearable series.</span></li>
+              <li><span class="b">&middot;</span><span>Family history of hypertension: already carried by the group D term, not counted twice here.</span></li>
+            </ul>
+          </section>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">Baseline findings</p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>This panel introduces a fifth pill vocabulary: mono type, radius 10, ring inset, declared in
+    Tailwind ring utilities inside the Blade file rather than in <code>.ds-pill</code>. Confidence,
+    temporal consistency, manual review and data type all render in it, so a machine-confidence
+    judgement and the word <code>labs</code> are given identical visual weight.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The pill sizes are set with an arbitrary <code>text-[10.5px]</code> literal rather than a
+    token, so this is the one place in the product where the caption size is hard-coded and will not
+    move if the scale does.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Provenance is at its weakest here and marked as its strongest. The run id is truncated to
+    eight characters with the full value only in a <code>title</code> attribute, verification is the
+    single word <code>passed</code> with no statement of what was verified, and nothing on the panel
+    says the content is model-generated.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>The three tier-2 cards are equal thirds, so <code>Noise excluded</code> (an audit trail) is
+    given exactly the weight of <code>Absent but expected</code> (a work list). At this column width
+    the longest entries wrap to six lines and the cards end up wildly different heights.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Systemic has a sub-tab but no scoreboard tile, and this page has no score, no horizon and no
+    tier arithmetic. It sits inside a strip labelled <code>Risk model domains</code> and is not a risk
+    model.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>Patterns are the only place in the product that names cross-domain dependence, and the
+    dependence is stated in prose only. Nothing propagates back to the five domain panels, which
+    continue to present their tiers as if independent.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
+    <span>The <code>manual review</code> pill is the only route by which a physician learns that a
+    pattern was flagged for human checking, and it carries no control: there is nothing to click, no
+    queue it feeds, and no record of whether the review happened.</span></p>
+</div>
+
+</body>
+</html>

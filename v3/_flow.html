@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v3 — Opt-in care plan</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+</head>
+<body class="wf">
+<div class="wf-doc">
+
+  <p class="wf-eyebrow">v3 &middot; targeted alternative</p>
+  <h1 class="wf-title">Opt-in care plan</h1>
+  <p class="wf-lede">
+    One screen, not a fourth complete version. v3 exists to put a single question in front of
+    the room: should a care plan open empty and be filled by the physician, or open drafted and
+    be pruned by them?
+  </p>
+
+  <div class="wf-sectionlabel">The question</div>
+  <p class="wf-prose">
+    v2 follows the canonical build: the engine drafts every candidate straight into the note and
+    the physician removes what does not belong. v3 follows the shipped portal instead: the note
+    opens empty, the engine ranking is a list of candidates, and nothing enters the record until
+    someone puts it there. The difference matters because the note becomes a signed legal
+    record. Under v2, an engine draft is the default content of that record unless a physician
+    actively intervenes; under v3 it cannot be, but the physician does more work on every patient
+    and a genuinely correct suggestion can be missed by omission rather than rejected on purpose.
+  </p>
+  <p class="wf-prose">
+    Both are defensible and the sources disagree. The shipped portal at
+    <code>Aleron-Web</code> is opt in. The reference surface and
+    <code>apps/physician/src/carePlanView.js</code> are both opt out, with per-item controls
+    inline on every problem and order. What is not defensible is what v2 had until this screen was
+    built: opt out with the controls moved into a side pane, which is the draft becoming the
+    default with the objection made expensive.
+  </p>
+
+  <div class="wf-sectionlabel">The screen</div>
+  <div class="wf-lane">
+    <div class="wf-fork">
+      <a class="wf-node" href="care-plan.html" data-state="new">
+        <span class="wf-node__step">v3</span>
+        <span class="wf-node__title">Care plan, opt in</span>
+        <span class="wf-node__route">chart/AL-47M/care-plan</span>
+      </a>
+      <a class="wf-node" href="../v2/care-plan.html" data-state="carried">
+        <span class="wf-node__step">compare with</span>
+        <span class="wf-node__title">v2 care plan, opt out</span>
+        <span class="wf-node__route">chart/AL-47M/care-plan</span>
+      </a>
+      <a class="wf-node" href="../v0/care-plan.html" data-state="carried">
+        <span class="wf-node__step">the model it carries</span>
+        <span class="wf-node__title">v0 care plan, select actions</span>
+        <span class="wf-node__route">patients/1/care-plan</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="wf-sectionlabel">What v3 changes, and what it keeps</div>
+  <ul class="wf-notelist">
+    <li><strong>Changed.</strong> The note opens empty. Six suggestions sit in one list in engine order, each a real checkbox with its rationale and the orders it would queue. Three are checked in this fixture. There is no rank badge and no QALY figure on a row: Aleron-Web prints those, the canonical build does not, and ranking belongs on the action map and in the reasoning trace.</li>
+    <li><strong>Changed.</strong> One list, not a candidate panel above a note. The chevron opens a row to edit its assessment, plan, disposition and orders, so an item is read and edited in the same place.</li>
+    <li><strong>Changed.</strong> A running tally is pinned to the foot of the document:
+      <em>3 of 6 added, 5 orders will queue, 2 required and not declinable</em>. One line at every width.
+      v0 has the same dock and it is the thing that makes an opt-in model safe to work in.</li>
+    <li><strong>Changed.</strong> Declining is recorded rather than silent. An excluded row carries an editable <em>Reason not carried</em>, so the note documents what was considered and set aside, not only what was kept.</li>
+    <li><strong>Kept.</strong> The required channel still cannot be declined. The ATM obligation is
+      checked and locked, because a genetics obligation is not ranked against opportunities and is
+      not the physician's to omit.</li>
+    <li><strong>Changed.</strong> Four steps instead of one scroll. Plan, note lock, order
+      authorization and patient release are panes behind a rail, so the plan step, the one worked
+      every visit, is about 2,800px rather than the 9,800px the whole page ran to. This is v0's
+      two-step wizard idea extended to four, but it stays one file and one URL: every act still
+      completes in its own card and nothing navigates away.</li>
+    <li><strong>Changed.</strong> Order authorization no longer waits on the note lock. The card
+      listed <em>the Preview note is not locked, act 1 comes first</em> as a blocker, which
+      contradicted this screen's own account of why there are three acts. An order can transmit
+      while the note is an open draft, and v0 already said so. The rail is a tablist rather than a
+      wizard for the same reason: two of the four steps have no order between them.</li>
+    <li><strong>Kept.</strong> Everything below the document: the workbench rail, the three commit
+      acts and the release surface with its attestations. They are the same acts with the same
+      attestations as v2, now separated into steps and no longer chained to each other. The only
+      difference in the document itself is how content gets into the note.</li>
+  </ul>
+
+  <div class="wf-sectionlabel">Legend</div>
+  <div class="wf-legend">
+    <span><i class="is-new"></i> new in v3</span>
+    <span><i class="is-carried"></i> the versions it is being compared against</span>
+  </div>
+
+  <p class="wf-prose wf-prose--dim">
+    <a href="../index.html">All versions</a>
+  </p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en" data-register="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — Physician portal — v0 / v1 / v2</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="physician-chrome.css">
+<style>
+  /* Hub-only layout. Everything reusable is in physician-chrome.css. */
+  .hub-versions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hub-matrix-note { margin-top: var(--air-tier); }
+  @media (max-width: 860px) {
+    .hub-versions { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body class="wf">
+
+<div class="wf-doc wf-doc--wide">
+
+  <p class="wf-eyebrow">Aleron MD &middot; physician surface</p>
+  <h1 class="wf-title">Portal wireframes</h1>
+  <p class="wf-lede">
+    Three complete, parallel versions of the physician web portal, built as static HTML
+    against the canonical design system's real tokens and components. v0 records what exists.
+    v1 recreates what the canonical documents already designed. v2 is the one to build.
+  </p>
+
+  <div class="wf-versions hub-versions">
+    <a class="wf-vcard wf-vcard--baseline" href="v0/_flow.html">
+      <span class="wf-vcard__v">v0 &middot; baseline</span>
+      <span class="wf-vcard__title">As it stands today</span>
+      <span class="wf-vcard__count">
+        11 screens &middot; a replica of the shipped Laravel portal, in its own visual language.
+        Not a proposal. This is the thing the other two are argued against.
+      </span>
+    </a>
+    <a class="wf-vcard" href="v1/_flow.html">
+      <span class="wf-vcard__v">v1 &middot; canonical</span>
+      <span class="wf-vcard__title">The reference surface</span>
+      <span class="wf-vcard__count">
+        8 screens &middot; the per-patient chart the canonical documents already built and the
+        physician register already ratified, recreated against the real tokens.
+      </span>
+    </a>
+    <a class="wf-vcard" href="v2/_flow.html">
+      <span class="wf-vcard__v">v2 &middot; proposed</span>
+      <span class="wf-vcard__title">The chart plus the job</span>
+      <span class="wf-vcard__count">
+        14 screens &middot; v1's chart, plus the queue, ordering, release and audit surfaces v0
+        has and v1 never covered. The buildable target.
+      </span>
+    </a>
+  </div>
+
+  <div class="wf-sectionlabel">One open question, kept separate</div>
+  <p class="wf-prose">
+    <a href="v3/_flow.html"><b>v3 &middot; opt-in care plan</b></a> is a single screen, not a fourth
+    version. It exists to decide one thing: whether the care plan opens empty and the physician
+    adds engine suggestions in, as the shipped portal does, or opens drafted and the physician
+    prunes it, as the canonical build does. Under the second model an engine draft is the default
+    content of a signed legal record unless someone intervenes, which is worth a decision rather
+    than an inheritance. Everything below the document is identical in both.
+  </p>
+
+  <div class="wf-sectionlabel">The argument in one paragraph</div>
+  <p class="wf-prose">
+    The current portal and the canonical reference surface were designed for different halves
+    of the same job, and neither is complete. v0 knows how a physician gets work done: it has
+    a cohort, lab ordering, standing orders, an EMR bridge, a note that locks, and orders that
+    actually transmit. What it does not have is a chart worth scanning. v1 is the opposite: it
+    is a genuinely excellent instrument, with the action map, the evidence ledger, the vitality
+    model and the journal doctrine all worked out, and it cannot place an order, has no queue,
+    and its release button is literally labelled <code>not wired</code>. v2 is not a third
+    design. It is v1's chart with v0's job attached.
+  </p>
+
+  <div class="wf-sectionlabel">What each version has</div>
+  <div class="wf-matrix__scroll">
+    <table class="wf-matrix">
+      <thead>
+        <tr>
+          <th scope="col">Capability</th>
+          <th scope="col" style="text-align: center;">v0</th>
+          <th scope="col" style="text-align: center;">v1</th>
+          <th scope="col" style="text-align: center;">v2</th>
+          <th scope="col">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="rowgroup" colspan="5" class="wf-matrix__group">Getting to the work</th>
+        </tr>
+        <tr>
+          <td>Physician sign-in, SSO and step-up re-auth</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>Entra, with a <code>2fa.recent</code> gate on anything legally binding</td>
+        </tr>
+        <tr>
+          <td>Work queue ordered by lifecycle state</td>
+          <td data-mark="no">no</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>First item in the production strategy's minimum physician surface</td>
+        </tr>
+        <tr>
+          <td>Cohort list</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>v0 sorts by nothing; v2 keeps the list and moves the sort to the queue</td>
+        </tr>
+        <tr>
+          <td>Patient messaging</td>
+          <td data-mark="no">no</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>Required by the role matrix and by the strategy's surface list</td>
+        </tr>
+
+        <tr>
+          <th scope="rowgroup" colspan="5" class="wf-matrix__group">Reading the patient</th>
+        </tr>
+        <tr>
+          <td>Patient data spine with provenance per row</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 sends you to Canvas for this</td>
+        </tr>
+        <tr>
+          <td>Wearable trend and coverage context</td>
+          <td data-mark="no">no</td><td data-mark="part">part</td><td data-mark="yes">yes</td>
+          <td>v1 has a sparkline; v2 adds baseline, coverage and the corroborator boundary</td>
+        </tr>
+        <tr>
+          <td>Risk by domain with tier and horizon</td>
+          <td data-mark="yes">yes</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>The one place both versions already agree</td>
+        </tr>
+        <tr>
+          <td>Baseline model, formula, coefficients, modifier arithmetic</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>v0's best feature. v2 carries it in as progressive disclosure</td>
+        </tr>
+        <tr>
+          <td>Information gaps, stated as gaps</td>
+          <td data-mark="yes">yes</td><td data-mark="part">part</td><td data-mark="yes">yes</td>
+          <td>"An unassessed risk is not a low risk"</td>
+        </tr>
+        <tr>
+          <td>Systemic cross-domain synthesis</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>v2 makes it a sixth domain rather than a separate tab</td>
+        </tr>
+        <tr>
+          <td>The action map</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>Every scored lever and gate on one patient-QALY scale</td>
+        </tr>
+        <tr>
+          <td>Evidence ledger with per-row provenance</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>The map's decision logic, in a square specimen table</td>
+        </tr>
+        <tr>
+          <td>Vitality: patient-reported outcomes and drivers</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>The register's rail names it; the later app build had dropped it</td>
+        </tr>
+        <tr>
+          <td>Screening schedule</td>
+          <td data-mark="no">no</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>Surveillance, kept separate from risk reduction</td>
+        </tr>
+
+        <tr>
+          <th scope="rowgroup" colspan="5" class="wf-matrix__group">Doing the work</th>
+        </tr>
+        <tr>
+          <td>Care plan as a problem-oriented draft note</td>
+          <td data-mark="part">part</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 composes a note; v1 frames it as the journal entry it will become</td>
+        </tr>
+        <tr>
+          <td>Structured decision per item, with reason code</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>Approve / Defer / Reject / Modify, never free text alone</td>
+        </tr>
+        <tr>
+          <td>Note lock as its own act</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>v1's sign button is disabled and labelled <code>not wired</code></td>
+        </tr>
+        <tr>
+          <td>Order authorization as a separate act</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>One signature covers the enumerated set; it is not the note's signature</td>
+        </tr>
+        <tr>
+          <td>Patient release as a third, separate act</td>
+          <td data-mark="no">no</td><td data-mark="part">part</td><td data-mark="yes">yes</td>
+          <td>v0 has no release at all: nothing it does reaches the patient app</td>
+        </tr>
+        <tr>
+          <td>Exact-preview attestation with a hash</td>
+          <td data-mark="part">part</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>v0 attests to an order set; v2 attests to the released package too</td>
+        </tr>
+        <tr>
+          <td>Lab and genetics ordering</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>Catalog, collection method, shipping, counseling gate</td>
+        </tr>
+        <tr>
+          <td>Standing-order authorization state, fail closed</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>An order under an unconfigured standing order is refused</td>
+        </tr>
+        <tr>
+          <td>Journal as the immutable record</td>
+          <td data-mark="part">part</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 has notes history; v1 has the doctrine that a change is a new entry</td>
+        </tr>
+        <tr>
+          <td>Canvas EMR bridge and reconciliation</td>
+          <td data-mark="yes">yes</td><td data-mark="no">no</td><td data-mark="yes">yes</td>
+          <td>v2 adds what Aleron has pushed and whether Canvas accepted it</td>
+        </tr>
+        <tr>
+          <td>Release audit across patients</td>
+          <td data-mark="no">no</td><td data-mark="part">part</td><td data-mark="yes">yes</td>
+          <td>v1 has a per-patient journal; the matrix wants an append-only log</td>
+        </tr>
+        <tr>
+          <td>Patient-context AI colleague</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v2 adds claim adoption with an explicit no-chart-write boundary</td>
+        </tr>
+
+        <tr>
+          <th scope="rowgroup" colspan="5" class="wf-matrix__group">How it looks</th>
+        </tr>
+        <tr>
+          <td>Flight-deck register by default</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 defaults to the member's day register and offers a toggle</td>
+        </tr>
+        <tr>
+          <td>Fixed rail, 188&nbsp;px, canonical icons</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 has no rail: a 56&nbsp;px header and a per-page tab strip instead</td>
+        </tr>
+        <tr>
+          <td>One consistent section switcher</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 ships four variants of the same tab strip on five pages</td>
+        </tr>
+        <tr>
+          <td>Audit face retired from the surface (P4)</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0's mono eyebrows are most of why it reads as an instrument</td>
+        </tr>
+        <tr>
+          <td>Hazard as a filled tile, never text (P3)</td>
+          <td data-mark="part">part</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>Keeps hazards outranking advisories by construction</td>
+        </tr>
+        <tr>
+          <td>Canonical loading instrument</td>
+          <td data-mark="no">no</td><td data-mark="yes">yes</td><td data-mark="yes">yes</td>
+          <td>v0 ships skeleton bars, which the system forbids outright</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="wf-sectionlabel">How to read these</div>
+  <ul class="wf-notelist">
+    <li>Every screen is a real, self-contained HTML file that links the canonical
+      <code>tokens.css</code> and <code>components.css</code> <strong>directly by URL</strong>,
+      so nothing here is hand-copied and nothing can silently drift from the design system.
+      The same URL serves the real Hanken Grotesk, so these render in the actual typeface.</li>
+    <li>Every screen carries a <strong>version switcher</strong> in its top bar. Use it to flip
+      the same screen between v0, v1 and v2 in place. Where a version has no counterpart the
+      pill is struck through rather than hidden, so the gap is legible rather than silent.</li>
+    <li>Every v2 screen ends with an <strong>annotation list</strong> saying what changed and
+      where it came from: <strong>carried</strong> names the v0 file a feature was absorbed
+      from, <strong>new</strong> comes from the reference surface, <strong>gap</strong> marks a
+      component the design system has not declared yet, and <strong>dropped</strong> records a
+      v0 capability deliberately not carried, with the reason.</li>
+    <li><strong>v0 is a record, not a proposal.</strong> Where the shipped app breaks a design
+      system rule, the replica breaks it too and annotates it. Do not fix v0.</li>
+    <li>All shared chrome lives in one file, <code>physician-chrome.css</code>. Its section B
+      holds the components this surface family needs and <code>components.json</code> v0.5.0
+      does not declare yet, each one naming the physician-register clause it comes from. Those
+      are the entries ratification would move upstream.</li>
+  </ul>
+
+  <div class="wf-sectionlabel">Legend</div>
+  <div class="wf-legend">
+    <span><i class="is-new"></i> from the reference surface</span>
+    <span><i class="is-carried"></i> carried up from v0</span>
+    <span><i class="is-gap"></i> no canonical component yet</span>
+    <span><i class="is-absent"></i> no counterpart in that version</span>
+  </div>
+
+  <div class="wf-sectionlabel">Provenance</div>
+  <ul class="wf-notelist">
+    <li><strong>v0 source</strong> <code>C:\LASOHealth\apps\Aleron-Web</code>, the shipped
+      Laravel portal. Thirteen Blade views across ten routes.</li>
+    <li><strong>v1 source</strong>
+      <code>aleron-canonical-documents/system-design/diagrams/aleron-actionmap-al47m-ds.html</code>,
+      named by <code>product-design-system/physician-register.html</code> section 03 as the
+      reference surface physician chart work derives from. Its later app build lives at
+      <code>apps/physician/</code> and is where Screening and the progressive commit workflow
+      come from.</li>
+    <li><strong>Design law</strong> <code>physician-register.html</code>, proposed 2 Jul 2026,
+      provisionally in force for field validation since 3 Jul 2026, ratification pending. Its
+      eight laws and four open decisions are restated in <code>BRIEF.md</code>.</li>
+    <li><strong>Workflow law</strong> <code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code>
+      for every lifecycle state, permission and release rule, and
+      <code>docs/PRODUCTION_PATIENT_PHYSICIAN_STRATEGY.md</code> for the minimum physician
+      surface.</li>
+    <li><strong>Sibling set</strong> the patient-facing wireframes at
+      <code>C:\LASOHealth\apps\aleron-wireframes</code>, 85 screens in the member Cabin
+      register. This set follows their conventions, with shared chrome centralised rather than
+      duplicated per file.</li>
+  </ul>
+
+  <div class="wf-sectionlabel">Running these</div>
+  <p class="wf-prose wf-prose--dim">
+    Open any file directly in a browser. To browse the set with working relative links, run
+    <code>node scripts/serve.js</code> from the repo root and open
+    <code>http://localhost:4173</code>. The screens need a network connection the first time,
+    to fetch the canonical stylesheets and the typeface.
+  </p>
+
+</div>
+
+</body>
+</html>

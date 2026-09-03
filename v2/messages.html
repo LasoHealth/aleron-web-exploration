@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en" data-register="flight-deck">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aleron MD — v2 — Messages</title>
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
+<link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
+<link rel="stylesheet" href="../physician-chrome.css">
+<style>
+  /* Screen-local layout only.
+
+     Messages is the fourth inbox-rail screen. Two columns: the thread list on
+     the left, one open thread on the right. The list is narrow on purpose,
+     because the thread is the content and the list is only a way back to it. */
+
+  .ms-wrap {
+    display: grid;
+    grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+    gap: var(--s-lg);
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .ms-wrap { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .ms-thread {
+    display: grid;
+    gap: var(--s-2xs);
+    padding: var(--s-sm) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    color: inherit;
+    text-decoration: none;
+  }
+  .ms-thread:last-of-type { border-bottom: 0; }
+  .ms-thread:hover { background: var(--surface-inset); }
+  .ms-thread[aria-current="true"] { background: var(--surface-selected); }
+  .ms-thread__top { display: flex; align-items: baseline; gap: var(--s-xs); }
+  .ms-thread__who { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .ms-thread__when { margin-left: auto; font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ms-thread__prev {
+    font-size: var(--size-caption);
+    line-height: 1.45;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .ms-thread__tag { font-size: var(--size-caption); color: var(--text-tertiary); }
+
+  /* One message. The physician's identity rides on every message they send,
+     because a patient reading a clinical instruction has a right to know which
+     licensed human said it. */
+  .ms-log { display: grid; gap: var(--air-tier); }
+  .ms-msg { display: grid; gap: var(--s-2xs); }
+  .ms-msg__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2xs) var(--s-xs); }
+  .ms-msg__from { font-size: var(--size-small); font-weight: var(--w-emphasis); color: var(--text-primary); }
+  .ms-msg__role { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ms-msg__when { margin-left: auto; font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .ms-msg__body {
+    padding: var(--s-sm) var(--s-md);
+    border-radius: var(--radius-control);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+  .ms-msg[data-author="physician"] .ms-msg__body {
+    background: transparent;
+    border: var(--line-thin) solid var(--border-base);
+  }
+  .ms-msg__ref {
+    margin-top: var(--air-row);
+    padding-top: var(--air-row);
+    border-top: var(--line-thin) solid var(--hairline);
+    font-size: var(--size-caption);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .ms-msg__ref b { color: var(--text-primary); font-weight: var(--w-emphasis); }
+
+  .ms-compose { display: grid; gap: var(--air-row); }
+  .ms-compose__acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
+  .ms-compose__acts .pbase { margin-left: auto; text-align: right; }
+</style>
+</head>
+<body class="wf">
+<input class="wf-flagcb" type="checkbox" id="wf-flag">
+
+<nav class="wf-bar" aria-label="Wireframe navigation">
+  <a class="wf-bar__home" href="../index.html">All versions</a>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Messages</b></span>
+  <span class="wf-bar__spacer"></span>
+  <span class="wf-switch">
+    <span class="wf-switch__label">Same screen in</span>
+    <span aria-disabled="true" title="v0 has no messaging. The physician portal has no patient-facing channel at all">v0</span>
+    <span aria-disabled="true" title="v1 has Aleron AI, which is a physician-to-model channel, and no physician-to-patient channel">v1</span>
+    <span aria-current="page">v2</span>
+  </span>
+  <label class="wf-flag" for="wf-flag"><i aria-hidden="true"></i>Mark what will not ship</label>
+</nav>
+
+<div class="wf-stage">
+<div class="wf-desk">
+  <div class="wf-desk__chrome">
+    <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="wf-desk__url">aleron.md/messages/AL-47M</span>
+  </div>
+
+  <div class="pshell">
+
+    <aside class="prail" aria-label="Sections">
+      <div class="prail__brand">aleron<span>MD</span></div>
+
+      <div class="prail__patient">
+        <span class="prail__avatar" aria-hidden="true">AO</span>
+        <span class="prail__who">
+          <span class="prail__name">Dr. A. Okafor</span>
+          <span class="prail__code">Physician &middot; LASO Wellness</span>
+        </span>
+      </div>
+
+      <div class="prail__rule" role="presentation"></div>
+
+      <nav class="prail__nav">
+        <a class="prail__item" href="inbox.html">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5h4l1.5 2.5h6l1.5-2.5h4"/><path d="M5.2 5.5h13.6l1.7 8v4a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2v-4Z"/></svg>
+          Inbox <span class="prail__count">7</span>
+        </a>
+        <a class="prail__item" href="panel.html">
+          <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 6.2a3.2 3.2 0 0 1 0 6.1M18 20c0-2.4-.9-4.2-2.4-5.3"/></svg>
+          Panel <span class="prail__count">146</span>
+        </a>
+        <a class="prail__item" href="reviews.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 3v5.3c0 4.1-2.8 7.8-7 8.7-4.2-.9-7-4.6-7-8.7V6.5l7-3Z"/><path d="M8.5 13.2l2.2-2.2 2.1 2.1 2.8-3.8"/></svg>
+          Reviews <span class="prail__count">3</span>
+        </a>
+        <a class="prail__item" href="messages.html" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14a2 2 0 0 1 2 2v6.2a2 2 0 0 1-2 2H10.5L6 20v-3.3H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.2h9M7.5 13.2h6.2"/></svg>
+          Messages <span class="prail__count">2</span>
+        </a>
+      </nav>
+
+        <div class="prail__foot">
+          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-29" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-29" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
+          <div class="prail__acct">
+            <span class="prail__actor">Dr. A. Okafor</span>
+            <button class="prail__signout" type="button">Log out</button>
+          </div>
+        </div>
+    </aside>
+
+    <main class="pmain">
+    <div class="pwrap">
+
+      <header class="phead">
+        <div class="phead__row">
+          <h1>Messages</h1>
+          <span class="phead__aside"><span class="pbase">6 assigned threads &middot; 2 unread</span></span>
+        </div>
+        <p>Your threads with your own patients. Only assigned threads appear here, and a message can reference released content only.</p>
+      </header>
+
+      <div class="ms-wrap">
+
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>Threads</h2>
+            <span class="pmod__meta"><span class="pval">6</span></span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+
+            <a class="ms-thread" href="messages.html" aria-current="true">
+              <span class="ms-thread__top">
+                <span class="ms-thread__who">Ethan Park</span>
+                <span class="ms-thread__when">08:52</span>
+              </span>
+              <span class="ms-thread__prev">Got the cuff. Do I take it before or after coffee? Also my watch stopped syncing on Thursday.</span>
+              <span class="ms-thread__tag">AL-47M &middot; review pending</span>
+            </a>
+
+            <a class="ms-thread" href="messages.html">
+              <span class="ms-thread__top">
+                <span class="ms-thread__who">Joseph Ferreira</span>
+                <span class="ms-thread__when">Yesterday</span>
+              </span>
+              <span class="ms-thread__prev">Started the walking block on Monday and the second one Thursday. Knee is fine so far.</span>
+              <span class="ms-thread__tag">AL-63M &middot; plan released 19 Aug</span>
+            </a>
+
+            <a class="ms-thread" href="messages.html">
+              <span class="ms-thread__top">
+                <span class="ms-thread__who">Tomas Lindqvist</span>
+                <span class="ms-thread__when">27 Aug</span>
+              </span>
+              <span class="ms-thread__prev">Understood, I will wait for the second opinion. Is there anything I should stop doing meanwhile?</span>
+              <span class="ms-thread__tag">AL-52M &middot; hold copy released</span>
+            </a>
+
+            <a class="ms-thread" href="messages.html">
+              <span class="ms-thread__top">
+                <span class="ms-thread__who">Grace Okonjo</span>
+                <span class="ms-thread__when">22 Aug</span>
+              </span>
+              <span class="ms-thread__prev">Marked the strength sessions done for two weeks running. The sleep one I have not started.</span>
+              <span class="ms-thread__tag">AL-41F &middot; action tracking active</span>
+            </a>
+
+            <a class="ms-thread" href="messages.html">
+              <span class="ms-thread__top">
+                <span class="ms-thread__who">Marcus Bell</span>
+                <span class="ms-thread__when">18 Aug</span>
+              </span>
+              <span class="ms-thread__prev">I think the saliva kit is still in my hallway. Can someone send a return label?</span>
+              <span class="ms-thread__tag">AL-39M &middot; ops also on thread</span>
+            </a>
+
+            <a class="ms-thread" href="messages.html">
+              <span class="ms-thread__top">
+                <span class="ms-thread__who">Mara Chen</span>
+                <span class="ms-thread__when">14 Aug</span>
+              </span>
+              <span class="ms-thread__prev">Thanks for explaining the fasting rule. Booked the draw for the 19th.</span>
+              <span class="ms-thread__tag">AL-56F &middot; plan editing</span>
+            </a>
+
+          </div>
+        </section>
+
+        <div>
+
+          <section class="pmod pmod--tier1">
+            <div class="pmod__head">
+              <h2>Ethan Park</h2>
+              <span class="pmod__sub">AL-47M &middot; 47M &middot; thread opened 12 Jun 2026</span>
+              <span class="pmod__meta"><a href="patient-data.html">Open chart</a></span>
+            </div>
+            <div class="pmod__body">
+
+              <div class="ms-log">
+
+                <article class="ms-msg" data-author="physician">
+                  <div class="ms-msg__head">
+                    <span class="ms-msg__from">Dr. A. Okafor</span>
+                    <span class="ms-msg__role">Physician &middot; LASO Wellness &middot; NPI 1487520394</span>
+                    <span class="ms-msg__when">14 Aug 2026, 10:20</span>
+                  </div>
+                  <p class="ms-msg__body">Your baseline draw and the genetics kit both came back, so your results are with me now. I read everything before you see any of it, and I will send you the plan once I have been through it. That review is the slowest part and it is deliberate.</p>
+                </article>
+
+                <article class="ms-msg" data-author="patient">
+                  <div class="ms-msg__head">
+                    <span class="ms-msg__from">Ethan Park</span>
+                    <span class="ms-msg__role">Member</span>
+                    <span class="ms-msg__when">14 Aug 2026, 21:04</span>
+                  </div>
+                  <p class="ms-msg__body">Can I see the numbers in the meantime? I am fine with reading them raw.</p>
+                </article>
+
+                <article class="ms-msg" data-author="physician">
+                  <div class="ms-msg__head">
+                    <span class="ms-msg__from">Dr. A. Okafor</span>
+                    <span class="ms-msg__role">Physician &middot; LASO Wellness &middot; NPI 1487520394</span>
+                    <span class="ms-msg__when">15 Aug 2026, 08:11</span>
+                  </div>
+                  <p class="ms-msg__body">Not yet, and I want to be straight about why rather than pretend the app is slow. A single value out of range means one thing on its own and something different next to the other twelve, and I would rather you read them once, in an order that makes sense, with what I intend to do about each one attached. Nothing here needs a decision this week.</p>
+                  <p class="ms-msg__ref"><b>No content referenced.</b> Raw lab values, genetic findings and model scores are not releasable before the plan is released, so this message carries none of them.</p>
+                </article>
+
+                <article class="ms-msg" data-author="physician">
+                  <div class="ms-msg__head">
+                    <span class="ms-msg__from">Dr. A. Okafor</span>
+                    <span class="ms-msg__role">Physician &middot; LASO Wellness &middot; NPI 1487520394</span>
+                    <span class="ms-msg__when">28 Aug 2026, 16:35</span>
+                  </div>
+                  <p class="ms-msg__body">One thing you can start before the plan lands, because it is a measurement rather than a treatment: take your blood pressure twice a day, morning and evening, for fourteen days, and note the readings. Sit for five minutes first, feet flat, cuff on bare skin at heart height. A cuff is on its way to you.</p>
+                  <p class="ms-msg__ref"><b>Referenced:</b> order logistics, home blood pressure cuff, shipped 29 Aug. Order logistics are patient-visible before release.</p>
+                </article>
+
+                <article class="ms-msg" data-author="patient">
+                  <div class="ms-msg__head">
+                    <span class="ms-msg__from">Ethan Park</span>
+                    <span class="ms-msg__role">Member</span>
+                    <span class="ms-msg__when">31 Aug 2026, 08:52</span>
+                  </div>
+                  <p class="ms-msg__body">Got the cuff. Do I take it before or after coffee? Also my watch stopped syncing on Thursday and I do not know if that matters.</p>
+                </article>
+
+              </div>
+
+            </div>
+          </section>
+
+          <!-- The compose box, and the release gate on it. The reference picker
+               is the whole point: a physician can write freely, but anything
+               they attach has to be an item the release package made visible. -->
+          <section class="pmod pmod--flat">
+            <div class="pmod__head">
+              <h3>Reply to Ethan Park</h3>
+              <span class="pmod__meta">Sends as Dr. A. Okafor</span>
+            </div>
+            <div class="pmod__body">
+              <div class="ms-compose">
+
+                <div class="amd-field">
+                  <label class="amd-field__label" for="ms-body">Message</label>
+                  <textarea class="amd-input" id="ms-body" rows="4">Before coffee, and before any medication. The watch gap is fine: fourteen days of cuff readings is what I am actually working from, and the watch is context around it.</textarea>
+                </div>
+
+                <div class="amd-field">
+                  <label class="amd-field__label" for="ms-ref">Reference an item from this chart</label>
+                  <div class="amd-select-wrap">
+                    <select class="amd-select" id="ms-ref">
+                      <option>Home blood pressure monitoring, 14 days &middot; order logistics</option>
+                      <option>Home blood pressure cuff shipment &middot; order logistics</option>
+                      <option>Intro call, 4 Sep 2026, 14:00 &middot; scheduling state</option>
+                      <option>Wearable connection status &middot; last sync 27 Aug</option>
+                    </select>
+                  </div>
+                  <p class="pbase">4 items available. Everything else on this chart is withheld until the plan is released.</p>
+                </div>
+
+                <div class="preason">
+                  <strong>Not available to reference on this chart</strong>
+                  <ul>
+                    <li>Raw lab values, 27 fields. Not allowed before release.</li>
+                    <li>Genetic findings, ATM heterozygous P/LP. Not allowed before release, and it carries a genetics display policy that only a release package can set.</li>
+                    <li>Risk model scores, 5 domains. Not allowed before release.</li>
+                    <li>Draft recommendations and draft physician notes, 4 problems. Not allowed before release.</li>
+                  </ul>
+                  <p class="pbase">Lifecycle state: Physician review pending. All four categories become referenceable at Plan released, and only as the release package permits each one.</p>
+                </div>
+
+                <div class="ms-compose__acts">
+                  <button class="amd-button" data-variant="primary" type="button">Send message</button>
+                  <button class="amd-button" data-variant="tertiary" type="button">Save draft</button>
+                  <span class="pbase">Routed and stored &middot; appended to this patient's audit log</span>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          <details class="pdisc">
+            <summary>The release gate, stated exactly</summary>
+            <div class="pdisc__body">
+              <p>Role and Release Matrix v1 section 5 splits patient visibility into four lists, and messaging
+              sits on both sides of the line. <em>Order logistics and sample state</em>, <em>intro call and
+              scheduling state</em> and <em>wearable connection status</em> are all allowed before release, which
+              is why a message about a cuff and a fourteen-day protocol is fine today. <em>Physician
+              message</em> appears again under <em>Allowed after release</em>, alongside released plan actions
+              and released explanations, and that is the list the reference picker draws from once a package
+              exists.</p>
+              <p>The rule the gate enforces is the last line of the not-allowed list: no hint that a serious
+              result exists unless physician-approved hold copy is released. Tomas Lindqvist's thread is the
+              case where that copy was written and released deliberately, so his wait is not silent.</p>
+              <dl class="pfacts">
+                <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> sections 2, 3 and 5</dd>
+                <dt>Thread access</dt><dd>Physician: assigned threads. Ops: support threads. Both are scoped by role and context.</dd>
+                <dt>Send permission</dt><dd>Section 3, <em>Send physician message</em>: member yes, physician yes, ops support-scoped</dd>
+                <dt>Attribution</dt><dd>Actor id and licence identity on every physician-originated message. A message is a clinical communication, not a chat bubble.</dd>
+                <dt>Not this screen</dt><dd>Aleron AI. Section 3 keeps <em>Send AI message</em> separate, and the AI channel lives in the chart rail.</dd>
+              </dl>
+            </div>
+          </details>
+
+        </div>
+      </div>
+
+      <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-28" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-28" role="note">
+        Synthetic staging threads &middot; the reference list is generated from the patient's release package,
+        not from this screen &middot; a physician-originated message is stored with actor identity and appended to
+        the audit log at send.
+      </p></div>
+
+    </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<div class="wf-annotations">
+  <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
+    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
+    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
+    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
+    surface that cannot say who is signed in cannot be handed to the next physician at the same
+    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
+    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
+    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
+    rather than claiming a new one.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>As bare underlined text the control was <span class="pval">15<span
+    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
+    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
+    still has to be real: the label keeps its size and the target grew to
+    <span class="pval">32<span class="pval__u">px</span></span>, with the same
+    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
+    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
+    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The whole screen. <code>PRODUCTION_PATIENT_PHYSICIAN_STRATEGY.md</code> lists
+    <em>Patient message action</em> last in its minimum staging physician surface, and neither v0
+    nor the reference surface has any physician-to-patient channel.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The release gate on the composer. The reference picker offers only the four items this
+    chart has released, and the withheld categories are printed with the reason rather than
+    silently absent. A gate you cannot see is a gate you will argue with.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>Physician identity on every physician-originated message: name, role, organisation and
+    NPI. A patient acting on a clinical instruction is entitled to know which licensed human issued
+    it, and the matrix requires actor attribution on the stored record anyway.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>No canonical message-thread component exists. <code>interaction.ai-thread</code>
+    (<code>.amd-ai-thread</code>) is the model channel and deliberately not reused here, because a
+    physician message and an AI message have different provenance obligations. The thread layout is
+    screen-local until a registry entry exists.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The withheld-content list reuses <code>.preason</code>, proposed in
+    <code>physician-chrome.css</code> section B for readiness blockers. Same shape, same job: state
+    what is withheld and why, never grey something out and leave the physician guessing.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>Any unread badge on the thread rows. The rail already carries the count, and a second
+    unread treatment inside the list would spend attention on recency when the thread list's only
+    job is to get you back to a conversation.</span></p>
+</div>
+
+</body>
+</html>
