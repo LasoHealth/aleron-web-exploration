@@ -1154,8 +1154,13 @@
             <article class="pcommit__card" data-state="ready">
               <span class="pcommit__step">Needs steps 2 and 3, in either order <span class="wf-scaffold">&middot; matrix act 3, release plan</span></span>
               <h3>Patient release</h3>
-              <p>Generates the exact release preview, takes the attestation against its hash, and makes the package patient-visible. The final act, and the only one the patient ever sees. <span class="wf-scaffold">It completes here, in the card: there is no screen to navigate to between attesting to a document and releasing it.</span></p>
-              <p>Withheld until the Preview note is locked, the order set is authorized and a preview has been generated. <span class="wf-scaffold">It asks for both, not for a sequence: whichever of the two happened first, this opens once both are done.</span> All three have cleared below, so the act is open. Order authorization stays a separate physician act with its own attestation; nothing on this card re-performs it.</p>
+              <p>Generates the exact release preview, takes the attestation against its hash, and makes the package patient-visible. The final act, and the only one the patient ever sees.</p>
+              <p>All three have cleared below, so the act is open. Order authorization stays a separate physician act with its own attestation; nothing on this card re-performs it.</p>
+                <dl class="pfacts">
+                  <dt>Needs</dt><dd>The note locked and the orders authorized, <b>in either order</b>, and a preview generated. It opens once all three are done, whichever came first.</dd>
+                  <dt>Completes here</dt><dd>Preview, attestation and release all happen on this card. Nothing sends you to another screen between attesting to a document and releasing it.</dd>
+                  <dt>Reaches the patient</dt><dd>The package below, exactly as shown. This is the only act the patient ever sees.</dd>
+                </dl>
 
               <div class="rx-release">
 
@@ -1569,6 +1574,24 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What v3 asks, and what it changes</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Two facts about the release act were being hidden, and the last pass hid them further.</b>
+    That it completes on the card, and that steps 2 and 3 count in either order, are both things a
+    physician acts on. The second is the whole point of separating the acts in the first place. The pass
+    before this one read them as arguments for the design and marked them as not shipping, which was the
+    wrong call twice over: they were already buried mid-paragraph, and marking them made them invisible by
+    default. <em>In either order</em> was also the least prominent thing on the card, sitting in a
+    <span class="pval">10.5<span class="pval__u">px</span></span> eyebrow while carrying its most
+    important precondition. Both are now rows in a fact list at
+    <span class="pval">13<span class="pval__u">px</span></span>, the same pattern the note-lock card
+    beside it already uses, so what the act needs and where it finishes read at a glance rather than
+    having to be found in prose.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Worth naming the failure mode, because it is the marking pass's own. A sentence that explains
+    <em>why the design is this way</em> and a sentence that tells a physician <em>what will happen</em>
+    can be nearly the same words. <em>Nothing here sends you to another screen</em> is an argument on a
+    pane subtitle and a reassurance on an irreversible act. Sorting by phrasing rather than by what the
+    reader does with it will keep making this mistake, and no lint can settle it.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>Problem-list match said the same thing three times, so it is gone.</b> Its state was already
     in the summary line and again in the command control: <em>assess existing cnd-4471</em> beside an
