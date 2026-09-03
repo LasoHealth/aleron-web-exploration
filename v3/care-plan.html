@@ -770,10 +770,6 @@
                         <textarea class="amd-input" id="cp-p1" rows="2">Refer to genetic counselling. Open the family-history gate for breast, pancreatic and prostate history; pancreatic surveillance is conditional on a first-degree finding.</textarea>
                       </div>
                       <div class="v3-axes">
-                        <div class="rl-axis">
-                        <span class="amd-prose-heading">Problem-list match</span>
-                        <p class="rl-src"><b>Matched existing.</b> <b>ATM-associated cancer susceptibility</b>, active since 12 Mar 2024 <span class="ap-pdx">cnd-4471</span>. Updating revises that entry; it does not add a second one.</p>
-                      </div>
                         <div class="ap-field">
                           <label class="amd-prose-heading" for="cmd-1">Command on signature</label>
                           <div class="amd-select-wrap">
@@ -785,7 +781,7 @@
                               <option>Health concern &middot; not a diagnosis</option>
                             </select>
                           </div>
-                          <p class="rl-dim">Adds an <b>Assess</b> to <span class="ap-pdx">cnd-4471</span> with a status and a note, up to 2048 characters. The existing entry is added to, never replaced.</p>
+                          <p class="rl-dim">Adds an <b>Assess</b> to <b>ATM-associated cancer susceptibility</b>, active since 12 Mar 2024, <span class="ap-pdx">cnd-4471</span>, with a status and a note, up to 2048 characters. That entry is added to, never replaced, and no second one appears.</p>
                         </div>
                         <div class="rl-axis">
                           <span class="amd-prose-heading" id="ax-as-1">Status on the assessed condition</span>
@@ -842,10 +838,6 @@
                         <textarea class="amd-input" id="cp-p2" rows="2">Start weekly incretin therapy with supervised resistance training as the lean-mass guardrail. Repeat HbA1c and fasting insulin at 12 weeks.</textarea>
                       </div>
                       <div class="v3-axes">
-                        <div class="rl-axis">
-                        <span class="amd-prose-heading">Problem-list match</span>
-                        <p class="rl-src"><b>No existing match.</b> Nothing on the active list corresponds to this. Signing creates a new entry.</p>
-                      </div>
                         <div class="ap-field">
                           <label class="amd-prose-heading" for="cmd-2">Command on signature</label>
                           <div class="amd-select-wrap">
@@ -908,10 +900,6 @@
                         <textarea class="amd-input" id="cp-p3" rows="2">Fourteen days of home readings, twice daily, then decide. The same series sequences the sleep-apnea question and exercise clearance.</textarea>
                       </div>
                       <div class="v3-axes">
-                        <div class="rl-axis">
-                        <span class="amd-prose-heading">Problem-list match</span>
-                        <p class="rl-src"><b>Not checked.</b> <span class="pna">The list was not searched for this problem.</span> Not the same as no match, and it is why <b>Update existing</b> is unavailable rather than merely unselected.</p>
-                      </div>
                         <div class="ap-field">
                           <label class="amd-prose-heading" for="cmd-3">Command on signature</label>
                           <div class="amd-select-wrap">
@@ -923,7 +911,7 @@
                               <option>Health concern &middot; not a diagnosis</option>
                             </select>
                           </div>
-                          <p class="rl-dim">Recorded in the signed note and not on the problem list. Withholding the problem-list entry is the statement.</p>
+                          <p class="rl-dim">Recorded in the signed note and not on the problem list. Withholding the problem-list entry is the statement. The list was never searched for this problem, which is not the same as searching and finding nothing, and is why <b>Assess existing</b> is unavailable rather than merely unselected.</p>
                         </div>
                       </div>
                       <div class="ap-orders" role="group" aria-labelledby="cp-o3-label">
@@ -1166,8 +1154,8 @@
             <article class="pcommit__card" data-state="ready">
               <span class="pcommit__step">Needs steps 2 and 3, in either order <span class="wf-scaffold">&middot; matrix act 3, release plan</span></span>
               <h3>Patient release</h3>
-              <p>Generates the exact release preview, takes the attestation against its hash, and makes the package patient-visible. The final act, and the only one the patient ever sees. It completes here, in the card: there is no screen to navigate to between attesting to a document and releasing it.</p>
-              <p>Withheld until the Preview note is locked, the order set is authorized and a preview has been generated. It asks for both, not for a sequence: whichever of the two happened first, this opens once both are done. All three have cleared below, so the act is open. Order authorization stays a separate physician act with its own attestation; nothing on this card re-performs it.</p>
+              <p>Generates the exact release preview, takes the attestation against its hash, and makes the package patient-visible. The final act, and the only one the patient ever sees. <span class="wf-scaffold">It completes here, in the card: there is no screen to navigate to between attesting to a document and releasing it.</span></p>
+              <p>Withheld until the Preview note is locked, the order set is authorized and a preview has been generated. <span class="wf-scaffold">It asks for both, not for a sequence: whichever of the two happened first, this opens once both are done.</span> All three have cleared below, so the act is open. Order authorization stays a separate physician act with its own attestation; nothing on this card re-performs it.</p>
 
               <div class="rx-release">
 
@@ -1581,6 +1569,31 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What v3 asks, and what it changes</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Problem-list match said the same thing three times, so it is gone.</b> Its state was already
+    in the summary line and again in the command control: <em>assess existing cnd-4471</em> beside an
+    option reading <em>Assess existing, adds to the matched entry</em>, or <em>no existing match</em>
+    beside help saying the option is unavailable because there is nothing to assess. Only two of the three
+    axes carried anything the rest of the item did not. Problem 1's matched entry, <b>ATM-associated
+    cancer susceptibility</b> active since 12 Mar 2024, is now named on the command that revises it,
+    because a bare <span class="ap-pdx">cnd-4471</span> does not tell a physician which entry they are
+    about to add to. Problem 3 keeps the distinction that the list was never searched, which is not the
+    same as searching and finding nothing. Problem 2's axis said nothing that was not already said twice
+    and left without replacement.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The axis was explaining a control by a name the screen no longer uses. It read <em>Update
+    existing is unavailable</em>; the option is <b>Assess existing</b>, and <em>Update existing</em>
+    survived only in prose after the rename. Corrected on the way out. Dropping the axis also takes the
+    peer sub-headings in one item from eight to seven, which pulls the same way as the label pass rather
+    than against it.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Two sentences on the release act were arguing for the design rather than telling a physician
+    anything. <em>It completes here, in the card: there is no screen to navigate to between attesting to a
+    document and releasing it</em> is a claim about how the surface is built, and nearly the same sentence
+    as the pane subtitles already marked as not shipping. So is <em>it asks for both, not for a
+    sequence</em>, which this pass wrote itself one turn after marking its own siblings. Both are marked
+    now. What stays is the part a physician acts on: the act previews, takes the attestation against the
+    hash, releases, and it is the only one the patient ever sees.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>There was no way to log out, and no way to tell who was logged in.</b>
     <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
