@@ -194,15 +194,47 @@ for (const rel of files) {
   }
 }
 
-// --- internal links ---------------------------------------------------------
+// --- internal links, checked with exact case --------------------------------
+// GitHub Pages serves from Linux and is case sensitive; this repo is authored
+// on Windows, where fs.existsSync is not. A link whose case does not match its
+// file therefore passed here and 404ed once published, which no amount of local
+// clicking would surface. So this reads the real directory entries and compares
+// names exactly, and reports a case mismatch as its own kind: it is a different
+// bug from a link that points at nothing.
+const realNames = new Map();
+const entries = (dir) => {
+  if (!realNames.has(dir)) {
+    let set = new Set();
+    try { set = new Set(fs.readdirSync(dir)); } catch (e) { /* missing dir */ }
+    realNames.set(dir, set);
+  }
+  return realNames.get(dir);
+};
+
 let linkCount = 0;
 for (const rel of files) {
   const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
-  for (const m of src.matchAll(/href="(?!https?:|#|mailto:)([^"]+)"/g)) {
+  for (const m of src.matchAll(/(?:href|src)="(?!https?:|#|mailto:|data:)([^"]+)"/g)) {
     linkCount++;
-    const target = path.normalize(path.join(ROOT, path.dirname(rel), m[1].split('#')[0]));
-    if (!fs.existsSync(target)) note(rel, 'broken-link', m[1]);
+    const target = path.normalize(path.join(ROOT, path.dirname(rel), m[1].split('#')[0].split('?')[0]));
+    const names = entries(path.dirname(target));
+    const name = path.basename(target);
+    if (names.has(name)) continue;
+    const twin = [...names].find((n) => n.toLowerCase() === name.toLowerCase());
+    if (twin) note(rel, 'link-case-mismatch', m[1] + ' -> on disk it is ' + twin);
+    else note(rel, 'broken-link', m[1]);
   }
+}
+
+// --- GitHub Pages traps are standing rules, because Pages is the target -----
+// Pages ran the legacy Jekyll build here, and Jekyll drops any path whose name
+// starts with an underscore. All four flow maps are _flow.html, so all four
+// returned 404 on the published site while every screen linking to them
+// returned 200. Verified live against the URL before the fix.
+if (!fs.existsSync(path.join(ROOT, '.nojekyll'))) {
+  const underscored = files.filter((f) => path.basename(f).startsWith('_'));
+  note('.nojekyll', 'pages-jekyll-would-drop-files',
+    'missing, and ' + underscored.length + ' file(s) start with an underscore');
 }
 
 // --- the shared stylesheet parses -------------------------------------------

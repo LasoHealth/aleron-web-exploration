@@ -26,6 +26,31 @@ Then open `http://localhost:4173`. That is an Express static server over the
 repo root; `PORT` overrides the port. A network connection is needed the first
 time, to fetch the canonical stylesheets and the typeface.
 
+## Published
+
+<https://kito-laso.github.io/aleron-web-designs/>
+
+Pages serves `main` from the repository root, so the set publishes as it
+stands and needs no build step. Two things keep it working:
+
+**`.nojekyll` is required, not optional.** Pages runs the legacy Jekyll build
+by default, and Jekyll drops any path whose name begins with an underscore.
+All four flow maps are `_flow.html`, so all four returned 404 on the published
+site while every screen linking to them returned 200: a break that is invisible
+locally, because nothing about it is wrong on disk. `scripts/check.js` now fails
+if `.nojekyll` goes missing while any underscored file exists.
+
+**Links are checked with exact case.** Pages serves from Linux and is case
+sensitive; this repo is authored on Windows, where `fs.existsSync` is not. A
+link whose case did not match its file passed the old check and would have
+404ed only once published. The check now reads the real directory entries and
+reports a case mismatch as its own kind, separately from a link that points at
+nothing.
+
+`dist/` is deliberately not published. The live set links the canonical
+stylesheets by URL and those are served from Pages too, so the online version
+needs no inlining; `dist/` exists for demos with no network.
+
 For a demo with no network, or to publish somewhere that blocks external
 stylesheets:
 
