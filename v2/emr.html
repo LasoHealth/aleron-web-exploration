@@ -192,10 +192,10 @@
                   </td>
                   <td><span class="pna">not created</span></td>
                   <td><span class="padv">documented, not ordered in Canvas</span>
-                    <small class="pledger__prov">Junction placed and resulted this order. <code>ServiceRequest</code> is read only in the Canvas API,
-                    and the one ingest effect that records an externally placed lab order is
-                    Health Gorilla only, with a mandatory Health Gorilla skip-send marker. So the chart carries the results
-                    and the requisition, and no order object.</small>
+                    <small class="pledger__prov">Junction placed and resulted this order, so Canvas has nothing to reconcile against. That is this
+                    design's choice, not a limit: Canvas does take an order through the plugin command API, where
+                    originating a lab order stages it in a note. Nothing here does that, because the order lives at the
+                    vendor. <code>ServiceRequest</code> is read only, which closes the FHIR route only.</small>
                   </td>
                 </tr>
 
@@ -292,6 +292,24 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There is no such thing as zero API options for adding an order, and this set kept implying
+    there was.</b> Three order commands, lab, imaging and referral, are published over the plugin command
+    API, and originating any of them creates the order in Canvas as a staged command in a note. That is
+    adding an order through an API. Imaging and referral can then be signed through the same API. A lab
+    order is the constrained one: it cannot be signed from outside, but it can be originated from outside
+    and sent from outside once signed. What has no create is <code>ServiceRequest</code>, which closes the
+    FHIR route and nothing else. Saying "the API" when meaning FHIR is what produced the wrong picture,
+    and it produced it more than once.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><b>A trap for whoever implements this.</b> The <code>commit</code> argument on
+    <code>originate()</code> is silently ignored for every order command: the docs list Reason For Visit,
+    Prescribe, Refill, Adjust Prescription, Refer and the Order commands as types that
+    <em>"will ignore this parameter"</em>. So originating with commit set does not commit anything, it
+    stages, and a caller who assumes otherwise gets a staged order sitting in a note that nobody has
+    signed, with no error to say so. Two separate research passes on this set disagreed about exactly this
+    line, one reading it correctly and one building a recipe on top of the wrong reading, which is a fair
+    measure of how easy it is to get wrong.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>Results can be written into Canvas as real lab data, and an earlier note here said the
     opposite.</b> The correction matters more than the mistake: the effects module publishes a lab-report

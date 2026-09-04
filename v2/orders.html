@@ -851,6 +851,24 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>There is no such thing as zero API options for adding an order, and this set kept implying
+    there was.</b> Three order commands, lab, imaging and referral, are published over the plugin command
+    API, and originating any of them creates the order in Canvas as a staged command in a note. That is
+    adding an order through an API. Imaging and referral can then be signed through the same API. A lab
+    order is the constrained one: it cannot be signed from outside, but it can be originated from outside
+    and sent from outside once signed. What has no create is <code>ServiceRequest</code>, which closes the
+    FHIR route and nothing else. Saying "the API" when meaning FHIR is what produced the wrong picture,
+    and it produced it more than once.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><b>A trap for whoever implements this.</b> The <code>commit</code> argument on
+    <code>originate()</code> is silently ignored for every order command: the docs list Reason For Visit,
+    Prescribe, Refill, Adjust Prescription, Refer and the Order commands as types that
+    <em>"will ignore this parameter"</em>. So originating with commit set does not commit anything, it
+    stages, and a caller who assumes otherwise gets a staged order sitting in a note that nobody has
+    signed, with no error to say so. Two separate research passes on this set disagreed about exactly this
+    line, one reading it correctly and one building a recipe on top of the wrong reading, which is a fair
+    measure of how easy it is to get wrong.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span><b>A Canvas plugin driving the vendor is buildable from documented parts, and it is a different
     product than this screen.</b> Outbound HTTP exists with a 30 second cap; plugin secrets are
