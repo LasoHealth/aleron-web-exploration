@@ -14,8 +14,9 @@
 > The question it asks is also answered. Every order is attributed to the
 > physician logged into Aleron, which places Aleron in Junction's **Flow 2**.
 >
-> Being replaced by a master ordering document. The Junction flow definitions in
-> §4 and the source register in §11 remain accurate and are carried forward.
+> **Replaced by [ORDERING-DESIGN-AND-INTEGRATION.md](ORDERING-DESIGN-AND-INTEGRATION.md).**
+> The Junction flow definitions in §4 and the source register in §11 remain
+> accurate and are carried forward there.
 
 # Decision brief: who is the ordering physician on an Aleron lab order?
 

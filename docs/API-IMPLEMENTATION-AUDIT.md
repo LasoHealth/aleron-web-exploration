@@ -594,7 +594,7 @@ auditable rather than just the outcome.
 |---|---|---|
 | 10 | **Orders while the note is open — the intended flow, and it holds** | Commands live in a note and an open note accepts them, so a physician can keep the note open and start investigations immediately. |
 | 11 | **After lock, a later order opens a new note for the same episode** | Drawn as an ordinary flow, not an error. Matches how a paper chart works. Note the interaction with `ENTER_IN_ERROR_OBSERVATION`, which fails on anything belonging to a locked note. |
-| 12 | **Junction gets no `physician` object for now; the false caption is corrected this week** — [full decision brief](DECISION-junction-ordering-physician.md) | *"This is the NPI Junction receives, whoever places the order"* is false — verified in `JunctionController.php:294-299`. **Parked with the medical director:** whether to start sending it, which moves order and result-review responsibility onto the named physician and makes Aleron responsible for licensed-states enforcement with no vendor backstop. |
+| 12 | **Junction gets no `physician` object for now; the false caption is corrected this week** — superseded by the [ordering master document](ORDERING-DESIGN-AND-INTEGRATION.md), which reverses the direction: the APIs constrain the design, not the reverse | *"This is the NPI Junction receives, whoever places the order"* is false — verified in `JunctionController.php:294-299`. **Parked with the medical director:** whether to start sending it, which moves order and result-review responsibility onto the named physician and makes Aleron responsible for licensed-states enforcement with no vendor backstop. |
 
 ### Screens
 
