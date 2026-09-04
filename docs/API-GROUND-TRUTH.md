@@ -1,5 +1,59 @@
 # API ground truth — Canvas + Junction
 
+> ## Source of record
+>
+> **The Canvas half of this document is now pinned to a live CapabilityStatement
+> from `aleronmd-dev`, not to `docs.canvasmedical.com`.** The docs describe Canvas
+> in general; the CapabilityStatement describes the instance we integrate with.
+> 142 planned changes depend on this matrix, so it is checkable rather than
+> trusted:
+>
+> ```bash
+> node scripts/verify-canvas.js
+> ```
+>
+> That diffs the live instance against `docs/canvas-capability-snapshot.json` and
+> exits non-zero on drift. The endpoint is unauthenticated, so it needs no
+> credentials. Snapshot taken 1 Sep 2026, FHIR 4.0.1, `instantiates:
+> us-core-server`, 40 resources.
+>
+> ### Verified absences that carry design weight
+>
+> Confirmed against the instance, not inferred from a docs index:
+>
+> | Resource | Consequence |
+> |---|---|
+> | **`RiskAssessment`** | The resource FHIR built for engine risk output does not exist. Not in USCDI either, so no certification pressure will bring it. Engine output goes to a plugin Custom Data Model instead. |
+> | **`FamilyMemberHistory`** | Structured family history cannot be read. Group D of the risk model cannot assert a family-history negative; those rows must read `not assessed`, not `not fired`. |
+> | **`AuditEvent`** | No audit-event resource. `Provenance` is the only audit surface, and it is read/search only. |
+> | **`Subscription`** | **There is no FHIR webhook mechanism of any kind.** Aleron learns of a Canvas act by reading, never by being told. |
+>
+> `Allergen` is documented but is **not** present on this instance.
+>
+> ### Corrections to earlier versions of this file
+>
+> 1. **`Task` is not a Canvas command.** It was listed in the commands table
+>    below. It is a FHIR resource (create/read/update/search) and the SDK has
+>    Task *effects*, but there is no Task command. Row removed.
+> 2. **CommandAPI is not an HTTP API Canvas exposes.** It is a Python base class
+>    in the plugin SDK that you subclass to *create* an endpoint at
+>    `/plugin-io/api/<plugin>/`. Auth is by mixin, not OAuth. **Every command and
+>    every effect in sections 2 and 3 is therefore plugin-gated.**
+> 3. **No external metadata write exists.** Neither `UPSERT_NOTE_METADATA` nor
+>    `UPSERT_PATIENT_METADATA` has a non-effect equivalent, and FHIR `Patient`
+>    accepts only a closed list of extension URLs. The one externally-writable
+>    custom-key store is `Patient.identifier`, which is per-patient and not
+>    surfaced on the chart.
+> 4. **`POST /DiagnosticReport/$create-lab-report` is not declared on this
+>    instance.** The only operation in the whole CapabilityStatement is
+>    `Group/$group-export`. It may exist undeclared; treat it as untested and
+>    write Junction results through the plugin's `CREATE_LAB_REPORT` effect.
+> 5. **`send()` on a prescription does not bypass the signature.** Resolved, not
+>    open: `sign_action` "transitions it from staged to committed", and Canvas's
+>    own example filters for `committer__isnull=False` before sending. Sign *is*
+>    the commit for Prescribe.
+
+
 Verified 3 Sep 2026 against `docs.canvasmedical.com/api/`,
 `docs.canvasmedical.com/sdk/commands/`, `docs.canvasmedical.com/sdk/effects/`
 and `docs.junction.com`. **Use this instead of re-deriving. If your screen
@@ -75,8 +129,14 @@ Key consequences:
 
 ## 2. Canvas Plugin SDK — Commands
 
-Commands are created inside a **note** and driven over HTTP through CommandAPI.
-This is the write surface FHIR lacks.
+**PLUGIN-GATED.** Commands are created inside a **note**. `CommandAPI` is a
+Python base class in the plugin SDK that you subclass to expose an endpoint at
+`/plugin-io/api/<plugin>/` — it is not an API Canvas hosts for you. Nothing in
+this table is reachable without a deployed plugin.
+
+Externally reachable equivalents, for the two cases that have one:
+`POST /Condition` with `clinicalStatus: active` "will be added as a `Diagnose`
+command", and `POST`/`PUT /Task` work as plain FHIR.
 
 | Command | Key fields | originate | edit | delete | commit | **sign** | send |
 |---|---|---|---|---|---|---|---|
@@ -111,7 +171,6 @@ This is the write surface FHIR lacks.
 | **Refer** | referral_type, specialty, service_provider, comment, ordering_provider_key | ✓ | ✓ | ✓ | ✓ | **✓** | ✗ |
 | Refill | medication_id, days_supply, refills, pharmacy, prescriber_id | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ |
 | ReviewOfSystems | questionnaire_id, answers | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
-| Task | task_type, assignee_id, due_date, comment | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
 | VitalSignReading | vital_sign_type, value, units | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
 
 Also: `review()` only on Prescribe. `delegate()` only on ImagingOrder and Refer.
@@ -120,15 +179,25 @@ Every command supports `upsert_metadata()` and `upsert_custom_html()`.
 **Known trap:** `originate(commit=True)` is silently ignored for order commands —
 you get a staged command nobody has signed and no error saying so.
 
-**Open question worth flagging if your screen depends on it:** `send()` is listed
-for Prescribe/Refill/AdjustPrescription. Whether `send()` works on a command that
-was never signed is NOT established. Treat "Aleron can send a prescription" as
-unverified; the identity gates (Surescripts SPI, EPCS for controlled substances)
-are real and attach to the prescriber, not the calling application.
+**RESOLVED, was an open question.** `send()` does not bypass the signature.
+`sign_action` "Signs the prescription, transitioning it from staged to committed
+state", and "The command must be committed/signed before it can be sent
+electronically" — so for Prescribe, **sign is the commit**. Canvas's own
+`send_all_prescriptions` example filters `committer__isnull=False`, i.e. commands
+a human already committed. The identity gates (Surescripts SPI, EPCS for
+controlled substances) attach to the prescriber, not the calling application.
+
+**Also note:** `Prescription` has **no foreign key to `Command`**. If you need to
+correlate them, set your own `command_uuid` at origination — it is the only clean
+join key.
 
 ---
 
 ## 3. Canvas Plugin SDK — Effects
+
+**PLUGIN-GATED**, but *not* event-gated: `SimpleAPI` route handlers and
+`CronTask.execute` may both return effects. So one thin plugin turns this whole
+catalogue into something an external caller can invoke synchronously over HTTP.
 
 Effects write data or drive UI. Categories and the notable members:
 

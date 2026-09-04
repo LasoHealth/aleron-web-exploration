@@ -13,8 +13,10 @@ and the change register.
 point, because they are what would be built. v0 and v1 were swept for
 *regressions* and for *proven-in-production evidence* rather than audited for
 feasibility — v0 is a record of shipped code, so what it draws, some code path
-already produces. That evidence turned out to be the most reliable input in the
-whole exercise.
+already produces. That evidence was the strongest input on the Canvas write path
+and, on one point, actively misleading — see the PRO correction in Part 3. A
+replica of shipped code proves a screen rendered a value; it does not prove a
+pipeline produced it.
 
 ---
 
@@ -50,8 +52,8 @@ same way on six screens.** The designs describe Aleron writing a
 creates a note and a `stateChange` **locks** it, and *locking is what generates
 the PDF and the `DocumentReference`*. Aleron does not write the document; it
 locks a note and Canvas produces one. This matters far beyond pedantry, because
-**every clinical command — `Diagnose`, `Assess`, `Plan`, `Goal`, `Task`,
-`Refer`, `Prescribe` — must be originated inside a note.** As currently drawn,
+**every clinical command — `Diagnose`, `Assess`, `Plan`, `Goal`, `Refer`,
+`Prescribe` — must be originated inside a note.** As currently drawn,
 the problem-list decisions have nothing to crystallize into and the release
 package's "Canvas note id" never comes into existence.
 
@@ -81,16 +83,20 @@ an absolute probability and lands above the published ceiling for a broader
 endpoint. Good news about the model, bad news about the one panel whose whole
 purpose is proving the model.
 
-**4. The single unsolved mechanism is the return leg from Canvas.** One redirect
-is genuinely unavoidable — prescription signing, gated on Surescripts SPI and,
-for controlled substances, EPCS enrolment, both of which attach to the
-prescriber and not to the calling application. Getting the physician *back* has
-no documented mechanism. **The fix is to stop redirecting outward.** Canvas
-embedding Aleron is documented; Aleron embedding Canvas is not. Run the commit
-sequence as a Canvas plugin — `SHOW_ACTION_BUTTON` + `LaunchModalEffect`, or
-Aleron as a chart tab — and the return leg ceases to exist as a problem. That is
-a different product shape than a standalone portal, and it is the largest open
-decision in this document.
+**4. The return leg from Canvas was the wrong problem.** One redirect is
+genuinely unavoidable — prescription signing, gated on Surescripts SPI and, for
+controlled substances, EPCS enrolment, both of which attach to the prescriber and
+not to the calling application. This document originally proposed either
+inverting the embed or building a callback, and both were over-engineering.
+
+**The physician is the trigger.** They leave, they sign, they come back, and the
+page reads exact state on that render through the plugin ORM. No callback, no
+scheduled reconciliation, no acknowledged table. It also makes two nasty facts
+irrelevant: plugin outbound HTTP *swallows transport failures* — "the failure is
+logged and the effect pipeline continues", so a callback has no failure signal —
+and `PRESCRIPTION_SIGNED` may fire only inside the DrFirst pipeline, which would
+mean a printed prescription never fires it. Subscribe to no events and neither
+matters. See Part 5, decision 8.
 
 ---
 
@@ -99,6 +105,11 @@ decision in this document.
 The Aleron ↔ Junction ↔ Canvas flow as the audit found it, rather than as the
 screens describe it. Changes from the drawn version are marked **▲**.
 
+> **Everything in the Canvas column marked `SDK` needs a deployed plugin.**
+> `CommandAPI` is a Python base class you subclass inside a plugin, not an API
+> Canvas hosts. The externally-reachable Canvas surfaces are FHIR, the Note API,
+> and nothing else. This is settled — see Part 5, decision 1.
+
 | # | Step | System | Mechanism | Notes |
 |---|---|---|---|---|
 | 0 | **Create the note** ▲ | Canvas | `CREATE_NOTE` (SDK) or `POST /core/api/notes/v1/Note` | **Undrawn on every screen.** Everything downstream needs a `note_uuid`. Must happen before any command. |
@@ -106,7 +117,7 @@ screens describe it. Changes from the drawn version are marked **▲**.
 | 2 | Problem-list decisions | Canvas | `Diagnose` (new), **`Assess`** ▲ (existing) | *Not* FHIR `Condition` update: the **only** supported Condition update is marking it `entered-in-error`. |
 | 3 | **Lock the note** ▲ | Canvas | `stateChange` → `LKD`, or `SIGN_NOTE` | Canvas generates the PDF **and** the `DocumentReference`. Aleron does not write the document. |
 | 4 | Lab / genetic order | **Junction** | `POST /v3/order` | Canvas holds no order record, by design. Results return by webhook. |
-| 5 | Results into the chart | Canvas | `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` | Real values, units, ranges, abnormal flags — not a PDF. Needs no Canvas lab order to exist. |
+| 5 | Results into the chart | Canvas | `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` (SDK) | Real values, units, ranges, abnormal flags — not a PDF. Needs no Canvas lab order to exist. `POST /DiagnosticReport/$create-lab-report` looked like an external alternative but is **not declared on `aleronmd-dev`** — untested, so assume the effect. |
 | 6 | Imaging order | Canvas | `ImagingOrder` — originate, **sign**, then **`send()`** ▲ | **Two calls, not one.** A failed `send()` after a successful `sign()` leaves the row lying. |
 | 7 | Referral | Canvas | `Refer` — originate, **sign**, **no `send()`** ▲ | Aleron can sign a referral and **cannot transmit it or learn that it was transmitted.** Transmission is Canvas-native. |
 | 8 | Prescription | Canvas | `Prescribe` — originate only, **no `sign()`** | Physician redirected to Canvas. `send()` exists but Canvas's own example applies it to commands **a human already committed**. |
@@ -117,16 +128,21 @@ order command — you get a staged command nobody signed and no error. And a
 locked note is **not editable**, so any command added after step 3 needs a new
 note.
 
-### The ordering constraint the set gets backwards
+### The ordering constraint, and where v3 over-claims
 
-v3's advertised property is that order authorization is independent of the note
-lock. **Orders-then-lock works. Lock-then-orders does not**, for anything landing
-in Canvas, because commands live inside a note and a locked note is closed.
+**Orders while the note is open works, and it is the intended flow** — a
+physician keeps the note open and starts investigations immediately. Commands
+live in a note and an open note accepts them. An earlier revision of this
+document called v3's independence claim broken; that was an overstatement, and
+it is corrected here.
 
-The v3 fixture hides this: **none of its five queued orders is a lab.** Four are
-Canvas commands needing an editable note; the fifth is the prescription the
-screen already excludes. The claim reads true only in the case the fixture does
-not contain.
+What v3 over-claims is **one state out of three.** It says the act "reads the
+same" whether step 2 is *open, locked, or never taken*. Open is fine. Never taken
+is fine, since a note only has to exist and creating one is cheap. **Locked is
+not** — a locked note is not editable, so no further command can enter it. The
+fix is one conditional blocker, not a redesign: after a lock, a later order opens
+a new note for the same episode, drawn as an ordinary flow. See Part 5,
+decisions 10 and 11.
 
 The correct rule is **per-route, not global**: Junction labs are genuinely
 independent of the note; Canvas commands are not.
@@ -166,8 +182,9 @@ patient-scoped for anything that must cross cycles.
 Two specific wins: `DetectedIssue` has **full FHIR CRUD** and its `mitigation`
 field is the right home for a deferred preventive-care obligation; and
 `QuestionnaireResponse` has create/read/update and is the right home for the
-Vitality PROs, which currently live only in Aleron — a residency violation with a
-free fix.
+Vitality PROs — though the audit's premise there was wrong: they do not live in
+Aleron either, because they do not exist. `QuestionnaireResponse` is where they
+belong once something collects them.
 **Do not build a Custom Data Model** for anything in this register except the
 release package.
 
@@ -303,7 +320,7 @@ built), **F** = field or integration work, **C** = copy or fixture fix.
 | 5 | The run is 71 days old and nothing says so | **A** |
 | 6 | No engine output has a Canvas home, and the screen implies one | **A** |
 | 7 | ABPM and 12-lead ECG have no order path | **A** |
-| 8 | Vitality PROs have no Canvas home → `QuestionnaireResponse` (cheapest fix here) | F |
+| 8 | Vitality PROs are not a residency violation — **they do not exist**. `QuestionnaireResponse` is their home once collected; today the rows have no source | F |
 | 9 | Group D asserts four negatives from unreadable data → `not assessed` | F |
 | 10 | Confidence has two vocabularies and no scale | C |
 | 11 | Pipeline facts on the product surface | C |
@@ -433,11 +450,25 @@ regressions are present, often improved. Six are not, two materially:
 | 5 | v0's `manual review` pattern flag — v2 now has the queue v0 lacked | F |
 | 6 | v1's "notes that carry no orders" doctrine | C |
 
-**Three `dropped` annotations misdescribe reality**, including one that claims
-"v0 records no patient-reported outcome anywhere" — v0's systemic panel prints
-four PRO scores and declares `patient-reported` as a data type. That is
-**proven-in-production evidence that PRO data reaches the engine**, which the
-current wording throws away.
+**Two `dropped` annotations misdescribe reality** — the criticality-pill counts
+do not survive in the action map, and the "six PREVENT endpoints as tiles" grid
+v2 says it dropped is not in the v0 record.
+
+**A third was reported as wrong and turns out to be right, which is a correction
+to this audit rather than to the design.** The sweep flagged v2's claim that "v0
+records no patient-reported outcome anywhere" as contradicted by v0's systemic
+panel printing four PRO scores, and called that proven-in-production evidence.
+It is not. Verified against both repositories: `energy`, `cognitive_clarity`,
+`mood` and `body_ease` return zero hits as field names; there is no slider or
+rating widget in any of 127 Dart files; all 64 migrations were enumerated and the
+only intake table holds single-timepoint nullable strings with no score column;
+and the Systemic engine's input list is closed and contains no PRO source. v0's
+`energy 4/10` are hand-written fixtures. **The v2 annotation was correct.**
+
+Two traps worth recording for anyone who repeats the search: `vitality` in
+`Aleron-Web/app` is engine *output* — an action-priority bucket — not patient
+input; and `users.effort_capacity` reads like a self-rated score but no route or
+client ever writes it.
 
 ---
 
@@ -448,15 +479,27 @@ what is.* Ranked by preference within each row.
 
 ### Prescriptions — the one unavoidable redirect
 
-| Option | Return leg | Cost |
-|---|---|---|
-| **1. Invert the embed.** Aleron as a Canvas chart tab via the documented layout effect | **None needed** — it is a tab switch | A different product shape than a standalone portal |
-| **2. `SHOW_ACTION_BUTTON` + `LaunchModalEffect`**, with `PRESCRIBE_COMMAND__POST_COMMIT` calling back | **None needed** — the physician never leaves | Requires shipping a Canvas plugin; sandbox egress undocumented |
-| **3. Link out, make return unnecessary.** Row sits in "staged, unsigned" and clears on the next `MedicationRequest` poll | None exists; the row is stale for one poll interval | Cheapest. Honest if the screen says so |
-| **4. Link to the chart root**, tell the physician what to look for | Browser tab switch — a habit, not a mechanism | Honest, worse |
+**Settled, and more cheaply than this section originally proposed.** The four
+options below were all over-built. The physician is the trigger: they leave, they
+sign, they come back, and the page reads exact state on that render through the
+plugin ORM (`Prescription.objects.filter(status=SIGNED)`). No callback, no
+scheduled job, no acknowledged table. A cross-patient list reads live through a
+plugin route at list scope and self-heals on the next view.
 
-**Do not ship the current copy** — *"Open the chart and come back; the plan holds
-its place"* promises a mechanism that does not exist.
+The copy this document flagged as promising a mechanism —
+*"Open the chart and come back; the plan holds its place"* — **is now simply
+true.** The plan does hold its place and coming back does refresh the state.
+
+Kept for the record, since each was considered and rejected: inverting the embed
+(solves it but changes the product shape); `SHOW_ACTION_BUTTON` +
+`LaunchModalEffect` with a `POST_COMMIT` callback (correct mechanism, but plugin
+outbound HTTP swallows transport failures, so it has no failure signal); polling
+`MedicationRequest` (works, stale for one interval, unnecessary once the render
+reads through); linking to the chart root (honest, worse).
+
+Getting *to* the right note is a separate matter: a constructed deep link from
+`noteKey`, falling back to chart root on 404, since the Note API returns a stable
+key but documents no permalink. See Part 5, decision 9.
 
 ### Device orders — no path, but the objective survives
 
@@ -479,12 +522,19 @@ every load. **Until a structured genomics feed exists, the honest render is
 
 ### Aleron-owned facts with no FHIR field
 
+> **Every metadata row below needs the plugin.** There is no externally-callable
+> note- or patient-metadata write; the only external custom-key store is
+> `Patient.identifier`, which is per-patient and not surfaced on the chart.
+> Settled by Part 5, decision 1. Where a row says metadata and the data must be
+> queried across patients, the answer is a Custom Data Model instead — metadata
+> is not cross-patient searchable, CDMs are.
+
 | Fact | Home | Why |
 |---|---|---|
 | Deferral / override reasons | `UPSERT_NOTE_METADATA` keyed by order id, written **before** `SIGN_NOTE` | Must survive the lock. The human-readable half already persists free as note prose |
 | Deferred preventive-care obligation (Z12.11) | **`DetectedIssue.mitigation`** — full FHIR CRUD | The correct resource, and no plugin needed |
 | Package / run / plan / signature ids | One `UPSERT_NOTE_METADATA` carrying the whole lineage block | Only meaningful as a set — do not split across patient and note metadata |
-| Vitality PROs | **`QuestionnaireResponse`** — create/read/update all supported | Cheapest fix in the audit; removes a live residency violation |
+| Vitality PROs | **`QuestionnaireResponse`** — create/read/update, confirmed on the instance | The Canvas layer is the easy part. **But no PRO data exists to write** — greenfield on five layers, see Part 3. This is the home when there is something to put in it, not a fix available today |
 | Cross-cycle suppression keys | `UPSERT_PATIENT_METADATA` | Patient-level, must cross notes |
 | Lifecycle / queue state | **Canvas `Task`** with free-text `input` labels | Cross-patient searchable; keeps identifiers in Canvas |
 | Supersession of a released package | `DocumentReference.status: superseded` | The field's actual meaning, readable back |
@@ -511,37 +561,69 @@ every load. **Until a structured genomics feed exists, the honest render is
 
 ---
 
-## Part 5 — Decisions for humans
+## Part 5 — Decisions taken
 
-These are not lookups. Each changes what gets built.
+**Settled 4 September 2026.** Part 5 previously listed these as open questions.
+They were worked through as a dependency tree, root first, with the facts each
+one needed fetched rather than guessed. Where a decision went against the
+recommendation, the recommendation is recorded too, so the reasoning is
+auditable rather than just the outcome.
 
-1. **Standalone portal, or Aleron inside Canvas?** This is the largest question
-   in the document. Inverting the embed solves the return leg, the real-time
-   event problem and the note-metadata write path in one move — and changes the
-   product's shape.
-2. **Does Aleron store patient data, and where is the line?** Four screens need
-   it. Part 4 removes most of the need; what remains (the cross-system order
-   ledger, the release package, the AI thread) should be an explicit, written
-   exception with a retention policy, not an accumulation of defaults.
-3. **Send a `physician` object to Junction, or not?** Sending it transfers order
-   and result responsibility from Junction's physician network to the named
-   physician. That is a compliance posture change requiring the medical
-   director, not a ticket. Today the screen claims it already happens.
-4. **Is the release package a clinical document?** If yes it is a
-   `DocumentReference` and is immutable. If no it needs a Custom Data Model in a
-   plugin namespace. It is the only thing in the register that genuinely
-   warrants one.
-5. **Where do numeric clinical targets live?** The regression I would not ship
-   without. v0 states a goal per action; v2 states a QALY per action. Both are
-   needed and only one is drawn.
-6. **Is the AI thread persistent or ephemeral?** Ten data points collapse on
-   this one product decision.
-7. **Is day register reachable at all in v2?** BRIEF P1 keeps it live for print
-   and consult-room reading; v2 ships no control.
-8. **Does the portal have PRO data today?** v2's annotation says no; v0 prints
-   four PRO scores. The answer changes how the felt half gets built.
+### Architecture
 
----
+| # | Decision | Notes |
+|---|---|---|
+| 1 | **Thin Canvas plugin as an HTTP shim; Aleron stays a standalone portal** | Not embedded in Canvas. Forced by fact rather than preference: every command and effect is plugin-gated, so without a plugin there are no referrals, imaging orders, prescriptions, `Goal`, `Assess` or metadata writes at all. |
+| 2 | **Strict data residency — nothing patient-linked in Aleron, no exceptions** | Chosen over a policy-plus-exception-register. Consequences are real and are listed below. |
+| 3 | **Engine output → CDM as system of record, `CustomCommand` as the chart surface** | `RiskAssessment` was the preference and does not exist. Observations were the fallback and fit one of five data kinds — only the 10-yr probability has a truthful LOINC code (`99055-6`); the headline 30-yr figure has none. Publishing one number and not the other would split one clinical concept across two homes by LOINC coverage. Revisit only if a Canvas protocol needs to consume a score. |
+| 4 | **Order ledger: unified in a CDM, identity and route only, status derived live** | The CDM holds the Aleron id, route and foreign key. Status is read through to Canvas and Junction on every render, so nothing caches and nothing goes stale. |
+| 5 | **Release package: CDM in the plugin namespace** | `DocumentReference` cannot carry per-action status and has no update. A CDM is Canvas-hosted PostgreSQL, cross-patient queryable, and it is what makes the reviews screen survive decision 2. |
+| 6 | **Both CDM schemas prototyped on `aleronmd-dev` first** | CDM tables can never be dropped and fields never altered or removed. This is the most irreversible commitment in the plan. |
+
+### Prescriptions and the Canvas handoff
+
+| # | Decision | Notes |
+|---|---|---|
+| 7 | **Prescriptions are still staged; the physician signs in Canvas** | SPI and EPCS attach to the prescriber. Unavoidable. |
+| 8 | **Detection by read-on-render through the plugin ORM** | **No callback, no CronTask, no acknowledged table.** The physician is the trigger: they leave, they sign, they come back, the page reads exact state. This was the user's correction to a recommendation for push infrastructure, and it is better — it also makes plugin egress and the `PRESCRIPTION_SIGNED`/DrFirst ambiguity irrelevant, since no event is subscribed. A cross-patient list reads live through a plugin route at list scope and self-heals on the next view. |
+| 9 | **Constructed note deep link from `noteKey`, falling back to chart root on 404** | The Note API returns a stable `noteKey` but documents no permalink, so the URL shape has no contract. The fallback converts a silent dead end into a graceful degrade. |
+
+### Orders and notes
+
+| # | Decision | Notes |
+|---|---|---|
+| 10 | **Orders while the note is open — the intended flow, and it holds** | Commands live in a note and an open note accepts them, so a physician can keep the note open and start investigations immediately. |
+| 11 | **After lock, a later order opens a new note for the same episode** | Drawn as an ordinary flow, not an error. Matches how a paper chart works. Note the interaction with `ENTER_IN_ERROR_OBSERVATION`, which fails on anything belonging to a locked note. |
+| 12 | **Junction gets no `physician` object for now; the false caption is corrected this week** | *"This is the NPI Junction receives, whoever places the order"* is false — verified in `JunctionController.php:294-299`. **Parked with the medical director:** whether to start sending it, which moves order and result-review responsibility onto the named physician and makes Aleron responsible for licensed-states enforcement with no vendor backstop. |
+
+### Screens
+
+| # | Decision | Notes |
+|---|---|---|
+| 13 | **Numeric clinical targets restored on both surfaces** | The risk-actions evidence ledger *and* the care-plan Plan field. They answer different questions: the ledger target is the engine's commitment, the plan target is what the next lab is judged against. |
+| 14 | **AI thread ephemeral** | Under decision 2 the only homes were metadata stores no Canvas view surfaces. Ephemeral is honest for a thinking aid: adoption hands to the care plan in-session. `thr-al47m-0114` and `2 open thoughts · 0 adopted` come off the screen. |
+| 15 | **Day register dropped; BRIEF P1 rewritten** | Chosen over restoring the toggle. P1's "kept live for print and consult-room reading" is the thing that was wrong, not the product. |
+| 16 | **PRO felt half kept, annotated as greenfield** | The design is sound; the pipeline does not exist. Greenfield on five layers — no collection widget in 127 Dart files, no repeated-measure table, not an engine input, no physician surface, no Canvas write. `QuestionnaireResponse` (full CRUD, confirmed on the instance) is the easy layer. |
+| 17 | **Read receipts as a Canvas `Communication` `received` timestamp** | Semantically exact and Canvas-resident. Constraint to design around: `Communication` search is `patient`, `recipient`, `sender`, `_id` only — no date filter, no status, no sort, and no update. |
+
+### What decision 2 costs, explicitly
+
+Strict residency was chosen with these consequences understood:
+
+- **The panel's risk-tier column becomes on-demand per row.** No cached tiers, ever. The default density must flip off `With risk by domain`, which currently ships as `aria-checked="true"` and would demand nine engine runs on first paint.
+- **Read receipts, the AI thread and every Aleron-owned fact** move to Canvas resources, Canvas metadata, or a CDM — or cease to exist.
+- **The order ledger cannot use an Aleron-side table**, which is why decision 4 puts it in a CDM and derives status rather than storing it.
+- Still legitimately Aleron's, because none of it is patient data: the clinician licensure roster, program configuration, and the eleven banding tables that produce the thresholds on `patient-data`.
+
+### Tests outstanding — facts, not decisions
+
+| Test | What it settles |
+|---|---|
+| The constructed note URL shape on `aleronmd-dev` | Whether decision 9's deep link works before the fallback is the only path |
+| Is the genetics panel a Junction order or the Canvas genetics integration? | Gates rows on four screens; `BiomarkerResult` has no shape for a variant call |
+| Does `$create-lab-report` exist undeclared? | Not in the instance CapabilityStatement. If absent, Junction results reach the chart only through the plugin's `CREATE_LAB_REPORT` effect |
+| Do events fire for externally-staged commands? | Now low-stakes — decision 8 subscribes to no events |
+
 
 ## Part 6 — Spikes
 
@@ -570,7 +652,36 @@ Per-screen audits, with the full data-point tables:
 - [v2-patient-data.md](audit/v2-patient-data.md) · [v2-inbox-panel.md](audit/v2-inbox-panel.md)
 - [v2-messages-ai.md](audit/v2-messages-ai.md) · [v0-v1-regression.md](audit/v0-v1-regression.md)
 
-Capability reference: [API-GROUND-TRUTH.md](API-GROUND-TRUTH.md)
+Follow-up verifications, each answering one question the screen audits raised:
+
+- [VERIFY-prevent-arithmetic.md](audit/VERIFY-prevent-arithmetic.md) — recomputed the risk model against the published PREVENT coefficients
+- [VERIFY-sdk-reach.md](audit/VERIFY-sdk-reach.md) — which Canvas write surfaces an external app can reach
+- [VERIFY-plugin-mechanics.md](audit/VERIFY-plugin-mechanics.md) — signature events, plugin egress, custom data models
+- [VERIFY-observation-spike.md](audit/VERIFY-observation-spike.md) — whether Observations can hold engine risk output
+- [VERIFY-pro-data.md](audit/VERIFY-pro-data.md) — whether the shipped platform has PRO data
+
+### Capability reference, and how to re-check it
+
+[API-GROUND-TRUTH.md](API-GROUND-TRUTH.md) is the working reference. Its Canvas
+half is pinned to [canvas-capability-snapshot.json](canvas-capability-snapshot.json),
+taken from the live `aleronmd-dev` CapabilityStatement rather than from a docs
+page — the docs describe Canvas in general, the CapabilityStatement describes the
+instance being integrated with.
+
+```bash
+node scripts/verify-canvas.js
+```
+
+Diffs the instance against the snapshot and exits non-zero on drift, including if
+one of the four load-bearing absences (`RiskAssessment`, `FamilyMemberHistory`,
+`AuditEvent`, `Subscription`) ever appears — each of those would reopen a
+decision. The endpoint is unauthenticated, so it needs no credentials.
+
+**The snapshot confirmed every interaction in the hand-built matrix**, with one
+deletion: `Allergen` is documented but not present on the instance. It also
+confirmed, from the instance rather than from docs, that `Task` search exposes
+`owner`, `status` and `label` — which is what makes the cross-patient work queue
+in finding C4 real — and that `Provenance` exposes `agent`.
 
 ### Corrections applied to agent findings
 
@@ -625,6 +736,27 @@ before compilation:
   p = 0.16 — the 29.4 % result sits above the 23.7 % published 30-yr *total*-CVD
   ceiling for this patient, which a broader endpoint should bound. That is
   change 1b and it deserves its own look.
+
+- **Reversed after verification, and it was the audit's own error.** The v0/v1
+  sweep reported that v2's annotation "v0 records no patient-reported outcome
+  anywhere" was contradicted by v0 printing four PRO scores, and called that
+  proven-in-production evidence. Checked against both repositories: no PRO field
+  names, no rating widget in 127 Dart files, no score column in any of 64
+  migrations, and a closed engine input list with no PRO source. v0's numbers are
+  fixtures and **the v2 annotation was right.** This is the clearest case in the
+  exercise of a replica being mistaken for a pipeline.
+- **Corrected in this document's own reference.** `Task` was listed as a Canvas
+  command. It is not — it is a FHIR resource with Task *effects* in the SDK, and
+  there is no Task command. Any recommendation phrased as "a `Task` command"
+  should read "a FHIR `Task` write" or "a Task effect".
+- **Downgraded.** `POST /DiagnosticReport/$create-lab-report` was stated here as
+  an external surface needing no plugin. It is **not declared on the instance** —
+  the only operation in the whole CapabilityStatement is `Group/$group-export`.
+  Treat it as untested.
+- **Overstated, now corrected.** v3's ordering claim was described as broken. It
+  over-claims by one state out of three; orders while the note is open — the
+  intended flow — holds completely. Commit `a0749a7`'s message carries the
+  original overstatement and cannot be edited; this document supersedes it.
 
 **Confirmed by reading shipped code** rather than documentation:
 `JunctionController.php:294-299` sends exactly five fields to Junction —

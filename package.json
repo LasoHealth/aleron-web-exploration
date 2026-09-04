@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node scripts/serve.js",
     "check": "node scripts/check.js",
-    "build": "node scripts/build-offline.js"
+    "build": "node scripts/build-offline.js",
+    "verify-canvas": "node scripts/verify-canvas.js"
   },
   "dependencies": {
     "express": "^5.2.1"
