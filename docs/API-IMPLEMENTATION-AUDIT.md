@@ -71,6 +71,16 @@ screen needs durable per-patient reasoning. Each is individually defensible;
 together they are the quiet end of "Canvas is the system of record, Aleron
 stores nothing", and it should end deliberately rather than by accumulation.
 
+**3b. The risk engine is sound and its audit panel is not.** Independently
+verified against the published PREVENT coefficients recovered from the CRAN
+`preventr` package: the screen's headline figures are correct ASCVD outputs
+(16.18 % and 2.74 % against 16.0 % and 2.7 % shown). The β table that claims to
+derive them matches no published table, omits a required term, and misstates
+three transforms. Separately, the modifier layer multiplies hazard ratios onto
+an absolute probability and lands above the published ceiling for a broader
+endpoint. Good news about the model, bad news about the one panel whose whole
+purpose is proving the model.
+
 **4. The single unsolved mechanism is the return leg from Canvas.** One redirect
 is genuinely unavoidable — prescription signing, gated on Surescripts SPI and,
 for controlled substances, EPCS enrolment, both of which attach to the
@@ -285,7 +295,8 @@ built), **F** = field or integration work, **C** = copy or fixture fix.
 ### v2/risk-models.html — 12 changes *(151 data points)*
 | # | Change | Sev |
 |---|---|---|
-| 1 | **The audit trail does not reconstruct its own headline number** — see below | **A** |
+| 1 | **The risk numbers are right; the audit panel that claims to derive them is invented.** See [the verification](audit/VERIFY-prevent-arithmetic.md) | F+C |
+| 1b | **The modifier layer multiplies hazard ratios onto an absolute probability** — not a valid risk transformation, and the result exceeds the published ceiling | **A** |
 | 2 | A6 fires on one measurement while the screen says it needs two | **A** |
 | 3 | Four of six rail domains print a score from a model the screen says isn't materialised | **A** |
 | 4 | Cancer cell shows `4 engines` where siblings show a probability | F |
@@ -576,6 +587,44 @@ before compilation:
 - **Qualified.** The locked-note constraint was reported as settled. Canvas
   documents non-editability but does not explicitly forbid command insertion —
   spike 3.
+
+- **Overturned, and this is the most consequential correction in the audit.** One
+  agent recomputed the PREVENT model from the screen's own β table, got 29.8 %
+  against the reported 16.0 %, and concluded the fixture had been built
+  backwards from the adjusted figure — i.e. that the engine might be wrong. A
+  dedicated verification agent recomputed it independently in Python, then went
+  further: it recovered the real published PREVENT coefficient tables from the
+  binary `R/sysdata.rda` in the CRAN package `preventr`, reimplemented them, and
+  validated the reimplementation against that package's documented worked
+  example, reproducing all four AHA-supplemental expected values exactly.
+
+  **The engine is sound. The provenance panel is decorative.** For this patient
+  the real published values are 30-yr ASCVD **16.18 %** (screen: 16.0 %) and
+  10-yr ASCVD **2.74 %** (screen: 2.7 %). Both headline figures are correct
+  PREVENT **ASCVD** outputs. What is invented is the audit trail beneath them:
+  the β table matches neither published male 30-yr table, **omits the age² term
+  the 30-year equations require** (20 terms shown, 24 needed), carries three
+  coefficients with the wrong sign, and states three transforms incorrectly —
+  age is `(age−55)/10` not `ln(age/55)`, SBP≥110 centers at **130** not 110,
+  eGFR≥60 centers at **90** not 60.
+
+  So the claims that the coefficients come from the "published AHA PREVENT 2024
+  supplementary tables" and are "fixture-validated" are false as printed. That
+  is a documentation defect rather than a broken model — but it is worse than a
+  mislabel, because auditability is the panel's entire purpose. The first
+  agent's arithmetic was right and its diagnosis was wrong; both had to be
+  checked to know which.
+
+  **Two further findings fell out of the verification**, neither in the original
+  scope. The two endpoint labels are wrong: the table is headed
+  `β, male 30-yr total CVD` while its output is attributed to 30-yr ASCVD (two
+  different tables, 23.72 % vs 16.18 %), and 2.7 % is labelled 10-yr total CVD
+  when it is the 10-yr ASCVD value. And more seriously, the modifier layer
+  multiplies hazard ratios onto an **absolute probability**
+  (`16.0 % × 1.835 → 29.4 %`), which is not a valid risk transformation at
+  p = 0.16 — the 29.4 % result sits above the 23.7 % published 30-yr *total*-CVD
+  ceiling for this patient, which a broader endpoint should bound. That is
+  change 1b and it deserves its own look.
 
 **Confirmed by reading shipped code** rather than documentation:
 `JunctionController.php:294-299` sends exactly five fields to Junction —
