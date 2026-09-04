@@ -686,7 +686,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
           <p class="ap-docsig">
             <b>Unsigned.</b> On signature: 4 problems in the signed note &middot; 1 add to active list &middot;
             1 update existing &middot; 2 note only &middot; 6 order intents remain unsent until they are
-            authorized separately &middot; e-Rx sign-off stays native and prescriber-only.
+            authorized separately &middot; the prescription is written into the note from Orders and signed in Canvas.
           </p>
         </article>
 
@@ -773,7 +773,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
                   <li>Entra step-up re-authentication is older than 15 minutes. Authorizing an order requires a fresh identity confirmation.</li>
                 </ul>
               </div>
-              <p class="pbase">Tirzepatide is not in this set. Signing a prescription is a prescriber-only act and cannot happen from here: the prescriber needs a Surescripts identifier on file, and a controlled substance needs them enrolled in EPCS. The prescription itself can still be staged into the note for them to sign.</p>
+              <p class="pbase">Tirzepatide is not in this set. Signing a prescription is prescriber-only and cannot happen from here: the prescriber needs a Surescripts identifier on file, and a controlled substance needs them enrolled in EPCS. It is composed and written into the note on <a href="orders.html">Orders</a>, and signed in Canvas.</p>
             </article>
 
             <article class="pcommit__card" data-state="ready">
@@ -1525,7 +1525,7 @@ const CARE_PLAN = {
       source: "Aleron-scored, from the final action-map state of 29 Aug 2026.",
       dxAssoc: "problem 1, prediabetes with insulin resistance, E66.01 and R73.03.",
       body: "Highest-net lever for the dominant phenotype, about <span class=\"pval\">+1.9<span class=\"pval__u\">QALY</span></span>, prevention plus capacity. The resistance-training order below it is its lean-mass guardrail: part of safe use, not a second recommendation.",
-      carveOut: "Signing is prescriber-only and happens in Canvas: it needs a Surescripts identifier, and EPCS enrolment for a controlled substance. This screen can stage the prescription, never sign it."
+      carveOut: "Signing is prescriber-only and happens in Canvas: it needs a Surescripts identifier, and EPCS enrolment for a controlled substance. Orders writes the prescription into the note; no screen here signs it."
     },
     o2: {
       name: "Supervised resistance training",

@@ -1030,7 +1030,7 @@
             <span class="ap-pdx">cnd-4471</span>, and one encounter-diagnosis Condition that stays off the
             problem list. <b>5 orders</b> release through their own channels. <span class="wf-scaffold">Three suggestions were not
             carried; their reasons have no field in Canvas FHIR and are noted above as a gap.</span>
-            e-Rx sign-off stays native and prescriber-only.
+            The prescription is written into the note from Orders and signed in Canvas.
           </p>
         </article>
 
@@ -1136,7 +1136,7 @@
                 </ul>
               </div>
               <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-51" aria-label="Wireframe explanation, not part of the product">i</button><p class="pbase wf-scaffold wf-ex__bubble" id="wf-ex-51" role="note">Neither blocker is the note. The note lock was removed from this list: it was never a condition of a valid order request, and CLIA asks for an authenticated request from an authorized person, not a locked document.</p></div>
-              <p class="pbase">Tirzepatide is not in this set and never will be. e-Rx sign-off stays a native, prescriber-only act.</p>
+              <p class="pbase">Tirzepatide is not in this set. Signing a prescription is prescriber-only and cannot happen from here: the prescriber needs a Surescripts identifier on file, and a controlled substance needs them enrolled in EPCS. It is composed and written into the note on <a href="../v2/orders.html">Orders</a>, and signed in Canvas.</p>
             </article>
 
           </div>
@@ -2053,7 +2053,7 @@ const CARE_PLAN = {
       source: "Aleron-scored, from the final action-map state of 29 Aug 2026.",
       dxAssoc: "problem 2, prediabetes with insulin resistance, E66.01 and R73.03.",
       body: "Highest-net lever for the dominant phenotype, about <span class=\"pval\">+1.9<span class=\"pval__u\">QALY</span></span>, prevention plus capacity. The resistance-training order below it is its lean-mass guardrail: part of safe use, not a second recommendation.",
-      carveOut: "e-Rx sign-off is a native, prescriber-only act. It is never authorized from this screen."
+      carveOut: "Signing is prescriber-only and happens in Canvas: it needs a Surescripts identifier, and EPCS enrolment for a controlled substance. Orders writes the prescription into the note; no screen here signs it."
     },
     o4: {
       name: "Supervised resistance training",

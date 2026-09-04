@@ -215,6 +215,46 @@
                 </tr>
 
                 <tr>
+                  <th scope="row">Imaging order 4522
+                    <small class="pledger__prov">MRI abdomen, without contrast</small>
+                  </th>
+                  <td>Imaging order command, in the note
+                    <small class="pledger__prov">no vendor, no requisition to reconcile</small>
+                  </td>
+                  <td><span class="pval">cvs-cmd-4522ai</span></td>
+                  <td>Written and signed 28 Aug
+                    <small class="pledger__prov">One act. Aleron composed it, signed it as Dr. A. Okafor and sent it, and the radiologist's report
+                    returns to this chart rather than to Aleron.</small>
+                  </td>
+                </tr>
+
+                <tr>
+                  <th scope="row">Referral 4473
+                    <small class="pledger__prov">Genetic counselling</small>
+                  </th>
+                  <td>Referral command, in the note</td>
+                  <td><span class="pval">cvs-cmd-4473rf</span></td>
+                  <td>Written and signed 24 Jun
+                    <small class="pledger__prov">Same one act as the imaging order. The consult note came back 14 Jul and is on the chart.</small>
+                  </td>
+                </tr>
+
+                <tr>
+                  <th scope="row">Prescription 4523
+                    <small class="pledger__prov">tirzepatide 2.5 mg/0.5 mL &middot; 4 pens &middot; no refills</small>
+                  </th>
+                  <td>Prescription command, in the note
+                    <small class="pledger__prov">staged, not signed</small>
+                  </td>
+                  <td><span class="pval">cvs-cmd-4523rx</span></td>
+                  <td><span class="padv">waiting on a signature here</span>
+                    <small class="pledger__prov">Aleron wrote it and stopped. The signature needs the prescriber's Surescripts identifier, and EPCS
+                    enrolment for a controlled substance, so it is given in Canvas. This is the only thing Aleron produces
+                    that finishes somewhere else. <a href="orders.html">Back to orders</a>.</small>
+                  </td>
+                </tr>
+
+                <tr>
                   <th scope="row">Release package
                     <small class="pledger__prov">Package <span class="pval">REL-47M-0001</span> &middot; preview hashed, not released</small>
                   </th>
@@ -259,10 +299,12 @@
           medications, the full problem list and the order history live there, and this screen deep links
           rather than duplicating. What Aleron owns is the packet, the engine run, the action map state, the
           clinical plan draft and the release package, none of which Canvas has a place for.</p>
-          <p>The seam is the write, and it is two seams rather than one. A locked note and the problem-list
-          decisions are written straight into Canvas. An order is not, and it is not read back either: Junction
-          places it, and Canvas has no way to receive it as an order. The chart gets the results and the requisition;
-          the order itself lives in Aleron and at the vendor. Section 7 of the role
+          <p>The seam is the write, and there are three of them because an order does not have one shape. A
+          locked note and the problem-list decisions are written straight into Canvas. An imaging order, a referral
+          and a prescription are written into Canvas too, as commands in the note; the first two Aleron also signs,
+          and the third it cannot, so that one waits here for the prescriber. A lab order is the exception: Junction
+          places it and results it, so the chart gets the values and the requisition while the order itself lives in
+          Aleron and at the vendor. Section 7 of the role
           matrix then makes the link a release precondition: patient visibility opens only after both the
           Aleron release authorization and the required Canvas linkage are satisfied, unless a separate
           Aleron-only pilot release is explicitly approved. A write that failed soft is therefore not a
@@ -271,8 +313,9 @@
             <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> section 7</dd>
             <dt>Current decision</dt><dd>Do not assume embedded Canvas signing works. The interim architecture previews in Aleron and completes signature on whichever path the Canvas spike verifies.</dd>
             <dt>Written into Canvas</dt><dd>The locked note, and the problem-list decisions</dd>
-            <dt>Placed by command, read back</dt><dd>Orders and referrals, and a tracked lifestyle action</dd>
-            <dt>Never signed by Aleron</dt><dd>Prescriptions. One can be staged into a note from outside; signing is prescriber-only and happens in Canvas, gated on a Surescripts identifier and, for a controlled substance, EPCS enrolment.</dd>
+            <dt>Written and signed by Aleron</dt><dd>Imaging orders and referrals, as commands in the note. One act each, and nothing comes back to Aleron to sign.</dd>
+            <dt>Placed at the vendor instead</dt><dd>Lab and genetic orders, through Junction, which returns values rather than a scanned report. Junction carries no imaging, no radiology and no referrals, so it is a lab channel and not a general one.</dd>
+            <dt>Never signed by Aleron</dt><dd>Prescriptions. Aleron writes one into the note; signing is prescriber-only and happens in Canvas, gated on a Surescripts identifier and, for a controlled substance, EPCS enrolment. It is the one handoff in the flow.</dd>
             <dt>Spike still open</dt><dd>Patient context handoff, actor attribution for API effects, whether an embedded app can sign notes, whether the native sign button is required, order transmission gate behaviour</dd>
           </dl>
         </div>
@@ -416,6 +459,13 @@
     Condition, and the Plugin SDK inside Canvas, which is the only way an order or a Goal gets created.
     A screen that says "written to Canvas" without saying which path is not specifying anything, which is
     how the invented resource survived this long. The rule is now in <code>BRIEF.md</code>.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Reconciliation only knew about the route that writes nothing.</b> Both order rows here were
+    labs, so the table said <em>no Canvas order record</em> twice and read as a fact about orders rather
+    than about that one route. An imaging order, a referral and a prescription all land in this chart as
+    commands in the note, and three of the six things Aleron produces for this patient were therefore
+    missing from the table that exists to say whether they landed. The prescription row is the only one
+    in the set whose state is a signature this screen is waiting on rather than one it recorded.</span></p>
   <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
     <span>The genetics row's failure mode changes shape. It read as a skipped write; it is a command that
     never ran for want of a Canvas practitioner id, which means nothing exists in Canvas to read back at

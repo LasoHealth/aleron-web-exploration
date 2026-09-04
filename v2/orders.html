@@ -49,6 +49,19 @@
   .lo-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
   .lo-acts__spacer { margin-left: auto; }
 
+  /* Which parts of the form belong to the selected order type. Hidden with
+     the hidden attribute rather than a class, so the block leaves the
+     accessibility tree too; the one rule is here because .amd-field sets a
+     display of its own and would otherwise win over the UA default. */
+  .lo-form [hidden] { display: none; }
+
+  /* Where the order goes. This is not a detail of the type, it is the type:
+     a lab is placed by Junction and resulted on this screen, an imaging order
+     or a referral is signed here and lives in Canvas, and a prescription is
+     the one route that ends somewhere the physician has to walk to. */
+  .lo-route { display: grid; gap: var(--air-row); margin: 0; }
+  .lo-route .pfacts { margin: 0; }
+
   .lo-phys { display: grid; gap: var(--s-3xs); margin: 0; }
   .lo-phys__who { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
 
@@ -265,10 +278,11 @@
       <header class="phead">
         <div class="phead__row">
           <h1>Orders</h1>
-          <span class="phead__aside"><span class="pbase">4 orders on this chart &middot; 1 unsigned result &middot; 9 screening protocols</span></span>
+          <span class="phead__aside"><span class="pbase">7 orders on this chart &middot; 1 unsigned result &middot; 1 waiting on your signature in Canvas &middot; 9 screening protocols</span></span>
         </div>
-        <p>What has been ordered and what is due: lab and genetic orders with the results that came
-        back, and the screening schedule that is the same act placed forward in time.</p>
+        <p>What has been ordered and what is due. Every order type is authorized on this screen; where it
+        goes next is not the same for all of them, and each row says which route it took. The screening
+        schedule is the same act placed forward in time.</p>
       </header>
 
       <div class="or-switch">
@@ -312,11 +326,29 @@
 
               <fieldset class="lo-kind" style="border: 0; margin: 0; padding: 0;">
                 <legend class="amd-field__label" style="padding: 0;">Order type</legend>
-                <label><input type="radio" name="lo-kind" checked> Blood</label>
-                <label><input type="radio" name="lo-kind"> Genetic</label>
+                <label><input type="radio" name="lo-kind" value="blood" checked> Blood</label>
+                <label><input type="radio" name="lo-kind" value="genetic"> Genetic</label>
+                <label><input type="radio" name="lo-kind" value="imaging"> Imaging</label>
+                <label><input type="radio" name="lo-kind" value="referral"> Referral</label>
+                <label><input type="radio" name="lo-kind" value="rx"> Prescription</label>
               </fieldset>
 
-              <div>
+              <div class="lo-route">
+                <dl class="pfacts">
+                  <dt>Placed through</dt><dd id="lo-r-ch">Junction</dd>
+                  <dt>Comes back as</dt><dd id="lo-r-back">Values on this screen, with units, reference ranges and abnormal flags, and a copy filed to the chart.</dd>
+                  <dt>Ends with</dt><dd id="lo-r-end">Your signature on the returned result, in the row below.</dd>
+                </dl>
+                <div class="pbound pbound--quiet" id="lo-r-haz" hidden>
+                  <b>This is the one order type that finishes outside Aleron.</b>
+                  <span>Aleron writes the prescription into the chart unsigned. Signing it needs your
+                  Surescripts identifier, and EPCS enrolment on top of that for a controlled substance,
+                  so the signature is yours to give in Canvas. <a href="emr.html">Open the chart</a> and
+                  come back; the plan holds its place.</span>
+                </div>
+              </div>
+
+              <div data-for="blood">
                 <p class="amd-field__label" style="margin: 0 0 var(--s-xs);">Tests, from the authorized menu</p>
                 <div class="lo-tests">
                   <label><input type="checkbox" checked> <span>Hemoglobin A1c (Quest)<small>12-week repeat against 6.0 %</small></span></label>
@@ -348,7 +380,7 @@
                 <p class="pbase">Named on the order, not inferred from the session. The patient's state has to be one you are licensed in, which is what makes this a field rather than a footer.</p>
               </div>
 
-              <div class="amd-field">
+              <div class="amd-field" data-for="blood genetic">
                 <label class="amd-field__label" for="lo-collect">Collection method</label>
                 <div class="amd-select-wrap">
                   <select class="amd-select" id="lo-collect">
@@ -361,22 +393,100 @@
                 <p class="pbase">At-home phlebotomy and test kits ship to the patient. An address is captured either way: the order carries one for every method, including a walk-in draw.</p>
               </div>
 
-              <!-- Genetics branch. Shown here as the second state of the same
-                   card, because the counseling gate is the reason this screen
-                   cannot be folded into a generic order form. -->
-              <div class="preason">
-                <strong>If the order type is Genetic instead</strong>
-                <ul>
-                  <li>The test multi-select is replaced by a single panel: Invitae 160-Gene Panel, Hereditary Cancer Panel, Cardiovascular Genetic Panel, Pharmacogenomics Panel, or Proactive Genetic Health Screen. One panel per order, never a basket.</li>
-                  <li>The pre-test counseling attestation below becomes required, and the authorize control does not exist until it is checked.</li>
-                </ul>
+              <!-- Genetics. One panel per order, never a basket, and the
+                   counseling gate is the reason this cannot be folded into a
+                   generic order form. -->
+              <div data-for="genetic" hidden>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-panel">Panel</label>
+                  <div class="amd-select-wrap">
+                    <select class="amd-select" id="lo-panel">
+                      <option selected>Invitae 160-Gene Panel</option>
+                      <option>Hereditary Cancer Panel</option>
+                      <option>Cardiovascular Genetic Panel</option>
+                      <option>Pharmacogenomics Panel</option>
+                      <option>Proactive Genetic Health Screen</option>
+                    </select>
+                  </div>
+                  <p class="pbase">One panel per order. There is no multi-select on this path.</p>
+                </div>
                 <label class="pattest" style="margin-top: var(--air-row);">
                   <input type="checkbox">
                   <span>I attest that pre-test genetic counseling has been provided to this patient.</span>
                 </label>
+                <p class="pbase">Required. The authorize control does not exist until this is checked.</p>
               </div>
 
-              <div>
+              <!-- Imaging and referral. Both are signed here and both live in
+                   Canvas, so neither needs a vendor and neither sends the
+                   physician anywhere. -->
+              <div data-for="imaging" hidden>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-mod">Study</label>
+                  <div class="amd-select-wrap">
+                    <select class="amd-select" id="lo-mod">
+                      <option selected>MRI abdomen, without contrast</option>
+                      <option>CT abdomen and pelvis, with contrast</option>
+                      <option>DEXA, whole body</option>
+                      <option>Coronary CT angiography</option>
+                      <option>Ultrasound, liver</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-ind">Clinical indication</label>
+                  <textarea class="amd-input" id="lo-ind" rows="2">ATM heterozygous pathogenic variant. Pancreatic surveillance is conditional on a documented first-degree family history, which is not yet on file.</textarea>
+                  <p class="pbase">Carried onto the requisition and read by the reporting radiologist. It is the whole reason the study was asked for, so it is not optional here.</p>
+                </div>
+              </div>
+
+              <div data-for="referral" hidden>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-spec">Refer to</label>
+                  <div class="amd-select-wrap">
+                    <select class="amd-select" id="lo-spec">
+                      <option selected>Genetic counselling</option>
+                      <option>Gastroenterology</option>
+                      <option>Hepatology</option>
+                      <option>Cardiology</option>
+                      <option>Endocrinology</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-refwhy">Reason for referral</label>
+                  <textarea class="amd-input" id="lo-refwhy" rows="2">Post-test counselling for an ATM heterozygous pathogenic variant, and the family-history gate that decides whether pancreatic surveillance opens.</textarea>
+                </div>
+              </div>
+
+              <!-- Prescription. Composed here, written to the chart unsigned,
+                   signed there. The fields are ordinary; the ending is not. -->
+              <div data-for="rx" hidden>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-drug">Medication</label>
+                  <input class="amd-input" id="lo-drug" value="tirzepatide 2.5 mg/0.5 mL, subcutaneous auto-injector">
+                </div>
+                <div class="amd-field">
+                  <label class="amd-field__label" for="lo-sig">Sig</label>
+                  <input class="amd-input" id="lo-sig" value="Inject 2.5 mg subcutaneously once weekly for 4 weeks, then reassess.">
+                </div>
+                <div class="lo-addr">
+                  <div class="amd-field">
+                    <label class="amd-field__label" for="lo-qty">Quantity</label>
+                    <input class="amd-input" id="lo-qty" value="4 pens">
+                  </div>
+                  <div class="amd-field">
+                    <label class="amd-field__label" for="lo-ref">Refills</label>
+                    <input class="amd-input" id="lo-ref" value="0">
+                  </div>
+                  <div class="amd-field amd-field--half">
+                    <label class="amd-field__label" for="lo-pharm">Pharmacy</label>
+                    <input class="amd-input" id="lo-pharm" value="Walgreens, 2400 W Alabama St, Houston TX">
+                  </div>
+                </div>
+              </div>
+
+              <div data-for="blood genetic">
                 <p class="amd-field__label" style="margin: 0 0 var(--s-xs);">Shipping address, for a kit or an at-home draw</p>
                 <div class="lo-addr">
                   <div class="amd-field amd-field--wide">
@@ -412,8 +522,8 @@
               </div>
 
               <div class="lo-acts">
-                <button class="amd-button" data-variant="primary" type="button" aria-disabled="true">Authorize order</button>
-                <span class="lo-tests-sum">Blocked by the identity confirmation above. 2 tests, at-home phlebotomy, under SO-BLOOD-2026-01.</span>
+                <button class="amd-button" data-variant="primary" type="button" aria-disabled="true" id="lo-act">Authorize order</button>
+                <span class="lo-tests-sum" id="lo-sum">Blocked by the identity confirmation above. 2 tests, at-home phlebotomy, under SO-BLOOD-2026-01.</span>
               </div>
 
             </div>
@@ -426,7 +536,7 @@
         <section class="pmod pmod--tier1">
           <div class="pmod__head">
             <h2>Orders</h2>
-            <span class="pmod__sub">Newest first. Status is vendor state; review is your signature on the returned result.</span>
+            <span class="pmod__sub">Newest first. Each row names the route it took. Review is your signature on what came back, on the rows where anything comes back.</span>
           </div>
           <div class="pmod__body pmod__body--flush">
             <div class="pledger__scroll">
@@ -443,8 +553,30 @@
                 <tbody>
 
                   <tr>
+                    <th scope="row">Prescription 4523
+                      <small class="pledger__prov">tirzepatide 2.5 mg/0.5 mL, 4 pens, no refills &middot; Canvas</small>
+                    </th>
+                    <td>31 Aug 2026</td>
+                    <td>written to the chart, unsigned</td>
+                    <td><span class="pna">no result to return</span></td>
+                    <td><span class="padv">waiting on you, in Canvas</span>
+                      <small class="pledger__prov"><a href="emr.html">Open the chart to sign &#8599;</a></small>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Imaging order 4522
+                      <small class="pledger__prov">MRI abdomen, without contrast &middot; Canvas</small>
+                    </th>
+                    <td>28 Aug 2026</td>
+                    <td>signed and sent 28 Aug</td>
+                    <td>Report returns to the chart</td>
+                    <td><span class="pna">nothing to sign</span></td>
+                  </tr>
+
+                  <tr>
                     <th scope="row">Blood order 4520
-                      <small class="pledger__prov">Liver Function Panel / LFTs, Creatine Kinase &middot; walk-in / PSC &middot; SO-BLOOD-2026-01</small>
+                      <small class="pledger__prov">Liver Function Panel / LFTs, Creatine Kinase &middot; walk-in / PSC &middot; SO-BLOOD-2026-01 &middot; Junction</small>
                     </th>
                     <td>26 Aug 2026</td>
                     <td>resulted</td>
@@ -469,7 +601,7 @@
 
                   <tr>
                     <th scope="row">Blood order 4521
-                      <small class="pledger__prov">Hemoglobin A1c, Fasting Insulin &middot; at-home phlebotomy &middot; SO-BLOOD-2026-01</small>
+                      <small class="pledger__prov">Hemoglobin A1c, Fasting Insulin &middot; at-home phlebotomy &middot; SO-BLOOD-2026-01 &middot; Junction</small>
                     </th>
                     <td>30 Aug 2026</td>
                     <td>collection scheduled, 4 Sep</td>
@@ -479,7 +611,7 @@
 
                   <tr>
                     <th scope="row">Genetic order 4472
-                      <small class="pledger__prov">Invitae 160-Gene Panel &middot; test kit &middot; SO-GEN-2026-02 &middot; counseling attested 6 Jun</small>
+                      <small class="pledger__prov">Invitae 160-Gene Panel &middot; test kit &middot; SO-GEN-2026-02 &middot; counseling attested 6 Jun &middot; Junction</small>
                     </th>
                     <td>8 Jun 2026</td>
                     <td>resulted</td>
@@ -490,8 +622,18 @@
                   </tr>
 
                   <tr>
+                    <th scope="row">Referral 4473
+                      <small class="pledger__prov">Genetic counselling &middot; Canvas</small>
+                    </th>
+                    <td>24 Jun 2026</td>
+                    <td>signed and sent 24 Jun</td>
+                    <td>Consult note 14 Jul, in the chart</td>
+                    <td><span class="pna">nothing to sign</span></td>
+                  </tr>
+
+                  <tr>
                     <th scope="row">Blood order 4471
-                      <small class="pledger__prov">CMP, Lipid Panel, HbA1c, hs-CRP, Fasting Insulin, ApoB, Lp(a), UACR &middot; walk-in / PSC &middot; SO-BLOOD-2026-01</small>
+                      <small class="pledger__prov">CMP, Lipid Panel, HbA1c, hs-CRP, Fasting Insulin, ApoB, Lp(a), UACR &middot; walk-in / PSC &middot; SO-BLOOD-2026-01 &middot; Junction</small>
                     </th>
                     <td>8 Jun 2026</td>
                     <td>resulted</td>
@@ -518,7 +660,12 @@
             member and results are <em>hidden until release</em>. Signing a result here makes you the reviewing
             physician on it. It does not make the result visible to Ethan Park, and nothing on this screen can.
             That happens once, on the release surface, for the whole package.</p>
+            <p>Which route an order takes is fixed by its type, not chosen. Only one of the three ever asks
+            the physician to leave, and it asks once.</p>
             <dl class="pfacts">
+              <dt>Labs and genetics</dt><dd>Placed through Junction and resulted here, with values rather than a scanned report. Junction carries no imaging, no radiology and no referrals, so it is a lab channel and not a general one.</dd>
+              <dt>Imaging and referrals</dt><dd>Signed on this screen and held in Canvas. One act, no vendor, and nothing comes back here to sign: the report and the consult note land in the chart.</dd>
+              <dt>Prescriptions</dt><dd>Written into the chart unsigned. The signature is prescriber-only, gated on a Surescripts identifier and, for a controlled substance, EPCS enrolment, so it is given in Canvas. This is the only handoff in the flow.</dd>
               <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> sections 2 and 3</dd>
               <dt>Authorization</dt><dd>Under the standing order for the catalog type. An order for a test with no configured id is refused, fail closed.</dd>
               <dt>Genetics</dt><dd>Pre-test counseling attestation is enforced on this path. The mobile standing-order rail does not enforce it yet, which is a tracked gap.</dd>
@@ -969,16 +1116,45 @@
     <code>pointer: coarse</code> guard the row-density variant uses restoring the full
     <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
     <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
-  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
-    <span>This screen never says where the order lives in Canvas, and the earlier version of this note got
-    the reason wrong. <code>ServiceRequest</code> having no create is true; concluding that no external
-    write path exists is not. The Plugin SDK publishes <code>LabOrderCommand</code>,
-    <code>ImagingOrderCommand</code> and <code>ReferCommand</code> over HTTP through CommandAPI, and
-    Canvas's own guide says the point is "to let something outside Canvas write them".
-    <b>But a lab order cannot be signed from outside Canvas:</b> <code>sign()</code> is imaging and
-    referral only, and <code>originate(commit=True)</code> is ignored for order commands. So the act on
-    this screen can be the authorization only if Aleron owns the transmission, which it does, through
-    Junction. What Canvas can hold is a staged order record, not one Aleron signed.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>One screen, three routes, and exactly one handoff.</b> The card offered Blood and Genetic and
+    said nothing about the rest, which let the screen imply that every order works the way a lab order
+    does. Three do not. A lab or a genetic panel is placed through Junction and comes back here as values
+    to sign. An imaging order or a referral is signed on this screen in a single act and lives in Canvas,
+    with the report or the consult note returning to the chart rather than to Aleron. A prescription is
+    written into the chart unsigned, and the signature is given in Canvas. So the route strip under the
+    type control is not decoration: which of the three you are in decides what the act is called, whether
+    anything ever comes back, and whether you finish here.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>This screen never said where an order went, and the previous note on it, having already been
+    wrong once, was still wrong at the end. <code>ServiceRequest</code> having no create is true, and
+    concluding from it that no external write path exists is not: the Plugin SDK publishes
+    <code>LabOrderCommand</code>, <code>ImagingOrderCommand</code> and <code>ReferCommand</code> over
+    HTTP through CommandAPI. The line that survived too long is <em>"what Canvas can hold is a staged
+    order record, not one Aleron signed"</em>. That is true of a lab order only. <code>sign()</code> is
+    published for imaging and referral, so those two are signed from here and need nothing else; it is
+    the lab order, the one type Junction can carry, that cannot be signed from outside. The route the set
+    assumed was hardest is the one that needs Canvas least.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The prescription row, and the link out of it. Every other row on this screen ends on this
+    screen; that one ends in Canvas, because signing needs the prescriber's Surescripts identifier and,
+    for a controlled substance, EPCS enrolment, neither of which any surface can satisfy on their behalf.
+    Drawing it as a row with a way out is the point: the alternative is a physician who has staged a
+    prescription and has no idea it is sitting unsigned. Its handoff strip is advisory rather than a
+    hazard tile, because staging is not blocked and P3 reserves the tile for a thing that stops an
+    act.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span>The return leg is undrawn, and it is the part worth a spike. Sending the physician to Canvas is
+    a link; getting them back to this chart, with the prescription now signed and the release still
+    pending, is not. Canvas documents patient context for a launch <em>into</em> Canvas, and nothing found
+    so far documents a deep link to one note from outside. Until that is verified, "come back" is a
+    sentence and not a mechanism.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>The <em>"If the order type is Genetic instead"</em> prose block, which described a state the type
+    control could simply enter. It was a wireframe workaround from before that control did anything, and
+    with five types on the same control it would have needed four more paragraphs like it. The panel
+    select and the counseling attestation are now the genetic state, shown when genetic is
+    selected.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span><b>Lab orders and Screening are one screen now.</b> The spine is what has been ordered and
     what is due: a screening schedule is a forward order plan, so the physician looking at what came
@@ -1068,6 +1244,86 @@
     and would have needed one ratified. Folding the schedule in here removes the need for a seventh
     rail entry and the seventh icon it never had.</span></p>
 </div>
+
+<script>
+(function () {
+  // What separates the order types is not which fields they show. It is where
+  // the order goes and which act finishes it, so that is what the strip says
+  // and it is the thing that moves when the type changes.
+  var ROUTES = {
+    blood: {
+      ch: 'Junction',
+      back: 'Values on this screen, with units, reference ranges and abnormal flags, and a copy filed to the chart.',
+      end: 'Your signature on the returned result, in the row below.',
+      act: 'Authorize order',
+      sum: 'Blocked by the identity confirmation above. 2 tests, at-home phlebotomy, under SO-BLOOD-2026-01.'
+    },
+    genetic: {
+      ch: 'Junction',
+      back: 'A panel report, filed to the chart, and routed to the required channel if a pathogenic variant is found.',
+      end: 'Your signature on the returned report, in the row below.',
+      act: 'Authorize order',
+      sum: 'Blocked by the identity confirmation above, and by the counseling attestation, which is unchecked. Invitae 160-Gene Panel, test kit, under SO-GEN-2026-02.'
+    },
+    imaging: {
+      ch: 'Canvas',
+      back: 'The radiologist\u2019s report, in the chart. Nothing returns to this screen.',
+      end: 'Your signature here, which is also what sends it. There is no second act and no vendor in between.',
+      act: 'Sign and send',
+      sum: 'Blocked by the identity confirmation above. MRI abdomen without contrast, signed and sent in one act.'
+    },
+    referral: {
+      ch: 'Canvas',
+      back: 'The consulting clinician\u2019s note, in the chart. Nothing returns to this screen.',
+      end: 'Your signature here, which is also what sends it. There is no second act and no vendor in between.',
+      act: 'Sign and send',
+      sum: 'Blocked by the identity confirmation above. Genetic counselling, signed and sent in one act.'
+    },
+    rx: {
+      ch: 'Canvas, written unsigned',
+      back: 'Nothing here. A prescription has no result; what follows it is the pharmacy fill, in the chart.',
+      end: 'Your signature, given in Canvas. Aleron writes the prescription and stops.',
+      act: 'Stage in the chart',
+      sum: 'Staging does not need the identity confirmation above, because staging is not the act. The signature needs one, and Canvas asks for its own.',
+      haz: true
+    }
+  };
+
+  var form = document.querySelector('.lo-form');
+  if (!form) return;
+  var blocks = form.querySelectorAll('[data-for]');
+  var haz = document.getElementById('lo-r-haz');
+  var out = {
+    ch: document.getElementById('lo-r-ch'),
+    back: document.getElementById('lo-r-back'),
+    end: document.getElementById('lo-r-end')
+  };
+  var act = document.getElementById('lo-act');
+  var sum = document.getElementById('lo-sum');
+
+  function apply(kind) {
+    var r = ROUTES[kind];
+    if (!r) return;
+    out.ch.textContent = r.ch;
+    out.back.textContent = r.back;
+    out.end.textContent = r.end;
+    act.textContent = r.act;
+    sum.textContent = r.sum;
+    // staging is not the gated act, so the gate does not disable it
+    act.setAttribute('aria-disabled', r.haz ? 'false' : 'true');
+    haz.hidden = !r.haz;
+    for (var i = 0; i < blocks.length; i++) {
+      blocks[i].hidden = blocks[i].getAttribute('data-for').split(' ').indexOf(kind) < 0;
+    }
+  }
+
+  var radios = form.querySelectorAll('input[name="lo-kind"]');
+  for (var i = 0; i < radios.length; i++) {
+    radios[i].addEventListener('change', function () { apply(this.value); });
+    if (radios[i].checked) apply(radios[i].value);
+  }
+})();
+</script>
 
 </body>
 </html>
