@@ -32,8 +32,9 @@ With three stated priorities:
 3. **Steps complete inside Aleron.** Where a step cannot, for legal or
    functional reasons, the physician is redirected to finish it.
 
-**All three are achievable.** Priority 1 has a commercial prerequisite that is
-not code (§2.1). Priority 3 costs exactly one redirect, and it is the
+**All three are achievable.** Priority 1 depends on one lab-account setting
+whose current value nobody has checked — two calls settle it and it may already
+be satisfied (§2.1). Priority 3 costs exactly one redirect, and it is the
 prescription (§3).
 
 ---
@@ -65,63 +66,97 @@ a caller-side pre-check.
 
 ---
 
-## 2. Blocking prerequisites
+## 2. Prerequisites
 
-Neither is engineering work. Both gate the build.
+Neither is engineering work. The first may already be met; the second is a
+one-time setup per physician.
 
-### 2.1 A delegated Junction lab account — gates priority 1
+### 2.1 Confirm the lab account's delegated flow — may already be satisfied
 
-Priority 1 requires the order to name the logged-in physician. Per **F4** that
-needs a delegated lab account. On a **Junction platform account** it cannot work:
-*"If you only order with Junction platform accounts, these are non-delegated and
-orders will continue to use our physicians"* — regardless of what the payload
-says.
+Junction supports using your own physicians. Their
+[physicians page](https://docs.junction.com/lab/overview/physicians) describes it
+as Flow 2: *"the Customer must specify a physician when making an order request.
+Both the order and the results are the responsibility of the Customer's chosen
+physician."*
 
-The four settings, quoted verbatim from `LabAccountDelegatedFlow`:
+**What is not a payload decision is which flow an order runs under.** The
+create-order schema says so directly, of the now-deprecated per-lab-test flag:
+
+> `is_delegated` — *"Deprecated and always false. **Delegation is now at the lab
+> account level.** Used to denote whether a lab test requires using non-Vital
+> physician networks."*
+> — [create-order](https://docs.junction.com/api-reference/lab-testing/create-order)
+
+That also reconciles the two pages: delegation used to be per lab test and
+moved to the account. The physicians page describes what the flows **are**; the
+account's `delegated_flow` decides which one you **get**.
+
+The four settings, verbatim from `LabAccountDelegatedFlow`:
 
 | Value | Junction's description | Satisfies priority 1? |
 |---|---|---|
 | `order_delegated` | *"Ordering using client's physicians, critical result follow up via Junction"* | Yes, and Junction keeps critical-result follow-up |
 | `result_delegated` | *"Ordering using Junction's Physician Network, critical results handled by client"* | **No** — this is the inverse |
 | `fully_delegated` | *"Order and critical results handled by client"* | Yes, and Aleron owns critical follow-up too |
-| `not_delegated` | *"Junction handles both ordering and results"* | No — where a platform account leaves you |
+| `not_delegated` | *"Junction handles both ordering and results"* | No |
 
-**Two things make this lighter than it first appears.**
+### Two calls settle this, and they may settle it in our favour
 
-1. **A Junction subaccount may be enough.** Delegation *"only applies when
-   you're using your own lab account **or a Junction subaccount**"*. Junction's
-   own worked example describes *"a non-delegated Junction subaccount"*, so
-   subaccounts come both ways — meaning the question is whether a **delegated
-   subaccount** is available to us, not necessarily whether we must certify our
-   own Labcorp or Quest account. That is a far smaller lift and it should be the
-   first thing asked.
-2. **Enforcement is not yet live.** The changelog section is titled *"Lab account
-   delegation status enforced (May 2026)"* and says *"we will soon be
-   enforcing"*, with *"a grace period to give you time to ensure your
-   integration is always supplying a physician for delegated orders."* Until
-   then *"even if the order should be delegated, we would allow a fallback to
-   using Junction physicians if a physician wasn't provided."* So a delegated
-   account that silently falls back to Junction's physicians is possible today
-   and will stop being possible — build as though enforcement is on, because a
-   silent fallback is precisely a violation of priority 1 that nothing surfaces.
+**An earlier draft of this document called a delegated lab account a blocking
+commercial prerequisite of "weeks, not a sprint". That was speculation.** Nobody
+had read our own account's setting. It is a value, and there is an empirical
+test that does not depend on reading documentation at all.
 
-Delegation applies to **Labcorp, Quest and Sonora Quest**. Junction also
-recommends *"specifying the lab account ID in requests"* whenever possible, so
-`lab_account_id` should be sent rather than left to inference.
+**1. Read the setting.**
 
-**Ask Junction, before anything is built:**
-1. Is a **delegated subaccount** available to us, or does `order_delegated`
-   require our own certified Labcorp/Quest account? What is the lead time?
-2. `order_delegated` or `fully_delegated` — because that decides **whether
-   Junction still phones our patients** about critical results.
-3. When does the grace period end?
+```
+GET /v3/lab_test/lab_account          # team-level
+```
 
-Check the current state directly: `GET /v3/lab_test/lab_account` team-level, or
-the [org-level endpoint](https://docs.junction.com/api-reference/org-management/lab-accounts/get-lab-accounts)
-for every account at once. `delegated_flow` is in both responses.
+If `delegated_flow` already reads `order_delegated` or `fully_delegated`, there
+is **no prerequisite** and priority 1 works today. The
+[org-level endpoint](https://docs.junction.com/api-reference/org-management/lab-accounts/get-lab-accounts)
+returns every account at once.
 
-Once delegated, supplying `physician` becomes **mandatory per order** — the
-invariant priority 1 wants, enforced by the vendor rather than remembered by us.
+**2. Place one sandbox order with `physician` set, and read the physician back.**
+
+The order response carries `physician: ClientFacingPhysician {first_name,
+last_name, npi}`. So the authoritative answer to *"whose name is on our orders"*
+is a field, not an interpretation:
+
+- comes back as **our** physician → delegation is live, priority 1 satisfied
+- comes back as a **Junction network** physician → the account is not delegated,
+  and the payload was ignored
+
+Do both before designing around a prerequisite that may not exist.
+
+### If it turns out not to be delegated
+
+Then it is a configuration change, and possibly an account one — not
+necessarily lab certification:
+
+- Delegation applies to *"your own lab account **or a Junction subaccount**"*,
+  and Junction's own worked example describes *"a non-delegated Junction
+  subaccount"*. So subaccounts come both ways, and **a delegated subaccount is a
+  much smaller ask than certifying our own Labcorp or Quest account.** Ask for
+  that first.
+- Delegation covers **Labcorp, Quest and Sonora Quest**.
+- `order_delegated` versus `fully_delegated` decides **whether Junction still
+  phones our patients** about critical results. That is a clinical-operations
+  choice, not a technical one.
+
+**The one thing to build defensively regardless.** Enforcement is not yet live —
+the changelog section *"Lab account delegation status enforced (May 2026)"* says
+*"we will soon be enforcing"*, with *"a grace period"*. Until it lands, *"even if
+the order should be delegated, we would allow a fallback to using Junction
+physicians if a physician wasn't provided."* A silent fallback is exactly a
+priority-1 violation that nothing surfaces, so **read `order.physician` back on
+every order and reconcile it against the physician we sent.** That check is
+cheap, it is the only thing that detects the failure, and it stays useful after
+enforcement arrives.
+
+Junction also recommends *"specifying the lab account ID in requests"* whenever
+possible, so send `lab_account_id` rather than leaving the account to inference.
 
 ### 2.2 Per-physician Canvas OAuth enrolment — gates priorities 1 and 2
 
@@ -417,6 +452,7 @@ Ordered by how much they would change if the answer surprises us.
 | **T1** | On a Prescribe command: `review()`, do **not** sign, then `send()`. Inspect `committer`. | Whether *"sending is how they are finished"* means `send` performs the sign. If it does, §3's prescription row and the whole redirect flip. This is the one contradiction the research did not resolve. |
 | **T2** | Call a plugin route with a physician's OAuth token; originate and sign an `ImagingOrder`. Inspect `originator`, `committer`, `Provenance.agent`. | Whether **F1** holds in practice. Priority 1 depends on it. |
 | **T3** | Set `ordering_provider_key` to a provider **other than** the token holder. | Whether Canvas validates it, or writes the self-contradicting record. Decides whether the field is useful or a liability. |
+| **T0** | `GET /v3/lab_test/lab_account`, then place a sandbox order with `physician` set and read `order.physician` back. | Whether priority 1 already works. Cheapest test in this table and it may delete §2.1 entirely. Run it first. |
 | **T4** | Place a sandbox Junction order with `signature_image`; fetch `GET /v3/order/{id}/requisition/pdf`. | Whether the physician's signature appears on the requisition. Decides whether labs truly need nothing further. |
 | **T5** | Originate under a service key, sign under the physician's token. | Confirms the token must thread through every call, or shows the sign alone suffices. |
 | **T6** | `POST` a command to a **locked** note. | Confirms the silent `201`, and fixes the pre-check. |
@@ -486,6 +522,7 @@ Ordered by how much they would change if the answer surprises us.
 |---|---|
 | The three physician flows and their responsibility language | [Order and Follow-up Physician](https://docs.junction.com/lab/overview/physicians) |
 | `delegated_flow`, all four members with descriptions; `ClientFacingLabAccount` | [Get lab accounts](https://docs.junction.com/api-reference/lab-testing/lab_accounts) |
+| **"Delegation is now at the lab account level"**; `physician` optional on request; `ClientFacingPhysician` returned on the order | [Create order](https://docs.junction.com/api-reference/lab-testing/create-order) |
 | Org-level view of every lab account | [Org management, get lab accounts](https://docs.junction.com/api-reference/org-management/lab-accounts/get-lab-accounts) |
 | Delegation needs own or sub- account; enforcement grace period; `lab_account_id` recommended | [Changelog, lab testing API](https://docs.junction.com/changelog/lab-testing/api) |
 | Read-only team physician list | [Get team physicians](https://docs.junction.com/api-reference/lab-testing/get-team-physicians) |
