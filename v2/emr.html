@@ -272,7 +272,7 @@
             <dt>Current decision</dt><dd>Do not assume embedded Canvas signing works. The interim architecture previews in Aleron and completes signature on whichever path the Canvas spike verifies.</dd>
             <dt>Written into Canvas</dt><dd>The locked note, and the problem-list decisions</dd>
             <dt>Placed by command, read back</dt><dd>Orders and referrals, and a tracked lifestyle action</dd>
-            <dt>Never written by Aleron</dt><dd>Medications, allergies, e-Rx. Prescription sign-off stays a native, prescriber-only act.</dd>
+            <dt>Never signed by Aleron</dt><dd>Prescriptions. One can be staged into a note from outside; signing is prescriber-only and happens in Canvas, gated on a Surescripts identifier and, for a controlled substance, EPCS enrolment.</dd>
             <dt>Spike still open</dt><dd>Patient context handoff, actor attribution for API effects, whether an embedded app can sign notes, whether the native sign button is required, order transmission gate behaviour</dd>
           </dl>
         </div>
@@ -292,6 +292,27 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The prescription carve-out was right and had never been given a reason.</b> Every version of
+    it said sign-off is "a native, prescriber-only act", which is an assertion. The reason is stronger
+    than the assertion: the command has no sign method available from outside, and sending needs the
+    prescriber's Surescripts identifier on file, with EPCS enrolment on top of that for a controlled
+    substance. Those are identity requirements a third-party surface cannot satisfy on someone's behalf,
+    which is why this is not a policy the design chose and could revisit.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>It also over-claimed in the other direction. <em>Never written</em> is too strong: a
+    prescription <b>can</b> be staged into a note from outside, it just cannot be signed there. So the
+    honest line is that Aleron never signs one, not that it never touches one, and there is a real design
+    option this set currently forecloses: stage the prescription so it is waiting in the note for the
+    prescriber rather than leaving them to key it in. That is worth deciding rather than assuming
+    away.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Worth recording precisely, because two readings of the same page disagreed. Prescribe has no
+    COMMIT action at all: its actions are sign, sign and send, print and make changes while the command is
+    in review, and send once it is committed. That is why the <code>commit</code> argument ignores it, and
+    it is a different reason from the one that applies to lab and imaging orders. A prescription moves
+    staged, then in review, then signed. Only the first of those three is reachable from
+    outside.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>There is no such thing as zero API options for adding an order, and this set kept implying
     there was.</b> Three order commands, lab, imaging and referral, are published over the plugin command

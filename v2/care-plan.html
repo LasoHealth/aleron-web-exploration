@@ -773,7 +773,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
                   <li>Entra step-up re-authentication is older than 15 minutes. Authorizing an order requires a fresh identity confirmation.</li>
                 </ul>
               </div>
-              <p class="pbase">Tirzepatide is not in this set and never will be. e-Rx sign-off stays a native, prescriber-only act.</p>
+              <p class="pbase">Tirzepatide is not in this set. Signing a prescription is a prescriber-only act and cannot happen from here: the prescriber needs a Surescripts identifier on file, and a controlled substance needs them enrolled in EPCS. The prescription itself can still be staged into the note for them to sign.</p>
             </article>
 
             <article class="pcommit__card" data-state="ready">
@@ -1167,6 +1167,27 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The prescription carve-out was right and had never been given a reason.</b> Every version of
+    it said sign-off is "a native, prescriber-only act", which is an assertion. The reason is stronger
+    than the assertion: the command has no sign method available from outside, and sending needs the
+    prescriber's Surescripts identifier on file, with EPCS enrolment on top of that for a controlled
+    substance. Those are identity requirements a third-party surface cannot satisfy on someone's behalf,
+    which is why this is not a policy the design chose and could revisit.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>It also over-claimed in the other direction. <em>Never written</em> is too strong: a
+    prescription <b>can</b> be staged into a note from outside, it just cannot be signed there. So the
+    honest line is that Aleron never signs one, not that it never touches one, and there is a real design
+    option this set currently forecloses: stage the prescription so it is waiting in the note for the
+    prescriber rather than leaving them to key it in. That is worth deciding rather than assuming
+    away.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span>Worth recording precisely, because two readings of the same page disagreed. Prescribe has no
+    COMMIT action at all: its actions are sign, sign and send, print and make changes while the command is
+    in review, and send once it is committed. That is why the <code>commit</code> argument ignores it, and
+    it is a different reason from the one that applies to lab and imaging orders. A prescription moves
+    staged, then in review, then signed. Only the first of those three is reachable from
+    outside.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>There was no way to log out, and no way to tell who was logged in.</b>
     <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
     was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
@@ -1504,7 +1525,7 @@ const CARE_PLAN = {
       source: "Aleron-scored, from the final action-map state of 29 Aug 2026.",
       dxAssoc: "problem 1, prediabetes with insulin resistance, E66.01 and R73.03.",
       body: "Highest-net lever for the dominant phenotype, about <span class=\"pval\">+1.9<span class=\"pval__u\">QALY</span></span>, prevention plus capacity. The resistance-training order below it is its lean-mass guardrail: part of safe use, not a second recommendation.",
-      carveOut: "e-Rx sign-off is a native, prescriber-only act. It is never authorized from this screen."
+      carveOut: "Signing is prescriber-only and happens in Canvas: it needs a Surescripts identifier, and EPCS enrolment for a controlled substance. This screen can stage the prescription, never sign it."
     },
     o2: {
       name: "Supervised resistance training",
