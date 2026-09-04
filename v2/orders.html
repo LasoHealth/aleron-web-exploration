@@ -55,13 +55,9 @@
      display of its own and would otherwise win over the UA default. */
   .lo-form [hidden] { display: none; }
 
-  /* Where the order goes. This is not a detail of the type, it is the type:
-     a lab is placed by Junction and resulted on this screen, an imaging order
-     or a referral is signed here and lives in Canvas, and a prescription is
-     the one route that ends somewhere the physician has to walk to. */
-  .lo-route { display: grid; gap: var(--air-row); margin: 0; }
-  .lo-route .pfacts { margin: 0; }
-
+  /* Where an order goes is per order, not per screen, because one confirmation
+     spans four different endings. It is a column in the confirm table rather
+     than a strip on the compose card. */
   .lo-phys { display: grid; gap: var(--s-3xs); margin: 0; }
   .lo-phys__who { font-size: var(--size-text); font-weight: var(--w-emphasis); color: var(--text-primary); }
 
@@ -278,11 +274,11 @@
       <header class="phead">
         <div class="phead__row">
           <h1>Orders</h1>
-          <span class="phead__aside"><span class="pbase">7 orders on this chart &middot; 1 unsigned result &middot; 1 waiting on your signature in Canvas &middot; 9 screening protocols</span></span>
+          <span class="phead__aside"><span class="pbase">4 orders composed, not yet confirmed &middot; 7 orders on this chart &middot; 1 unsigned result &middot; 1 waiting on your signature in Canvas &middot; 9 screening protocols</span></span>
         </div>
-        <p>What has been ordered and what is due. Every order type is authorized on this screen; where it
-        goes next is not the same for all of them, and each row says which route it took. The screening
-        schedule is the same act placed forward in time.</p>
+        <p>What is being ordered, what has been ordered, and what is due. Orders are composed, then
+        confirmed as one set, then tracked; where each one goes next is not the same for all of them, and
+        both lists say so per order. The screening schedule is the same act placed forward in time.</p>
       </header>
 
       <div class="or-switch">
@@ -304,9 +300,9 @@
              gate is a hazard rather than an advisory, because it stops an act. -->
         <div class="pbound">
           <b>Your session needs a fresh identity confirmation before you can authorize an order or sign a result.</b>
-          <span>Signing requires recent Entra step-up (<span class="pval">2fa.recent</span>). A stale session
-          returns <span class="pval">423</span>, sends you to re-authenticate, and returns you to this screen
-          with your work intact.</span>
+          <span>Confirming an order set and signing a result both need a re-authentication newer than
+          your current one. A stale session is refused, sends you to re-authenticate, and returns you to
+          this screen with your work intact.</span>
         </div>
         <p style="margin: var(--air-row) 0 var(--air-section);">
           <button class="amd-button" data-variant="secondary" type="button">Confirm identity</button>
@@ -319,7 +315,7 @@
           <div class="pmod__head">
             <h2>Authorize a new order</h2>
             <span class="pmod__sub">Physician-initiated, under the standing order that covers this catalog type.</span>
-            <span class="pmod__meta"><a href="standing-orders.html">Standing orders</a></span>
+            <span class="pmod__meta"><a href="standing-orders.html">Ordering readiness</a></span>
           </div>
           <div class="pmod__body">
             <div class="lo-form">
@@ -332,21 +328,6 @@
                 <label><input type="radio" name="lo-kind" value="referral"> Referral</label>
                 <label><input type="radio" name="lo-kind" value="rx"> Prescription</label>
               </fieldset>
-
-              <div class="lo-route">
-                <dl class="pfacts">
-                  <dt>Placed through</dt><dd id="lo-r-ch">Junction</dd>
-                  <dt>Comes back as</dt><dd id="lo-r-back">Values on this screen, with units, reference ranges and abnormal flags, and a copy filed to the chart.</dd>
-                  <dt>Ends with</dt><dd id="lo-r-end">Your signature on the returned result, in the row below.</dd>
-                </dl>
-                <div class="pbound pbound--quiet" id="lo-r-haz" hidden>
-                  <b>This is the one order type that finishes outside Aleron.</b>
-                  <span>Aleron writes the prescription into the chart unsigned. Signing it needs your
-                  Surescripts identifier, and EPCS enrolment on top of that for a controlled substance,
-                  so the signature is yours to give in Canvas. <a href="emr.html">Open the chart</a> and
-                  come back; the plan holds its place.</span>
-                </div>
-              </div>
 
               <div data-for="blood">
                 <p class="amd-field__label" style="margin: 0 0 var(--s-xs);">Tests, from the authorized menu</p>
@@ -371,13 +352,26 @@
                 </p>
               </div>
 
+              <!-- Priority 1 drawn: the physician on the order is the physician in
+                   this session, and a missing precondition stops the order rather
+                   than letting it commit under the wrong name. -->
               <div class="amd-field">
                 <span class="amd-field__label">Ordering physician</span>
                 <p class="lo-phys">
                   <span class="lo-phys__who">Dr. A. Okafor</span>
-                  <span class="pbase">NPI <span class="pval">1487520394</span> &middot; licensed in <span class="pval">CA</span>, <span class="pval">NY</span>, <span class="pval">TX</span></span>
+                  <span class="pbase">NPI <span class="pval">1487520394</span> &middot; licensed in <span class="pval">CA</span>, <span class="pval">NY</span>, <span class="pval">TX</span> &middot; from the Aleron licence roster</span>
                 </p>
-                <p class="pbase">Named on the order, not inferred from the session. The patient's state has to be one you are licensed in, which is what makes this a field rather than a footer.</p>
+                <p class="pbase">This is you, and it is not editable. Every order carries the name of whoever is signed in to Aleron, checked against the session at the moment it commits, so an order can never go out under a colleague's name. The patient's state has to be one you are licensed in, which is what makes this a field rather than a footer.</p>
+                <div class="preason" style="margin-top: var(--air-row);">
+                  <strong>What your account has to carry before an order can name you</strong>
+                  <ul>
+                    <li>Chart access granted in Canvas under your own login, so the chart records you as the one who acted. <b>Granted 14 Feb 2026.</b></li>
+                    <li>An NPI on file, which is what a signature is checked against. <b>On file.</b></li>
+                    <li>A prescriber identifier, which is what lets a signed prescription reach a pharmacy. <b>On file.</b></li>
+                    <li>Controlled-substance enrolment, for a scheduled drug only. <span class="padv">Not enrolled</span>, so a scheduled drug cannot be composed here and the order type is refused rather than staged.</li>
+                  </ul>
+                  <p class="pbase">Any of the first three missing and the order is blocked here, not attempted. Placing it anyway would put a name on a record that the chart would then contradict.</p>
+                </div>
               </div>
 
               <div class="amd-field" data-for="blood genetic">
@@ -522,10 +516,143 @@
               </div>
 
               <div class="lo-acts">
-                <button class="amd-button" data-variant="primary" type="button" aria-disabled="true" id="lo-act">Authorize order</button>
-                <span class="lo-tests-sum" id="lo-sum">Blocked by the identity confirmation above. 2 tests, at-home phlebotomy, under SO-BLOOD-2026-01.</span>
+                <button class="amd-button" data-variant="secondary" type="button" id="lo-act">Add to the order set</button>
+                <span class="lo-tests-sum" id="lo-sum">2 tests, at-home phlebotomy, under SO-BLOOD-2026-01. Adding is not placing: it joins the set below, where the whole set is confirmed in one act.</span>
               </div>
 
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Confirm the order set ==========================================
+             The middle the screen never had. Composing produced intents, the
+             ledger below shows what was placed, and nothing stood between them.
+             This is the final list: per order, where it goes, what it still
+             needs from the physician, and whether it ends here. It is also the
+             one-way door, which is why that is said above the button and not
+             after it. ===== -->
+        <section class="pmod">
+          <div class="pmod__head">
+            <h2>Confirm this order set</h2>
+            <span class="pmod__sub">Four orders, composed under Dr. A. Okafor, NPI <span class="pval">1487520394</span>. Every one of them carries that name. Read the last column before you confirm: the four do not all finish in the same place.</span>
+          </div>
+          <div class="pmod__body pmod__body--flush">
+            <div class="pledger__scroll">
+              <table class="pledger">
+                <thead>
+                  <tr>
+                    <th scope="col">Order</th>
+                    <th scope="col">Route</th>
+                    <th scope="col">What it still needs from you</th>
+                    <th scope="col">Where it ends</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <tr>
+                    <th scope="row">Blood panel
+                      <small class="pledger__prov">Hemoglobin A1c, Fasting Insulin &middot; at-home phlebotomy &middot; SO-BLOOD-2026-01</small>
+                    </th>
+                    <td>Junction</td>
+                    <td>Nothing. Confirming places it.</td>
+                    <td>Completes here
+                      <small class="pledger__prov">Values return to this screen for your signature</small>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Imaging order
+                      <small class="pledger__prov">MRI abdomen, without contrast &middot; ATM surveillance</small>
+                    </th>
+                    <td>Canvas</td>
+                    <td>Nothing. Confirming signs it in your name and transmits it.</td>
+                    <td>Completes here
+                      <small class="pledger__prov">The radiologist's report lands in the chart</small>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Referral
+                      <small class="pledger__prov">Genetic counselling &middot; post-test, ATM heterozygous P/LP</small>
+                    </th>
+                    <td>Canvas</td>
+                    <td>Nothing. Confirming signs it in your name.</td>
+                    <td><span class="padv">Signed, transmission is the practice's</span>
+                      <small class="pledger__prov">Aleron signs a referral and cannot send one. Your practice transmits it from Canvas, and nothing tells this screen when that happened.</small>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Prescription
+                      <small class="pledger__prov">tirzepatide 2.5 mg/0.5 mL, 4 pens, no refills</small>
+                    </th>
+                    <td>Canvas</td>
+                    <td><span class="padv">Your signature in Canvas</span>
+                      <small class="pledger__prov">One click, on the note this puts it in. Drawn as a step below.</small>
+                    </td>
+                    <td>Finishes in Canvas
+                      <small class="pledger__prov">This is the only order in the set that does</small>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="pmod__body">
+            <div class="pbound">
+              <b>Confirming is the last moment you can change any of this.</b>
+              <span>A blood order cannot be edited after it is placed, and it cannot be cancelled once the
+              first results come back. Imaging and the referral are signed at the same moment and a
+              signature is not withdrawn, it is corrected in the chart. If a test, a dose, a collection
+              method or the panel is wrong, change it above now. There is no undo on the other side of
+              this button.</span>
+            </div>
+            <div class="lo-acts">
+              <button class="amd-button" data-variant="primary" type="button" aria-disabled="true">Confirm 4 orders</button>
+              <span class="lo-tests-sum">Blocked by the identity confirmation at the top of this screen. Confirming does not release anything to Ethan Park; that is a separate act on the care plan.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== The one redirect, drawn ========================================
+             Every other order in the set finishes on this screen. This one does
+             not, and the reason is that a prescription signature belongs to the
+             prescriber in the system that holds their prescribing credentials.
+             So it is three drawn steps rather than a footnote, and the third
+             step is the one that used to be missing. ===== -->
+        <section class="pmod pmod--flat">
+          <div class="pmod__head">
+            <h2>The prescription step, in Canvas</h2>
+            <span class="pmod__sub">One order in this set ends somewhere else. Here is the whole of it.</span>
+          </div>
+          <div class="pmod__body">
+            <div class="pcommit">
+              <div class="pcommit__card">
+                <span class="pcommit__step">Step 1, on confirm</span>
+                <h3>Aleron writes the prescription into the chart, one click from signed</h3>
+                <p>The drug, the sig, the quantity, the refills and the pharmacy all go across. Nothing is
+                left for you to retype. What Aleron cannot do is the signature itself, because that is
+                bound to your prescribing credentials rather than to your Aleron session.</p>
+              </div>
+              <div class="pcommit__card">
+                <span class="pcommit__step">Step 2, in Canvas</span>
+                <h3>You sign it there</h3>
+                <p>The link opens the note this prescription sits in, not the chart root, so the
+                prescription is on screen when you arrive. Sign it and it sends.</p>
+                <div class="pcommit__acts">
+                  <a href="emr.html">Open the prescription in Canvas &#8599;</a>
+                  <span class="pbase">Opens in a new tab. This chart stays where it is.</span>
+                </div>
+              </div>
+              <div class="pcommit__card">
+                <span class="pcommit__step">Step 3, back here</span>
+                <h3>Come back and the row is already right</h3>
+                <p>Aleron reads the chart every time this screen is drawn, so returning is the whole of
+                the return leg. There is nothing to acknowledge, nothing to refresh and no delay to wait
+                out: if you signed it, the row says signed. If you did not, it still says waiting on you,
+                for as long as that stays true.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -559,8 +686,8 @@
                     <td>31 Aug 2026</td>
                     <td>written to the chart, unsigned</td>
                     <td><span class="pna">no result to return</span></td>
-                    <td><span class="padv">waiting on you, in Canvas</span>
-                      <small class="pledger__prov"><a href="emr.html">Open the chart to sign &#8599;</a></small>
+                    <td><span class="padv">waiting on your signature in Canvas</span>
+                      <small class="pledger__prov"><a href="emr.html">Open the prescription in Canvas &#8599;</a></small>
                     </td>
                   </tr>
 
@@ -626,7 +753,7 @@
                       <small class="pledger__prov">Genetic counselling &middot; Canvas</small>
                     </th>
                     <td>24 Jun 2026</td>
-                    <td>signed and sent 24 Jun</td>
+                    <td>signed 24 Jun, transmission is the practice's</td>
                     <td>Consult note 14 Jul, in the chart</td>
                     <td><span class="pna">nothing to sign</span></td>
                   </tr>
@@ -660,16 +787,17 @@
             member and results are <em>hidden until release</em>. Signing a result here makes you the reviewing
             physician on it. It does not make the result visible to Ethan Park, and nothing on this screen can.
             That happens once, on the release surface, for the whole package.</p>
-            <p>Which route an order takes is fixed by its type, not chosen. Only one of the three ever asks
-            the physician to leave, and it asks once.</p>
+            <p>Which route an order takes is fixed by its type, not chosen, and a single confirmation can
+            span all four endings at once. Only one of them ever asks the physician to leave, and it asks
+            once.</p>
             <dl class="pfacts">
-              <dt>Labs and genetics</dt><dd>Placed through Junction and resulted here, with values rather than a scanned report. Junction carries no imaging, no radiology and no referrals, so it is a lab channel and not a general one.</dd>
-              <dt>Imaging and referrals</dt><dd>Signed on this screen and held in Canvas. One act, no vendor, and nothing comes back here to sign: the report and the consult note land in the chart.</dd>
-              <dt>Prescriptions</dt><dd>Written into the chart unsigned. The signature is prescriber-only, gated on a Surescripts identifier and, for a controlled substance, EPCS enrolment, so it is given in Canvas. This is the only handoff in the flow.</dd>
-              <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> sections 2 and 3</dd>
-              <dt>Authorization</dt><dd>Under the standing order for the catalog type. An order for a test with no configured id is refused, fail closed.</dd>
+              <dt>Labs and genetics</dt><dd>Completes here. Placed through Junction and resulted here, with values rather than a scanned report. Junction carries no imaging, no radiology and no referrals, so it is a lab channel and not a general one.</dd>
+              <dt>Imaging</dt><dd>Completes here. Signed in your name and transmitted, and the radiologist's report lands in the chart rather than on this screen. Signing and sending are two acts run back to back, so a row can show a signed order that has not gone out.</dd>
+              <dt>Referrals</dt><dd>Signed here, transmitted by the practice. Aleron signs a referral in your name and has no way to send one, and no way to learn when your practice sent it from Canvas. The consult note comes back to the chart.</dd>
+              <dt>Prescriptions</dt><dd>Needs your signature in Canvas. Aleron writes it one click from signed. The signature is prescriber-only, bound to your prescribing credentials, so it is given there. This is the only handoff in the flow.</dd>
+              <dt>Authorization</dt><dd>Under the standing order for the catalog type, and under your name. An order for a test with no configured id is refused, fail closed.</dd>
               <dt>Genetics</dt><dd>Pre-test counseling attestation is enforced on this path. The mobile standing-order rail does not enforce it yet, which is a tracked gap.</dd>
-              <dt>Step-up</dt><dd>Recent Entra re-authentication (<code>2fa.recent</code>). A stale session returns 423 and re-auth returns here.</dd>
+              <dt>Step-up</dt><dd>Confirming a set and signing a result both need a recent re-authentication. A stale session is refused and re-authenticating returns you here.</dd>
               <dt>Patient sees</dt><dd>Logistics and sample state only. Never the values.</dd>
             </dl>
           </div>
@@ -692,7 +820,7 @@
             <button role="radio" aria-checked="true" type="button">List</button>
             <button role="radio" aria-checked="false" type="button">Timeline</button>
           </span>
-          <span class="pbase">Nine protocols &middot; three overdue</span>
+          <span class="pbase">Nine protocols &middot; two overdue &middot; Last is read from the results feed, not authored</span>
         </div>
 
         <!-- The advisory that governs everything below it. An advisory is a word
@@ -708,7 +836,7 @@
         <section class="pmod pmod--flat">
           <div class="pmod__head">
             <h2>Overdue</h2>
-            <span class="pmod__meta"><span class="ptile">3 overdue</span></span>
+            <span class="pmod__meta"><span class="ptile">2 overdue</span></span>
           </div>
           <div class="pmod__body pmod__body--flush">
             <div class="sc-head">
@@ -720,21 +848,11 @@
 
             <div class="sc-row">
               <span class="sc-name">
-                <b>HbA1c</b>
-                <small>Prediabetes phenotype &middot; <span class="wf-scaffold">illustrative</span></small>
-              </span>
-              <span class="sc-cell">Annual</span>
-              <span class="sc-cell">Aug 2024</span>
-              <span class="sc-cell"><span class="pval">Aug 2025</span> <span class="ptile">overdue</span></span>
-            </div>
-
-            <div class="sc-row">
-              <span class="sc-name">
                 <b>Coronary artery calcium score</b>
                 <small>PREVENT intermediate risk &middot; <span class="wf-scaffold">illustrative</span> &middot; scored on the action map at 25 % reclassification odds</small>
               </span>
               <span class="sc-cell">Once, risk refinement</span>
-              <span class="sc-cell"><span class="pna">never</span></span>
+              <span class="sc-cell"><span class="pna">no record in this chart</span></span>
               <span class="sc-cell"><span class="pval">Aug 2026</span> <span class="ptile">overdue</span></span>
             </div>
 
@@ -764,12 +882,12 @@
             </div>
             <div class="sc-row">
               <span class="sc-name">
-                <b>Lipid panel</b>
-                <small>Risk management &middot; <span class="wf-scaffold">illustrative</span></small>
+                <b>HbA1c</b>
+                <small>Prediabetes phenotype &middot; <span class="wf-scaffold">illustrative cadence</span> &middot; last value 6.0 %, from order 4471</small>
               </span>
-              <span class="sc-cell">Annual</span>
-              <span class="sc-cell">Nov 2025</span>
-              <span class="sc-cell"><span class="pval">Nov 2026</span> <span class="padv">in 75 days</span></span>
+              <span class="sc-cell">Every 12 weeks</span>
+              <span class="sc-cell">Jun 2026</span>
+              <span class="sc-cell"><span class="pval">Sep 2026</span> <span class="padv">ordered 30 Aug, order 4521</span></span>
             </div>
           </div>
         </section>
@@ -777,7 +895,7 @@
         <section class="pmod pmod--flat">
           <div class="pmod__head">
             <h2>Upcoming</h2>
-            <span class="pmod__meta"><span class="pbase">3 scheduled</span></span>
+            <span class="pmod__meta"><span class="pbase">4 scheduled</span></span>
           </div>
           <div class="pmod__body pmod__body--flush">
             <div class="sc-head">
@@ -785,6 +903,15 @@
               <span>Cadence</span>
               <span>Last</span>
               <span>Next</span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-name">
+                <b>Lipid panel</b>
+                <small>Risk management &middot; <span class="wf-scaffold">illustrative cadence</span> &middot; last panel from order 4471</small>
+              </span>
+              <span class="sc-cell">Annual</span>
+              <span class="sc-cell">Jun 2026</span>
+              <span class="sc-cell"><span class="pval">Jun 2027</span></span>
             </div>
             <div class="sc-row">
               <span class="sc-name">
@@ -891,9 +1018,9 @@
                 <span class="sc-tl-name">HbA1c</span>
                 <span class="sc-track">
                   <span class="sc-now" style="left: 66.58%"></span>
-                  <span class="sc-dot" data-tone="hazard" style="left: 66.58%" title="Overdue since Aug 2025. Pinned to today."></span>
+                  <span class="sc-dot" data-tone="forward" style="left: 70.68%" title="Due Sep 2026. Already ordered 30 Aug, collection 4 Sep."></span>
                 </span>
-                <span class="sc-tl-date">Aug 2025</span>
+                <span class="sc-tl-date">Sep 2026</span>
               </div>
 
               <div class="sc-tl-row">
@@ -916,11 +1043,8 @@
 
               <div class="sc-tl-row">
                 <span class="sc-tl-name">Lipid panel</span>
-                <span class="sc-track">
-                  <span class="sc-now" style="left: 66.58%"></span>
-                  <span class="sc-dot" data-tone="forward" style="left: 87.12%" title="Due Nov 2026."></span>
-                </span>
-                <span class="sc-tl-date">Nov 2026</span>
+                <span class="sc-track"><span class="sc-now" style="left: 66.58%"></span></span>
+                <span class="sc-tl-date"><span class="pna">2027</span></span>
               </div>
 
               <div class="sc-tl-row">
@@ -962,9 +1086,10 @@
               </div>
 
             </div>
-            <p class="sc-note" style="padding: var(--s-md);">Overdue items pin to today. Completed one-time screens mark their
-            completion year, so a protocol finished in 2023 shows an empty 2026 track rather than a
-            missing row. Five of the nine have nothing scheduled inside this year.</p>
+            <p class="sc-note" style="padding: var(--s-md);">Every dot sits on its own due date, overdue ones included, so the
+            distance between a dot and the today line is how late the item is. Completed one-time screens
+            mark their completion year, so a protocol finished in 2023 shows an empty 2026 track rather
+            than a missing row. Six of the nine have nothing scheduled inside this year.</p>
           </div>
         </section>
 
@@ -973,8 +1098,8 @@
           <div class="pdisc__body">
             <dl class="pfacts">
               <dt>Status rule</dt><dd>Overdue if the next date has passed. Due soon inside 90 days. Upcoming beyond that. Completed if the protocol is one-time and has a recorded result.</dd>
-              <dt>Source</dt><dd>Prototype schedule. Cadence, dates and basis labels are placeholders pending the governed screening-schedule artifact, and every row says so on its own basis line.</dd>
-              <dt>Not an order</dt><dd>Nothing on this screen places an order. A screening that becomes action-changing is priced on the action map and ordered from Care Plan, which is the one place an order is authorised.</dd>
+              <dt>Source</dt><dd>Cadence and basis labels are a prototype pending the governed screening-schedule artifact, and every row says so on its own basis line. <b>Last is not authored.</b> It reads the same results feed as the orders table above, so an order placed on the Active half moves the row here without anyone editing a schedule.</dd>
+              <dt>Not an order</dt><dd>Nothing in the screening panel places an order. A screening that becomes action-changing is priced on the action map, composed on the Active half of this screen or from Care Plan, and placed when the set is confirmed.</dd>
               <dt>Not the required channel</dt><dd>The ATM heterozygous P/LP finding routes to the genetic must-do pipeline, not here. A required item is an obligation and is never ranked against a schedule.</dd>
               <dt>Overlap with the map</dt><dd>Coronary artery calcium and the sleep apnea screen appear in both places, with different frames. Here they are cadence; there they are reclassification odds against value.</dd>
             </dl>
@@ -985,9 +1110,12 @@
 
       <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-30" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-30" role="note">
         Synthetic staging orders &middot; the test menu is the environment's configured catalog, not
-        a free-text field &middot; a signed result is a reviewing-physician record and is not a
-        patient release &middot; the screening half is an illustrative schedule whose cadence and
-        dates await a governed source &middot; nothing in the screening panel places an order.
+        a free-text field &middot; every order carries the name of the physician in session and is
+        refused rather than renamed if it cannot &middot; confirming a set is final and the copy above
+        the button says so &middot; a signed result is a reviewing-physician record and is not a
+        patient release &middot; the screening half is an illustrative schedule whose cadence awaits a
+        governed source and whose Last column reads the same results feed as the orders table &middot;
+        nothing in the screening panel places an order.
       </p></div>
 
     </div>
@@ -1087,9 +1215,9 @@
     <span class="pval">120</span> characters and the indication runs several hundred, so the reasoning
     this set captures for defensibility cannot travel to the lab: only a summary can, and nothing decides
     which summary. A note id is needed for anything that lands in Canvas and no note appears on this
-    screen. And referrals and imaging are absent from a screen called Orders, which is the sharpest of the
-    three: they are the only order types a third party can sign end to end, so the one place the design
-    would have real authority is the one it does not draw.</span></p>
+    screen. And the third has since been closed by the type control: referrals and imaging were absent
+    from a screen called Orders and are now both on it, which matters because imaging is the only type a
+    third party can sign and send end to end.</span></p>
   <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
     <span><b>Who carries the result is a product decision this screen assumes without stating.</b> The
     vendor offers its own physician network, the customer's physicians, or a hybrid where it validates the
@@ -1116,15 +1244,22 @@
     <code>pointer: coarse</code> guard the row-density variant uses restoring the full
     <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
     <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span><b>The route strip on the authorize card.</b> It described one route at a time, which was right
+    while the screen composed one order at a time and wrong the moment a confirmation could span four.
+    A physician confirming this set is looking at a blood panel, an imaging order, a referral and a
+    prescription in one act, and those have three different endings between them; a strip that shows only
+    the type currently selected in the radio group cannot tell them that. The guidance moved into the
+    confirm table as a column, where it sits on the row it describes.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
-    <span><b>One screen, three routes, and exactly one handoff.</b> The card offered Blood and Genetic and
-    said nothing about the rest, which let the screen imply that every order works the way a lab order
-    does. Three do not. A lab or a genetic panel is placed through Junction and comes back here as values
-    to sign. An imaging order or a referral is signed on this screen in a single act and lives in Canvas,
-    with the report or the consult note returning to the chart rather than to Aleron. A prescription is
-    written into the chart unsigned, and the signature is given in Canvas. So the route strip under the
-    type control is not decoration: which of the three you are in decides what the act is called, whether
-    anything ever comes back, and whether you finish here.</span></p>
+    <span><b>Three next-step states, per order, and they are a closed set.</b> <em>Completes here</em> for
+    labs, genetics and imaging. <em>Needs your signature in Canvas</em> for prescriptions, and only for
+    prescriptions. <em>Signed, transmission is the practice's</em> for referrals, which is the state
+    nobody had drawn: Aleron signs a referral in the physician's name and has no way at all to send one,
+    or to learn when the practice sent it. The old copy said <em>signed and sent</em> on both the imaging
+    and the referral rows and was asserting an act on the second that no available call performs. Imaging
+    is also two calls rather than one, so a signed order that did not go out is a real state and the
+    disclosure says so rather than the row implying it cannot happen.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span>This screen never said where an order went, and the previous note on it, having already been
     wrong once, was still wrong at the end. <code>ServiceRequest</code> having no create is true, and
@@ -1133,22 +1268,67 @@
     HTTP through CommandAPI. The line that survived too long is <em>"what Canvas can hold is a staged
     order record, not one Aleron signed"</em>. That is true of a lab order only. <code>sign()</code> is
     published for imaging and referral, so those two are signed from here and need nothing else; it is
-    the lab order, the one type Junction can carry, that cannot be signed from outside. The route the set
-    assumed was hardest is the one that needs Canvas least.</span></p>
+    the lab order, the one type Junction can carry, that cannot be signed from outside. One correction to
+    it: <code>sign()</code> on a referral is not <em>nothing else</em>. It is signed and then stuck,
+    because no send exists for that type at all.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span>The prescription row, and the link out of it. Every other row on this screen ends on this
-    screen; that one ends in Canvas, because signing needs the prescriber's Surescripts identifier and,
-    for a controlled substance, EPCS enrolment, neither of which any surface can satisfy on their behalf.
-    Drawing it as a row with a way out is the point: the alternative is a physician who has staged a
-    prescription and has no idea it is sitting unsigned. Its handoff strip is advisory rather than a
-    hazard tile, because staging is not blocked and P3 reserves the tile for a thing that stops an
-    act.</span></p>
-  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
-    <span>The return leg is undrawn, and it is the part worth a spike. Sending the physician to Canvas is
-    a link; getting them back to this chart, with the prescription now signed and the release still
-    pending, is not. Canvas documents patient context for a launch <em>into</em> Canvas, and nothing found
-    so far documents a deep link to one note from outside. Until that is verified, "come back" is a
-    sentence and not a mechanism.</span></p>
+    screen; that one ends in Canvas, because signing is bound to the prescriber's own prescribing
+    credentials, which no surface can satisfy on their behalf. Drawing it as a row with a way out is the
+    point: the alternative is a physician who has staged a prescription and has no idea it is sitting
+    unsigned.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The return leg was called a spike and it is not one.</b> Two things closed it. The note
+    carries a real permanent link, returned by the system that holds it and verified resolving on the live
+    instance, so the hand-off is a supported link to the note itself rather than a URL assembled by
+    convention with a fallback for when the guess is wrong. Every hedge about landing on the chart root
+    instead has come off the copy. And the return itself needs no mechanism: the screen reads the chart on
+    every render, so the physician <em>is</em> the trigger. No callback, no polling, no acknowledged
+    state. The three steps are now drawn as three cards rather than one sentence promising a mechanism
+    that did not exist, and the third card is the one that used to be missing.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>A confirm surface, which is the middle this set never had.</b> Orders were split between the
+    care plan, which holds intents, and this screen, which holds what was already placed, and nothing
+    stood between them: there was no moment where a physician saw the final list before it went out. The
+    confirm table is that moment. Per order it says the order, its route, what it still needs from them
+    and where it ends, and the hazard tile above the button says the thing that has to be said before the
+    click rather than after it: a lab order cannot be edited once placed and cannot be cancelled once the
+    first results arrive. The authorize control on the card above is now <em>Add to the order set</em>,
+    because composing and placing were the same button and should never have been.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>The physician on the order is now a stated invariant with a stated failure.</b> The field
+    that names the ordering physician is plain data and is not checked when the record is committed, so
+    the record can name one physician and be committed by another and nothing anywhere objects. Aleron has
+    to be the thing that objects. The card says the name is not editable and is checked against the
+    session at the moment it commits, and the preconditions that make an attributable order possible at
+    all are listed with their state rather than discovered at submit: chart access granted under the
+    physician's own login, an NPI, a prescriber identifier, and controlled-substance enrolment for a
+    scheduled drug. The first three missing blocks the order. The fourth missing removes one order type
+    and says which.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The two halves of this screen disagreed about the same patient.</b> The ledger showed HbA1c
+    and the lipid panel both resulting on 22 Jun 2026 inside order 4471, while the screening panel four
+    sections down said HbA1c was last done Aug 2024 and overdue since Aug 2025, and the lipid panel last
+    done Nov 2025. Both were reading a schedule somebody typed. <em>Last</em> now comes from the results
+    feed the ledger reads, which moves HbA1c out of Overdue and into Due soon at its real twelve-week
+    cadence, with the re-order already placed on 30 Aug named on the row, and moves the lipid panel to Jun
+    2027. Overdue drops from three to two. The fixture fix is the small part; the point is that a
+    <em>Last</em> column can never be authored, because the moment it is, it starts drifting from the
+    orders on the same screen.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The timeline claimed a rule it was not following.</b> The note under it said overdue items pin
+    to today, but only one of the three overdue dots pinned, and it pinned because it was due in a
+    previous year rather than because it was overdue. The other two plotted at their real dates. With the
+    HbA1c fixture corrected nothing pins at all, so the honest rule is the one the geometry already
+    implements: every dot sits on its own due date, and the distance to the today line is how late the
+    item is.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Engineering vocabulary was rendering as product copy.</b> A status code, an internal
+    authentication-context identifier and a repository path were all sitting inside the hazard boundary and
+    the disclosure list, which are product surfaces and not reviewer chrome. A physician acts on none of
+    them. What they act on is that the session is stale, that re-authenticating brings them back here, and
+    that their work survives the trip, so that is what those three now say. The engineering facts are in
+    this list, which is where they belong.</span></p>
   <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
     <span>The <em>"If the order type is Genetic instead"</em> prose block, which described a state the type
     control could simply enter. It was a wireframe workaround from before that control did anything, and
@@ -1210,8 +1390,8 @@
     <span>The line stating that signing a result is not a patient release. v0 has no release act, so
     it never has to draw the distinction; in v2 it is the distinction that matters most.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
-    <span>Overdue dates are filled ember tiles per P3; <em>in 75 days</em> is an advisory word and
-    stays a word, so the three real hazards outrank it by construction. Overdue gives up the Tier-1
+    <span>Overdue dates are filled ember tiles per P3; a due-soon note like <em>ordered 30 Aug</em> is an
+    advisory word and stays a word, so the real hazards outrank it by construction. Overdue gives up the Tier-1
     elevation it held as a screen of its own, because the merged file spends its one elevation on
     the orders table.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
@@ -1247,71 +1427,40 @@
 
 <script>
 (function () {
-  // What separates the order types is not which fields they show. It is where
-  // the order goes and which act finishes it, so that is what the strip says
-  // and it is the thing that moves when the type changes.
-  var ROUTES = {
+  // Composing is one act for every type: it adds the order to the set below.
+  // Where the order goes and what finishes it is per order and lives in the
+  // confirm table, so what changes with the type here is only which fields
+  // apply and what the summary says is about to join the set.
+  var ORDERS = {
     blood: {
-      ch: 'Junction',
-      back: 'Values on this screen, with units, reference ranges and abnormal flags, and a copy filed to the chart.',
-      end: 'Your signature on the returned result, in the row below.',
-      act: 'Authorize order',
-      sum: 'Blocked by the identity confirmation above. 2 tests, at-home phlebotomy, under SO-BLOOD-2026-01.'
+      sum: '2 tests, at-home phlebotomy, under SO-BLOOD-2026-01. Adding is not placing: it joins the set below, where the whole set is confirmed in one act.'
     },
     genetic: {
-      ch: 'Junction',
-      back: 'A panel report, filed to the chart, and routed to the required channel if a pathogenic variant is found.',
-      end: 'Your signature on the returned report, in the row below.',
-      act: 'Authorize order',
-      sum: 'Blocked by the identity confirmation above, and by the counseling attestation, which is unchecked. Invitae 160-Gene Panel, test kit, under SO-GEN-2026-02.'
+      sum: 'Invitae 160-Gene Panel, test kit, under SO-GEN-2026-02. Held by the counseling attestation, which is unchecked, so this one cannot join the set yet.',
+      blocked: true
     },
     imaging: {
-      ch: 'Canvas',
-      back: 'The radiologist\u2019s report, in the chart. Nothing returns to this screen.',
-      end: 'Your signature here, which is also what sends it. There is no second act and no vendor in between.',
-      act: 'Sign and send',
-      sum: 'Blocked by the identity confirmation above. MRI abdomen without contrast, signed and sent in one act.'
+      sum: 'MRI abdomen without contrast. Joins the set below and is signed in your name when the set is confirmed.'
     },
     referral: {
-      ch: 'Canvas',
-      back: 'The consulting clinician\u2019s note, in the chart. Nothing returns to this screen.',
-      end: 'Your signature here, which is also what sends it. There is no second act and no vendor in between.',
-      act: 'Sign and send',
-      sum: 'Blocked by the identity confirmation above. Genetic counselling, signed and sent in one act.'
+      sum: 'Genetic counselling. Joins the set below. Confirming signs it in your name; your practice transmits it from Canvas.'
     },
     rx: {
-      ch: 'Canvas, written unsigned',
-      back: 'Nothing here. A prescription has no result; what follows it is the pharmacy fill, in the chart.',
-      end: 'Your signature, given in Canvas. Aleron writes the prescription and stops.',
-      act: 'Stage in the chart',
-      sum: 'Staging does not need the identity confirmation above, because staging is not the act. The signature needs one, and Canvas asks for its own.',
-      haz: true
+      sum: 'tirzepatide 2.5 mg/0.5 mL. Joins the set below. Confirming writes it into the chart one click from signed, and the signature is yours to give in Canvas.'
     }
   };
 
   var form = document.querySelector('.lo-form');
   if (!form) return;
   var blocks = form.querySelectorAll('[data-for]');
-  var haz = document.getElementById('lo-r-haz');
-  var out = {
-    ch: document.getElementById('lo-r-ch'),
-    back: document.getElementById('lo-r-back'),
-    end: document.getElementById('lo-r-end')
-  };
   var act = document.getElementById('lo-act');
   var sum = document.getElementById('lo-sum');
 
   function apply(kind) {
-    var r = ROUTES[kind];
+    var r = ORDERS[kind];
     if (!r) return;
-    out.ch.textContent = r.ch;
-    out.back.textContent = r.back;
-    out.end.textContent = r.end;
-    act.textContent = r.act;
     sum.textContent = r.sum;
-    // staging is not the gated act, so the gate does not disable it
-    act.setAttribute('aria-disabled', r.haz ? 'false' : 'true');
-    haz.hidden = !r.haz;
+    act.setAttribute('aria-disabled', r.blocked ? 'true' : 'false');
     for (var i = 0; i < blocks.length; i++) {
       blocks[i].hidden = blocks[i].getAttribute('data-for').split(' ').indexOf(kind) < 0;
     }

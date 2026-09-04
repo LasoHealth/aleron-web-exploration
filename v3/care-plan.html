@@ -128,6 +128,20 @@
   .ap-dstate { font-size: var(--size-small); color: var(--text-secondary); }
   .ap-dtitle { font-size: var(--size-h3); font-weight: var(--w-h3); color: var(--text-primary); }
   .ap-dmeta { margin-left: auto; font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  /* The note band. An opt-in list needs to say what the list is being added
+     into, and the answer is a chart note that already exists: it opens with the
+     cycle, empty, and adding a suggestion stages it inside that note. Under the
+     document head and above the body, on the inset ground, because it describes
+     the frame and not any one section of it. */
+  .ap-dnote {
+    padding: var(--s-sm) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .ap-dnote b { color: var(--text-primary); font-weight: var(--w-emphasis); }
   /* Top padding is --air-group, not --s-md: at 16px the boundary between the
      draft header and the body read tighter than the 20px gaps inside a single
      problem, so the document ranked its own top edge below an internal one. */
@@ -669,10 +683,10 @@
           </li>
           <li class="amd-stepper__step" role="presentation">
             <span class="amd-stepper__segment"></span>
-            <button class="cp-stepbtn" type="button" role="tab" id="tab-orders" aria-label="Step 3, Order authorization. 5 queued, unsent, 2 blockers" aria-controls="pane-orders" aria-selected="false" tabindex="-1">
+            <button class="cp-stepbtn" type="button" role="tab" id="tab-orders" aria-label="Step 3, Order authorization. 4 authorizable, unsent, 2 blockers" aria-controls="pane-orders" aria-selected="false" tabindex="-1">
               <b>Step 3</b>
               <em>Order authorization</em>
-              <small>5 queued, unsent &middot; 2 blockers</small>
+              <small>4 authorizable, unsent &middot; 2 blockers</small>
             </button>
           </li>
           <li class="amd-stepper__step" role="presentation">
@@ -685,8 +699,10 @@
           </li>
         </ol>
         <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-54" aria-label="Wireframe explanation, not part of the product">i</button><p class="cp-stepnote wf-scaffold wf-ex__bubble" id="wf-ex-54" role="note">Steps 2 and 3 are independent. An order can transmit before the note is
-        locked and a note can be locked with orders still pending; both are legitimate. Only step 4
-        needs both. Every step is reachable from here at any time.</p></div>
+        locked and a note can be locked with orders still pending; both are legitimate. One direction
+        is constrained: a locked note stops accepting orders, so an order added after the lock opens a
+        new note for the same episode. Only step 4 needs both. Every step is reachable from here at any
+        time.</p></div>
       </nav>
 
       <div class="cp-wrap cp-pane" id="pane-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="0">
@@ -698,6 +714,14 @@
             <span class="ap-dtitle">Baseline review, cycle 1</span>
             <span class="ap-dmeta">31 Aug 2026 &middot; Dr. A. Okafor</span>
           </div>
+
+          <p class="ap-dnote">
+            <b>Chart note NOTE-47M-0114, opened in Canvas 30 Aug 2026 and empty</b>, at the start of this
+            cycle. The note is what the list adds into. Ticking a suggestion stages it inside the note,
+            opening one edits the staged copy, unticking it takes it back out, and a problem you add
+            joins the same note. Staged means saved in the chart and not acted on: nothing reaches the
+            problem list until the note locks, and nothing transmits until the orders are authorized.
+          </p>
 
           <div class="ap-body">
 
@@ -1027,10 +1051,12 @@
 
           <p class="ap-docsig">
             <b>Unsigned.</b> On signature Canvas runs <b>3 commands</b>: one Diagnose, one Assess against
-            <span class="ap-pdx">cnd-4471</span>, and one encounter-diagnosis Condition that stays off the
-            problem list. <b>5 orders</b> release through their own channels. <span class="wf-scaffold">Three suggestions were not
+            <span class="ap-pdx">cnd-4471</span>, which adds to that entry rather than replacing it, and one
+            encounter-diagnosis Condition that stays off the problem list. <b>5 orders</b> are staged in this
+            note; <b>4</b> release through their own channels once authorized.
+            <span class="wf-scaffold">Three suggestions were not
             carried; their reasons have no field in Canvas FHIR and are noted above as a gap.</span>
-            The prescription is written into the note from Orders and signed in Canvas.
+            The fifth is the prescription, written into the note from Orders and signed in Canvas.
           </p>
         </article>
 
@@ -1088,11 +1114,11 @@
               <p>Locks the exact derived Preview note and the problem-list decisions. This act does not send an order and does not release anything to the patient.</p>
 
               <dl class="pfacts">
-                <dt>Problems</dt><dd><span class="pval">4</span> included, <span class="pval">0</span> removed</dd>
-                <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> update existing, <span class="pval">2</span> note only</dd>
-                <dt>Orders</dt><dd><span class="pval">5</span> intents, all unsent. Authorizing them is step 3, and it neither waits on this act nor follows from it.</dd>
+                <dt>Problems</dt><dd><span class="pval">3</span> of 6 suggestions added, <span class="pval">0</span> removed after adding</dd>
+                <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> added to an existing entry, <span class="pval">1</span> note only</dd>
+                <dt>Orders</dt><dd><span class="pval">5</span> staged in this note, none sent. <span class="pval">4</span> of them are authorizable in step 3, which neither waits on this act nor follows from it; the fifth is the prescription.</dd>
                 <dt>Preview note</dt><dd>Current with the fields above &middot; hash <span class="pval">note 7a41 c0d9 be52 3f8e</span></dd>
-                <dt>On lock</dt><dd>Immutable note snapshot, Note PDF, and the legal-record DocumentReference in Canvas</dd>
+                <dt>On lock</dt><dd>Chart note NOTE-47M-0114 becomes an immutable snapshot and stops accepting changes. The 5 staged orders are frozen as they stand; an order added after this lock opens a new note for the same episode. <span class="wf-scaffold">Canvas documents that locking also produces the note PDF and the legal-record document. It did not reproduce on the staging instance, so treat the PDF as expected rather than confirmed.</span></dd>
               </dl>
 
               <label class="pattest">
@@ -1101,12 +1127,12 @@
               </label>
               <label class="pattest">
                 <input type="checkbox">
-                <span>I understand that <b>5 pending orders remain unsent</b> after this act, and that locking the note is not what sends them.</span>
+                <span>I understand that <b>5 staged orders remain unsent</b> after this act, and that locking the note is not what sends them.</span>
               </label>
 
               <div class="pcommit__acts">
                 <button class="amd-button" data-variant="primary" type="button">Review and lock Preview note</button>
-                <span class="pbase">Both attestations required &middot; the 5 queued orders are unaffected either way</span>
+                <span class="pbase">Both attestations required &middot; locking freezes the 5 staged orders in this note rather than sending or cancelling them</span>
               </div>
             </article>
 
@@ -1117,7 +1143,7 @@
       <section class="pmod pmod--flat cp-pane" id="pane-orders" role="tabpanel" aria-labelledby="tab-orders" tabindex="0" hidden>
         <div class="pmod__head">
           <h2>Order authorization</h2>
-          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-52" aria-label="Wireframe explanation, not part of the product">i</button><span class="pmod__sub wf-scaffold wf-ex__bubble" id="wf-ex-52" role="note">One of three acts, each with its own attestation. It does not wait on the note lock: an order can transmit while the note is still an open draft, and locking the note is not what sends it.</span></span>
+          <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-52" aria-label="Wireframe explanation, not part of the product">i</button><span class="pmod__sub wf-scaffold wf-ex__bubble" id="wf-ex-52" role="note">One of three acts, each with its own attestation. It does not wait on the note lock: an order can transmit while the note is still an open draft, and locking the note is not what sends it. The one constrained direction is the other way round, since a locked note takes no further orders.</span></span>
         </div>
         <div class="pmod__body">
           <div class="pcommit">
@@ -1126,16 +1152,18 @@
               <span class="pcommit__step">Independent physician act <span class="wf-scaffold">&middot; matrix act 2, create lab order request</span></span>
               <h3>Order authorization</h3>
               <p>Authorizes the exact enumerated order set. A separate act with a separate attestation, because signing a note and transmitting an order are separate clinical commitments.</p>
-              <p>The state of the note is not one of its conditions. Step 2 can be open, locked, or never taken this cycle, and this act reads the same in all three cases. What blocks it below is about the orders themselves.</p>
+              <p>It is also separate from step 4, and stays that way. Authorizing this set transmits the orders; releasing the plan decides only what the patient reads. Different audiences and different failure modes, and an order may transmit while the note is still an open draft.</p>
+              <p>The note does not have to be locked first. An open note is the ordinary case and the intended one: these orders are staged inside it, and a physician who wants to start the investigations today authorizes them and leaves the note open. A cycle in which the note is never locked reads the same. One case does not: a locked note stops accepting changes, so an order composed after the lock cannot join it.</p>
 
               <div class="preason">
                 <strong>Withheld until all of these clear</strong>
                 <ul>
                   <li>Colorectal screening has no modality chosen, so no catalog entry resolves. Colonoscopy is a referral, FIT is a lab, and the patient picks.</li>
                   <li>Entra step-up re-authentication is older than 15 minutes. Authorizing an order requires a fresh identity confirmation.</li>
+                  <li><b>Not in force here.</b> If the note had already been locked, the orders below would be the ones frozen inside it and any new order would open a new note for this episode. The note is open, so all 4 are in it and authorizable.</li>
                 </ul>
               </div>
-              <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-51" aria-label="Wireframe explanation, not part of the product">i</button><p class="pbase wf-scaffold wf-ex__bubble" id="wf-ex-51" role="note">Neither blocker is the note. The note lock was removed from this list: it was never a condition of a valid order request, and CLIA asks for an authenticated request from an authorized person, not a locked document.</p></div>
+              <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-51" aria-label="Wireframe explanation, not part of the product">i</button><p class="pbase wf-scaffold wf-ex__bubble" id="wf-ex-51" role="note">Neither of the first two blockers is the note. A note lock was never a condition of a valid order request, and CLIA asks for an authenticated request from an authorized person, not a locked document. The third row is the correction to this pane's earlier claim: it said the act read the same whether the note was open, locked or never taken, and two of those three are right. A locked note is not editable, so the blocker is conditional rather than absent.</p></div>
               <p class="pbase">Tirzepatide is not in this set. Signing a prescription is prescriber-only and cannot happen from here: the prescriber needs a Surescripts identifier on file, and a controlled substance needs them enrolled in EPCS. It is composed and written into the note on <a href="../v2/orders.html">Orders</a>, and signed in Canvas.</p>
             </article>
 
@@ -1401,11 +1429,13 @@
                   <summary>Canvas linkage</summary>
                   <div class="pdisc__body">
                     <p>Section 7: patient visibility opens only after both the Aleron release authorization and the
-                    required Canvas linkage are satisfied. The note is locked and the DocumentReference is written;
-                    the Canvas note id links back on release.</p>
+                    required Canvas linkage are satisfied. The linkage is not something release creates. The chart
+                    note has existed since the cycle opened and this plan has been staged inside it the whole time;
+                    what release adds is the package id and its hash, written onto that note.</p>
                     <dl class="pfacts">
-                      <dt>Note</dt><dd>Locked 31 Aug, 11:48</dd>
-                      <dt>Canvas note</dt><dd><span class="pna">links on release</span></dd>
+                      <dt>Chart note</dt><dd>NOTE-47M-0114 &middot; opened 30 Aug 2026 &middot; linked since the cycle opened</dd>
+                      <dt>Note state</dt><dd>Locked 31 Aug, 11:48</dd>
+                      <dt>On release</dt><dd>Package id and preview hash attach to the same note</dd>
                       <dt>Signing path</dt><dd>Aleron authorization, Canvas linkage</dd>
                     </dl>
                   </div>
@@ -1440,7 +1470,7 @@
                   legible as three; a live chart renders one moment, not three.</span></p>
 
                 <div class="rx-release">
-                  <h4 class="rx-spechead">Authorization blocked <span>Priya Raghunathan &middot; AL-44F &middot; the same act when the gating checks fail</span></h4>
+                  <h4 class="rx-spechead">Authorization blocked <span>Mara Chen &middot; AL-56F &middot; the same act when the gating checks fail</span></h4>
 
                   <div class="pbound">
                     <b>Authorization blocked</b>
@@ -1521,8 +1551,10 @@
           (<em>Release plan</em>) carries a delegation clause the other two do not. Collapsing them into one
           control would make the surface claim an authority model the backend does not have.</p>
           <p>It also matters clinically. An order can transmit before the note is locked, and a note can be
-          locked with orders still pending; both are legitimate and both happen. A single button forces one
-          ordering onto every case and silently performs two acts the physician only consented to one of.</p>
+          locked with orders still pending; both are legitimate and both happen. One direction is
+          constrained: a locked note accepts nothing further, so an order composed after the lock opens a
+          new note for the same episode. A single button forces one ordering onto every case and silently
+          performs two acts the physician only consented to one of.</p>
           <p>The rail above numbers four steps and the matrix numbers three acts, so the two do not
           line up and the act headings carry no ordinal. Step 1 is the plan and is not an act at all.
           Step 2 is matrix act 1, step 3 is matrix act 2, step 4 is matrix act 3. Steps 2 and 3 have
@@ -1561,7 +1593,7 @@
            step rail so nothing is duplicated between the two. -->
       <div class="v3-dock" id="v3-dock">
         <span class="v3-dock__count" id="v3-dock-count">3 of 6 added</span>
-        <span class="v3-dock__detail" id="v3-dock-detail">5 orders will queue &middot; 2 required and not declinable</span>
+        <span class="v3-dock__detail" id="v3-dock-detail">5 orders staged, 4 authorizable &middot; 2 required, each needing a disposition</span>
         <span class="v3-dock__right">
           <button class="amd-button" data-variant="secondary" data-density="row" type="button" id="v3-dock-clear">Clear all</button>
           <button class="amd-button" data-variant="primary" data-density="row" type="button" id="v3-dock-next">Next: Note lock</button>
@@ -1574,6 +1606,77 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What v3 asks, and what it changes</p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>The opt-in list adds into a real place, and that place is a Canvas note.</b> Ticking a
+    suggestion was drawn as adding to a document Aleron held. Two facts settle where it actually goes.
+    Junction permits no post-submission edits, <code>PATCH /v3/order/{id}</code> taking exactly one field,
+    <code>activate_by</code>, so all editing has to precede submission. And strict data residency means
+    nothing patient-linked sits in Aleron (audit Part 5, decision 2), so the draft cannot be an Aleron
+    row. What is left is a Canvas note holding staged, uncommitted commands: <code>CREATE_NOTE</code> at
+    the start of the cycle, each added suggestion originated as a staged command,
+    <code>edit()</code> when the accordion is edited, <code>delete()</code> when the box is unticked,
+    another <code>originate()</code> for a problem the physician adds. That also answers the audit's
+    load-bearing question about what <em>5 intents, all unsent</em> meant: staged commands in the note,
+    not Aleron rows.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Note creation is drawn, at the head of step 1.</b> The screen had four steps and none of them
+    created a note, while every command needs a <code>note_uuid</code> before it can be originated. The
+    plan pane now opens with the note band naming the note and its open date, empty at the start of the
+    cycle, which is also what removes the <em>links on release</em> confusion in step 4: the note id has
+    existed since before step 1.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><b>What this costs, stated plainly.</b> The chart accumulates open notes carrying staged orders,
+    and clinicians working in Canvas will see them, including orders a physician is still deciding about.
+    And the Note API has <b>no state filter</b>, so Aleron cannot list its own drafts back: an open draft
+    is findable only by an id Aleron holds elsewhere. Both are the price of decision 2 and neither is
+    fixable at the screen.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The independence claim over-claimed by exactly one state, and the last correction of it
+    over-corrected.</b> Step 3 said the act reads the same whether step 2 is open, locked or never taken.
+    <em>Open</em> is right and is the intended flow: commands live in a note, an open note accepts them,
+    and a physician who wants to start investigations today keeps the note open and authorizes.
+    <em>Never taken</em> is right too, since a note only has to exist and creating one is cheap. Only
+    <em>locked</em> fails, because a locked note is not editable and no further command can enter it. So
+    the fix is one conditional blocker and honest copy, not a redesign, and it is drawn the way Part 5
+    decision 11 settles it: after a lock a later order opens a new note for the same episode, as an
+    ordinary flow rather than an error. The rule is per route, not global: Junction labs are genuinely
+    independent of the note, Canvas commands are not.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The counts agreed with nothing.</b> The note-lock card said 4 problems included against
+    <em>3 of 6</em> on the dock, the step rail and the section header, and its split
+    (<em>1 add, 1 update existing, 2 note only</em>) summed to four with the wrong middle term. It is now
+    three, split one Diagnose, one added to an existing entry, one note only, which is exactly the three
+    commands the signature line names. And <em>5 orders</em> stood in six places while one of the five is
+    the prescription the same pane excludes: the set is 5 staged, 4 authorizable, and every surface now
+    says which number it means.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Update existing had no path, confirmed empirically.</b> A <code>PUT</code> on a Canvas
+    <code>Condition</code> with a changed <code>onsetDateTime</code> returned <code>422</code> on the live
+    instance and did not persist; the only supported update is marking one entered in error
+    (<code>docs/INSTANCE-FINDINGS.md</code>, C2). The accordion already used the SDK
+    <code>Assess</code> route and said the entry is added to and never replaced; the note-lock fact list
+    still carried the retired <em>update existing</em> wording and now matches.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The lock artefacts are hedged, because they did not reproduce.</b> The card asserted that
+    locking produces the note PDF and the legal-record <code>DocumentReference</code>. Canvas documents
+    that, but on <code>aleronmd-dev</code> a note reached <code>LKD</code> cleanly and the patient's
+    <code>DocumentReference</code> count stayed at zero, instance-wide total zero
+    (<code>docs/INSTANCE-FINDINGS.md</code>, U1). The surface now states only what is certain, that the
+    note becomes immutable and stops accepting changes, and marks the documented-but-unreproduced part as
+    scaffolding rather than asserting or denying it.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Order authorization and patient release stay separate, and step 3 now says why.</b>
+    Authorizing the set transmits orders; releasing the plan decides what the patient reads. Different
+    audiences, different failure modes, and orders may transmit while the note is still an open
+    draft.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The blocked specimen invented a third patient, <em>Priya Raghunathan, AL-44F</em>. BRIEF fixes
+    two fixtures and forbids a third, so the specimen is AL-56F Mara Chen.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Three surfaces still said an obligation could not be declined, four panes away from a
+    disposition control offering defer and document exception: the two obligation entries in the fixture
+    and the dock's <em>2 required and not declinable</em>. All three now say what is actually forbidden,
+    which is setting one aside in silence.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>Two facts about the release act were being hidden, and the last pass hid them further.</b>
     That it completes on the card, and that steps 2 and 3 count in either order, are both things a
@@ -2039,14 +2142,14 @@ const CARE_PLAN = {
       source: "Required channel, from the genetics library. Not ranked against scored opportunities.",
       dxAssoc: "problem 1, ATM pathogenic variant, Z15.09.",
       body: "An obligation triggered by the P/LP result, not an opportunity weighed against other actions.",
-      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+      obligation: "Obligation. Include it, defer it with a reason, or document an exception. What it cannot be is dropped in silence."
     },
     o2: {
       name: "Family-history gate: breast, pancreatic, prostate",
       source: "Required channel, from the genetics library.",
       dxAssoc: "problem 1, ATM pathogenic variant, Z15.09.",
       body: "Cascade documentation. Pancreatic surveillance is conditional on a first-degree history, so this gate decides whether that pathway opens at all.",
-      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+      obligation: "Obligation. Include it, defer it with a reason, or document an exception. What it cannot be is dropped in silence."
     },
     o3: {
       name: "tirzepatide 2.5 mg/0.5 mL",
@@ -2096,11 +2199,16 @@ const CARE_PLAN = {
       (o.carveOut ? '<p class="rl-src"><b>Prescription carve-out:</b> ' + esc(o.carveOut) + "</p>" : "") +
       (o.obligation ? '<p class="rl-src"><b>Required channel:</b> ' + esc(o.obligation) + "</p>" : "") +
       '<div class="rl-acts">' +
+      '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Edit this order</button>' +
       (o.obligation
         ? '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Document exception</button>'
-        : '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Reject</button>') +
-      '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Modify</button>' +
-      "</div>";
+        : '<button class="amd-button" data-density="row" data-variant="hazard" type="button">Remove, with a reason</button>') +
+      "</div>" +
+      '<span class="rl-dim">Editing changes the staged order in the note. Removing takes it back out of the note. ' +
+      (o.obligation
+        ? "A required item cannot be removed, only deferred or excepted, and either records your reason."
+        : "The reason is kept with the note and is not patient-safe copy.") +
+      " Nothing here transmits: that is step 3.</span>";
   }
 
   function all() {

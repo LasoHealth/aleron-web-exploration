@@ -3,18 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aleron MD — v2 — Standing orders</title>
+<title>Aleron MD — v2 — Ordering readiness</title>
 <link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/tokens.css">
 <link rel="stylesheet" href="https://kito-laso.github.io/aleron-canonical-documents/product-design-system/components.css">
 <link rel="stylesheet" href="../physician-chrome.css">
 <style>
   /* Screen-local layout only.
 
-     Two authorization records, read only. Nothing on this screen is app state:
-     each record is a signed compliance document referenced by environment
-     configuration, and the menu under it is a deploy-gated artefact. The only
-     question the screen answers is whether ordering for this patient is
-     authorized right now, which is why it lives in the chart. */
+     This screen used to be two configured standing-order records presented as
+     the authorization for an order. Every order now names the physician who
+     placed it, so a reference and an NPI held in configuration authorize
+     nothing, and the screen answers a different question: what has to be true
+     about *this* physician, this menu and this account before an order for
+     this patient can carry their name. Three blocks, in the order a refusal
+     reaches you: your credentials, the menu, who reviews the results. */
 
   .so-card { margin-bottom: var(--air-section); }
   .so-status {
@@ -26,6 +28,7 @@
   .so-status[data-tone="off"] { color: var(--signal-advisory); }
 
   .so-rec th[scope="row"] { width: 15rem; font-weight: 400; color: var(--text-secondary); }
+  .so-rec td .amd-button { margin-top: var(--s-2xs); }
   .so-menu-label {
     padding: var(--s-sm) var(--s-md);
     border-top: var(--line-thin) solid var(--hairline);
@@ -43,7 +46,7 @@
 
 <nav class="wf-bar" aria-label="Wireframe navigation">
   <a class="wf-bar__home" href="../index.html">All versions</a>
-  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Standing orders</b></span>
+  <span class="wf-bar__path"><a href="_flow.html">v2 flow</a> / <b>Ordering readiness</b></span>
   <span class="wf-bar__spacer"></span>
   <span class="wf-switch">
     <span class="wf-switch__label">Same screen in</span>
@@ -58,7 +61,7 @@
 <div class="wf-desk">
   <div class="wf-desk__chrome">
     <span class="wf-desk__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-    <span class="wf-desk__url">aleron.md/chart/AL-47M/standing-orders</span>
+    <span class="wf-desk__url">aleron.md/chart/AL-47M/ordering-readiness</span>
   </div>
 
   <div class="pshell">
@@ -94,7 +97,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L20 20"/><path d="M8.5 11h5M11 8.5v5"/></svg>
           Screening
         </a>
-        <a class="prail__item" href="care-plan.html" aria-current="page">
+        <a class="prail__item" href="care-plan.html">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
           Care Plan
         </a>
@@ -109,7 +112,7 @@
       </nav>
 
         <div class="prail__foot">
-          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <a class="prail__out" href="standing-orders.html" aria-current="page">Ordering readiness</a>
           <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-46" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-46" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
           <div class="prail__acct">
             <span class="prail__actor">Dr. A. Okafor</span>
@@ -123,197 +126,241 @@
 
       <header class="phead">
         <div class="phead__row">
-          <h1>Standing orders</h1>
-          <span class="phead__aside"><span class="pbase">Read only &middot; environment configuration</span></span>
+          <h1>Ordering readiness</h1>
+          <span class="phead__aside"><span class="pbase">Your credentials &middot; this patient</span></span>
         </div>
-        <p>The signed documents that authorize this patient's orders. Nothing here is app state and nothing here is editable: each record is referenced by environment configuration, and each menu is a versioned, peer-reviewed, deploy-gated artefact.</p>
+        <p>Every order Aleron places carries your name, so this page is the list of things that have to be true before your name can reach a lab, a pharmacy or this patient's chart. It is read here, beside the orders, because a refusal you find out about after composing an order is a refusal found too late.</p>
       </header>
 
-      <!-- Carried from v0/standing-orders.html: the fail-closed rollup, widened.
-           v0 counted only records with no reference or no NPI. A disabled kill
-           switch refuses an order just as hard, and v0 showed nothing for it. -->
+      <!-- Replaces v0's fail-closed rollup. v0 counted records with a missing
+           reference or NPI, which under a per-physician model is not what
+           refuses anything. The rollup now counts order types the physician
+           signed in cannot complete right now. -->
       <div class="pbound">
-        <b>1 of 2 authorizations will refuse: genetic kit orders are declined in this environment.</b>
-        <span>The authorization record is complete, but the ordering kill switch is off, so
-        <span class="pval">StandingOrder::for('genetics')</span> resolves and the order is still declined.
-        Refusal is the default: an order under an authorization that does not fully resolve fails closed
-        rather than transmitting on partial configuration.</span>
+        <b>You can order labs, genetic panels, imaging and referrals for Ethan Park. You cannot transmit a prescription.</b>
+        <span>Your prescriber identity is not registered with the prescribing network, so a prescription you compose here can be reviewed and signed and then has to leave the practice some other way. Controlled substances need a second enrolment on that same path. Nothing else below is refusing.</span>
       </div>
 
-      <!-- ── blood ────────────────────────────────────────────────────── -->
+      <!-- ── per-physician credentials ─────────────────────────────────── -->
       <section class="pmod pmod--tier1 so-card">
         <div class="pmod__head">
-          <h2>Blood labs</h2>
-          <span class="pmod__sub">Catalog key <span class="pval">blood</span> &middot; Quest, basket of one or more tests per order</span>
-          <span class="so-status">Authorized</span>
+          <h2>Your credentials</h2>
+          <span class="pmod__sub">Dr. A. Okafor &middot; each row is a precondition for some order type</span>
+          <span class="so-status">1 order type blocked</span>
         </div>
 
         <div class="pmod__body pmod__body--flush">
           <table class="pledger so-rec">
             <tbody>
               <tr>
-                <th scope="row">Standing order reference</th>
-                <td><span class="pval">SO-BLOOD-2026-01</span>
-                  <small class="pledger__prov">Signed 14 Jan 2026 &middot; countersigned by the medical director</small>
+                <th scope="row">Chart access</th>
+                <td>Granted 13 Aug 2026
+                  <small class="pledger__prov">You authorized Aleron to act in the chart as you. It is a one time step, it is yours alone, and until it is done no order can be recorded as yours. There is no way to place one on your behalf and no way to create your access for you.</small>
                 </td>
               </tr>
               <tr>
-                <th scope="row">Ordering physician NPI</th>
+                <th scope="row">Practitioner record</th>
+                <td>Matched
+                  <small class="pledger__prov">Your Aleron sign-in resolves to the practice's own record of you. Unmatched, every order stops here: the chart will not invent a clinician it does not already hold.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">NPI</th>
                 <td><span class="pval">1487520394</span>
-                  <small class="pledger__prov">Dr. A. Okafor. This is the NPI Junction receives, whoever places the order.</small>
+                  <small class="pledger__prov">Required to sign a prescription, and sent with every lab order so the lab knows whose order it is.</small>
                 </td>
               </tr>
               <tr>
-                <th scope="row">Canvas practitioner id</th>
-                <td><span class="pval">prac-9f2c41</span>
-                  <small class="pledger__prov">Order-authorization writes to Canvas carry clinician attribution.</small>
+                <th scope="row">Licensed states</th>
+                <td><span class="pval">4<span class="pval__u">states</span></span> &middot; NJ &middot; NY &middot; PA &middot; CT
+                  <small class="pledger__prov">Ethan Park's address is in New Jersey, which is covered. Nobody outside Aleron checks this, so Aleron is the only thing that will refuse an order for a patient in a state you are not licensed in.</small>
                 </td>
               </tr>
               <tr>
-                <th scope="row">Ordering</th>
-                <td>Enabled
-                  <small class="pledger__prov">Kill switch on. Turning it off refuses every blood order in this environment immediately.</small>
+                <th scope="row">Prescription transmission</th>
+                <td><span class="ptile">Not registered</span>
+                  <small class="pledger__prov">You can compose, review and sign a prescription. Aleron cannot send it for you. Registering with the prescribing network is a one time step and it is the only thing standing between this and a complete prescription.</small>
+                  <button class="amd-button" data-density="row" data-variant="secondary" type="button">Start registration</button>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Controlled substances</th>
+                <td><span class="padv">Not enrolled</span>
+                  <small class="pledger__prov">Schedule II to V only. Enrolment narrows the same signing path rather than opening a second one, so nothing that is not a controlled substance is affected by this row.</small>
                 </td>
               </tr>
             </tbody>
           </table>
-
-          <p class="so-menu-label">Authorized menu <span>&middot; 16 entries, 14 orderable here</span></p>
-
-          <div class="pledger__scroll">
-            <table class="pledger">
-              <thead>
-                <tr>
-                  <th scope="col">Test / panel</th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Lipid Panel (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Comprehensive Metabolic Panel (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Hemoglobin A1c (Quest)</td><td>Orderable</td></tr>
-                <tr><td>hs-CRP (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Fasting Insulin (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Apolipoprotein B (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Lipoprotein(a) (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Urine Albumin/Creatinine Ratio (Quest)</td><td>Orderable</td></tr>
-                <tr><td>PSA (Quest)</td><td>Orderable</td></tr>
-                <tr><td>eGFR / Creatinine (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Liver Function Panel / LFTs (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Creatine Kinase (Quest)</td><td>Orderable</td></tr>
-                <tr><td>TSH (Quest)</td><td>Orderable</td></tr>
-                <tr><td>Complete Blood Count (Quest)</td><td>Orderable</td></tr>
-                <tr><td>p-tau217 (Quest)</td><td><span class="pna">No test id configured</span></td></tr>
-                <tr><td>Neurofilament Light / NfL (Quest)</td><td><span class="pna">No test id configured</span></td></tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </section>
 
-      <!-- ── genetics ─────────────────────────────────────────────────── -->
+      <!-- ── the menu, reconciled with the lab ─────────────────────────── -->
       <section class="pmod so-card">
         <div class="pmod__head">
-          <h2>Genetic kits</h2>
-          <span class="pmod__sub">Catalog key <span class="pval">genetics</span> &middot; Invitae, a single panel per order</span>
-          <span class="so-status" data-tone="off">Configured, ordering off</span>
+          <h2>What you can order</h2>
+          <span class="pmod__sub">Quest Diagnostics and Invitae &middot; practice account active &middot; menu last checked against the labs 04:10 today</span>
+          <span class="so-status"><span class="pval">17</span> of <span class="pval">21</span> orderable</span>
         </div>
 
         <div class="pmod__body pmod__body--flush">
           <table class="pledger so-rec">
             <tbody>
               <tr>
-                <th scope="row">Standing order reference</th>
-                <td><span class="pval">SO-GEN-2026-02</span>
-                  <small class="pledger__prov">Signed 3 Feb 2026 &middot; countersigned by the medical director</small>
+                <th scope="row">Collection</th>
+                <td>Kit, walk-in and at-home draw
+                  <small class="pledger__prov">Kits and walk-in collection reach <span class="pval">49<span class="pval__u">states</span></span>, not New York. An at-home draw reaches <span class="pval">35<span class="pval__u">states</span></span>. New Jersey is inside all three, so collection is not a constraint for this patient. It is the constraint that catches people out: an order can fail on geography under credentials that are entirely in order.</small>
                 </td>
               </tr>
               <tr>
-                <th scope="row">Ordering physician NPI</th>
-                <td><span class="pval">1487520394</span>
-                  <small class="pledger__prov">Dr. A. Okafor.</small>
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Canvas practitioner id</th>
-                <td><span class="pna">Not set</span>
-                  <small class="pledger__prov">Canvas order-authorization writes fail soft, with no clinician attribution on the record. The order still transmits to the vendor; only the Canvas attribution is lost.</small>
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Ordering</th>
-                <td><span class="padv">Disabled, kill switch off</span>
-                  <small class="pledger__prov">Every genetic order in this environment is refused while this is off, whatever the rest of the record says.</small>
+                <th scope="row">Menu drift</th>
+                <td><span class="pval">3</span> entries not orderable
+                  <small class="pledger__prov">The menu below is what the labs say they will accept, checked overnight, not a list Aleron keeps of its own. An entry the practice has approved can still be withdrawn by the lab or fall outside what this account buys, and those are two different problems with two different owners.</small>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <p class="so-menu-label">Authorized menu <span>&middot; 5 entries, 4 orderable here</span></p>
+          <p class="so-menu-label">Reconciled menu <span>&middot; 21 entries, 17 orderable for this patient</span></p>
 
           <div class="pledger__scroll">
             <table class="pledger">
               <thead>
                 <tr>
-                  <th scope="col">Test / panel</th>
+                  <th scope="col">Test or panel</th>
+                  <th scope="col">Lab</th>
                   <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>
+                <tr><th scope="rowgroup" colspan="3" class="pledger__groupname">Blood panels</th></tr>
+                <tr><td>Lipid Panel</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Comprehensive Metabolic Panel</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Hemoglobin A1c</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>hs-CRP</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Fasting Insulin</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Apolipoprotein B</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Lipoprotein(a)</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Urine Albumin/Creatinine Ratio</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>PSA</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>eGFR / Creatinine</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Liver Function Panel / LFTs</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>TSH</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Complete Blood Count</td><td>Quest</td><td>Orderable</td></tr>
+                <tr><td>Creatine Kinase
+                  <small class="pledger__prov">Withdrawn by the lab on 28 Aug 2026. Nothing to do here; it is the lab's own menu.</small>
+                </td><td>Quest</td><td><span class="ptile">Not active at the lab</span></td></tr>
+                <tr><td>p-tau217</td><td><span class="pna">Not recorded</span></td><td><span class="pna">Not offered on this account</span></td></tr>
+                <tr><td>Neurofilament Light / NfL</td><td><span class="pna">Not recorded</span></td><td><span class="pna">Not offered on this account</span></td></tr>
+
+                <tr><th scope="rowgroup" colspan="3" class="pledger__groupname">Genetic panels</th></tr>
                 <tr><td>Invitae 160-Gene Panel
                   <small class="pledger__prov">The panel that resulted for this patient on 23 Jun 2026</small>
-                </td><td>Orderable</td></tr>
-                <tr><td>Hereditary Cancer Panel</td><td>Orderable</td></tr>
-                <tr><td>Cardiovascular Genetic Panel</td><td>Orderable</td></tr>
-                <tr><td>Proactive Genetic Health Screen</td><td>Orderable</td></tr>
-                <tr><td>Pharmacogenomics Panel</td><td><span class="pna">No test id configured</span></td></tr>
+                </td><td>Invitae</td><td>Orderable</td></tr>
+                <tr><td>Hereditary Cancer Panel</td><td>Invitae</td><td>Orderable</td></tr>
+                <tr><td>Cardiovascular Genetic Panel</td><td>Invitae</td><td>Orderable</td></tr>
+                <tr><td>Proactive Genetic Health Screen</td><td>Invitae</td><td>Orderable</td></tr>
+                <tr><td>Pharmacogenomics Panel</td><td><span class="pna">Not recorded</span></td><td><span class="pna">Approved, not yet set up</span></td></tr>
               </tbody>
             </table>
           </div>
 
-          <!-- Carried verbatim in substance from v0/standing-orders.html: the
-               advisory that this authorization model is itself under review.
-               An advisory is words in advisory colour, never a tile, so it
-               cannot outrank the fail-closed hazard above. -->
+          <!-- The v0 advisory said the authorization model for genetics was
+               under review. It no longer is: this screen is the outcome. What
+               survives is the obligation the review was about, which attaches
+               to the order and not to a menu. -->
           <div class="so-advisory">
             <div class="amd-annunciator">
-              <span class="amd-annunciator__advisory">Model under review</span>
-              <span>The Canvas clinical-documentation ADR section 5 recommends that genetics move from
-              standing-order authorization to an individual-physician order carrying a pre-test counseling
-              acknowledgment. The physician-portal ordering flow enforces that acknowledgment today; the
-              mobile standing-order rail does not yet, so the two paths currently authorize the same panel
-              under different obligations.</span>
+              <span class="amd-annunciator__advisory">Genetic panels</span>
+              <span>A genetic panel carries your pre-test counseling acknowledgment, and you make it on the
+              order itself rather than here. It is an attestation of fact, not a consent, so it is yours to
+              give and not the patient's. Nothing on this menu grants it in advance.</span>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- ── who reviews the results ───────────────────────────────────── -->
+      <section class="pmod so-card">
+        <div class="pmod__head">
+          <h2>Who reviews the results</h2>
+          <span class="pmod__sub">Practice account setting &middot; decides where a result lands, not who ordered</span>
+          <span class="so-status" data-tone="off">Shared with the lab</span>
+        </div>
+
+        <div class="pmod__body pmod__body--flush">
+          <table class="pledger so-rec">
+            <tbody>
+              <tr>
+                <th scope="row">Named on the order</th>
+                <td>You
+                  <small class="pledger__prov">The order leaves in your name. Aleron reads the name back off the placed order and holds the order if what comes back is not you, which is the only way that failure is visible at all.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Critical results</th>
+                <td>The lab's own physicians follow up, and you are told
+                  <small class="pledger__prov">On this account the lab keeps critical-result follow-up. A patient with a critical value hears from them, and the result reaches your inbox at the same time.</small>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Abnormal, not critical</th>
+                <td>Yours
+                  <small class="pledger__prov">Nothing announces an abnormal result that is not critical, and a partial result announces nothing at all. Aleron looks for them and puts them in your inbox rather than waiting to be told, because waiting to be told does not work here.</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="so-advisory">
+            <div class="amd-annunciator">
+              <span class="amd-annunciator__advisory">If this setting changes</span>
+              <span>Two of the four settings this account can be on hand ordering back to the lab's own
+              physician network, and a physician named on the order is then quietly ignored rather than
+              refused. This account is not on one of those. The check in the first row is what would
+              catch it if it were.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- What is left of the two signed standing orders, stated precisely
+           rather than deleted: they still govern the menu, they no longer
+           authorize an order, and the NPI they carry goes nowhere. -->
+      <div class="pbound pbound--quiet">
+        <b>The signed standing orders still govern this menu. They no longer authorize an order.</b>
+        <span>SO-BLOOD-2026-01 and SO-GEN-2026-02 are the practice's record of which tests may appear on the menu above, and a change to either is a deliberate, reviewed act rather than a setting. What they do not do is authorize an individual order: that is your credentials, above, on every order, every time. The ordering physician named on the paper documents is not sent to any lab and does not appear in the chart.</span>
+      </div>
+
       <div class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-45" aria-label="Wireframe explanation, not part of the product">i</button><details class="pdisc wf-scaffold wf-ex__bubble" id="wf-ex-45" role="note">
-        <summary>Why an environment-wide record lives inside one patient's chart</summary>
+        <summary>Why a per-physician and practice-wide page sits inside one patient's chart</summary>
         <div class="pdisc__body">
-          <p>The configuration is environment-wide, not patient-specific. The question it answers is not.
-          A physician about to order for Ethan Park needs to know whether ordering for Ethan Park is
-          authorized right now, and answering that from a global admin page means leaving the chart to
-          find out why an order was refused. So the record is read here, beside Lab orders, and it is read
-          only, because per the catalog's own contract the standing order and its test menu are a versioned,
-          peer-reviewed, deploy-gated compliance artefact rather than mutable runtime state.</p>
-          <p>Being on the catalog with a configured test id <em>is</em> being authorized under the standing
-          order. There is no second allowlist. Both routine blood labs and genetic kits resolve through the
-          same <code>OrderCatalog</code>, so enforcement is identical on both paths.</p>
+          <p>Two thirds of this page is not patient-specific: the credentials belong to the signed-in
+          physician and the menu belongs to the practice. The question is. A physician about to order for
+          Ethan Park needs to know whether an order for Ethan Park will carry their name and reach a lab
+          that will run it, and answering that from a global admin page means leaving the chart to find out
+          why an order was refused. Two rows are genuinely patient-resolved: the licensure row against the
+          patient's address, and the collection row against the patient's state.</p>
+          <p>The previous version of this screen presented two configured standing-order records as the
+          authorization for an order, with the caption <em>"this is the NPI Junction receives, whoever
+          places the order"</em>. Neither half held. No physician object was sent, so the lab's own network
+          was validating the order; and under the current requirement every order names the signed-in
+          physician, which a config-level NPI cannot do for them.</p>
           <dl class="pfacts">
-            <dt>Source</dt><dd><code>docs/physician-portal/canvas-clinical-documentation-and-lab-order-authorization.md</code> section 5, Model 1</dd>
-            <dt>Records</dt><dd>Two: <code>blood</code> and <code>genetics</code>. One catalog, one enforcement path.</dd>
-            <dt>Fail closed</dt><dd>Missing reference, missing NPI, missing test id or a kill switch that is off all refuse the order.</dd>
-            <dt>Fail soft</dt><dd>Missing Canvas practitioner id. The order transmits; the Canvas record loses clinician attribution.</dd>
-            <dt>Physician can edit</dt><dd>Nothing. Section 2 of the role matrix puts adapter configuration under Admin.</dd>
+            <dt>Chart access</dt><dd>Authorization Code with PKCE per physician, refresh token rotated. Attribution follows the token; a service key records the bot instead. No just-in-time provisioning, so an unprovisioned physician is a stop, not a fallback.</dd>
+            <dt>Practitioner record</dt><dd>Canvas <code>Staff.id</code>. Plain data at sign time with no validation, so Aleron has to enforce that the named physician and the committing physician agree.</dd>
+            <dt>Licensure</dt><dd>Junction types <code>licensed_states</code> as a bare string list and documents no cross-check against the patient address. Aleron owns the gate.</dd>
+            <dt>Menu</dt><dd>Nightly reconcile of <code>GET /v3/lab_tests</code> and <code>GET /v3/lab_test/lab_account</code>, cached. Splits <em>not active at the lab</em> from <em>not offered on this account</em>, which the old count of non-empty env vars could not.</dd>
+            <dt>Coverage</dt><dd>Testkit and walk-in: 49 states, excluding New York. At-home phlebotomy: 35 states.</dd>
+            <dt>Account setting</dt><dd><code>delegated_flow</code>, currently <code>order_delegated</code>. <code>result_delegated</code> and <code>not_delegated</code> make a supplied physician a no-op. Enforcement is in a grace period, so an order with no physician supplied also falls back silently; read the physician back off every placed order.</dd>
+            <dt>Physician can edit</dt><dd>Their own registration and enrolment. The menu and the account setting are Admin, per section 2 of the role matrix.</dd>
           </dl>
         </div>
       </details></div>
 
       <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-44" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-44" role="note">
-        Synthetic staging configuration &middot; references and NPIs shown are fixtures &middot; each record is a
-        signed document referenced by environment configuration, and this screen reads it rather than
-        holding it.
+        Synthetic staging configuration &middot; the NPI, the standing-order references and the menu
+        reconciliation are fixtures &middot; credential rows describe the signed-in physician, not the
+        patient, and the menu describes what the labs will accept rather than what Aleron holds.
       </p></div>
 
     </div>
@@ -324,55 +371,151 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
-  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
-    <span><b>There was no way to log out, and no way to tell who was logged in.</b>
-    <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
-    was and nothing ended it. v0 has both in its header, <em>Dr. A. Okafor</em> beside a
-    <em>Log out</em> button, and the proposals dropped them when the header became a rail. A clinical
-    surface that cannot say who is signed in cannot be handed to the next physician at the same
-    workstation, which is the ordinary case in a clinic. The rail foot now carries the actor and the way
-    out, under a rule, at the bottom where the least frequent act belongs. Proposed in section B as a
-    <code>domain.chart-rail</code> addition, using the foot's existing exemption for a non-section action
-    rather than claiming a new one.</span></p>
-  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
-    <span>As bare underlined text the control was <span class="pval">15<span
-    class="pval__u">px</span></span> tall, for the one act that ends the session. A text link is the
-    sanctioned shape where a filled control will not fit, per register O5's fallback, but the hit area
-    still has to be real: the label keeps its size and the target grew to
-    <span class="pval">32<span class="pval__u">px</span></span>, with the same
-    <code>pointer: coarse</code> guard the row-density variant uses restoring the full
-    <span class="pval">44<span class="pval__u">px</span></span> floor on touch. Measured
-    <span class="pval">14.35:1</span> flight-deck and <span class="pval">5.34:1</span> day.</span></p>
-  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
-    <span>The entire screen, from <code>v0/standing-orders.html</code>: both authorization records,
-    all four record fields, the authorized-menu table and the genetics advisory. v1 has no ordering
-    surface at all, so it has no concept of what authorizes an order.</span></p>
-  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
-    <span>The four record fields in v0's own order: <code>Standing order reference</code>,
-    <code>Ordering physician NPI</code>, <code>Canvas practitioner id</code>, <code>Ordering</code>.
-    Their fail-closed and fail-soft consequences are carried too, and moved from a docblock into the
-    row where the consequence applies.</span></p>
-  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
-    <span>The <em>Model under review</em> advisory, from <code>v0/standing-orders.html</code>. Still
-    an advisory: words in advisory colour, never a tile, so the real fail-closed hazard above
-    outranks it by construction.</span></p>
+
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
-    <span>The rollup counts anything that refuses an order, not just an incomplete record. v0's
-    rollup counted records with no reference or no NPI; a kill switch that is off refuses just as
-    hard and v0 rendered nothing for it, so the screen could read as fully authorized while every
-    genetic order was being declined.</span></p>
+    <span><b>The screen's premise was invalidated, and it is now a readiness surface rather than an
+    authorization record.</b> Its central claim was that a configured standing order, with a reference and
+    an ordering-physician NPI, is what authorizes an order, captioned <em>"this is the NPI Junction
+    receives, whoever places the order"</em>. The requirement is now that every order names the physician
+    signed into Aleron, so a config-level NPI authorizes nothing and cannot be made to. Same facts, new
+    question: <em>what has to be true before my name can reach a lab, a pharmacy or this chart?</em>
+    Renamed <em>Ordering readiness</em>. <em>Standing orders</em> named the artefact, and the artefact is
+    no longer the subject: it survives as the practice's record of what the menu may contain, which is one
+    quiet block at the foot rather than the whole page. The filename is unchanged so no other screen's link
+    breaks, and the label on the inbox rail foot and in the flow map still reads <em>Standing orders</em>,
+    which is a rename to carry through those two files.</span></p>
+
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
-    <span>Fail closed and fail soft are named as different things. v0 prints
-    <em>Not set, blocks ordering</em> and <em>Not set, writes fail soft</em> in the same visual
-    weight, which reads as two versions of the same problem.</span></p>
+    <span><b>Per-physician credentials, the block that did not exist.</b> Six rows, each a precondition for
+    some order type, in the order a refusal reaches you: chart access, practitioner record, NPI, licensed
+    states, prescription transmission, controlled substances. The physician who is missing one needs the
+    consequence, not the field, so every row states what it stops. Chart access is a one-time
+    per-physician act with no fallback and no way to do it for them, which makes it the first row and a
+    genuine first-class state rather than an error. This is the block that carries the requirement: it is
+    the only place on the surface where the identity on an order is a person's rather than a
+    setting's.</span></p>
+
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Prescription transmission is a hazard tile; controlled substances is an advisory.</b> Not
+    holding a prescriber identity with the prescribing network is a hard stop on transmission and the one
+    thing on this page that blocks an order type, so it takes the ember tile per P3 and the screen's only
+    action, a real control in the row that stops it. Controlled-substance enrolment narrows the same
+    signing path rather than opening a second one, so it is words in advisory colour and never a tile, and
+    the true blocker outranks it by construction.</span></p>
+
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>The licensure gate nobody was performing.</b> The lab types the physician's licensed states as
+    a bare list and documents no check against the patient's address, so if Aleron names a physician,
+    Aleron owns the gate. The row resolves against this patient's state and says out loud that it is the
+    only thing checking.</span></p>
+
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>State coverage, which no screen carried.</b> Kits and walk-in collection reach 49 states and
+    not New York; an at-home draw reaches 35. An order can therefore fail on geography under credentials
+    that are entirely in order, which is the failure this set had no surface for at all. Resolved against
+    the patient's state so it reads as an answer rather than a fact sheet.</span></p>
+
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Who reviews the results, from the practice account's delegation setting.</b> The setting
+    decides whether critical follow-up stays with the lab or comes to Aleron, and two of its four values
+    hand ordering back to the lab's own physician network while quietly ignoring the physician on the
+    order. That is a silent breach of the requirement, so it is on the screen, with the read-back check
+    that is the only thing that would detect it. The abnormal-result row states the harder fact: nothing
+    announces an abnormal that is not critical, and a partial result announces nothing at all, so they are
+    looked for rather than awaited.</span></p>
+
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>A PHP class name was printed to the physician.</b> The rollup rendered
+    <em>StandingOrder::for('genetics')</em> inside a value span, which is exactly the pattern
+    <code>check.js</code>'s <code>api-on-product-surface</code> rule exists to catch, and a physician acts
+    on none of it. The rollup now counts what it should have counted all along: order types this physician
+    cannot complete right now.</span></p>
+
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Two fabricated facts are gone.</b> <em>Signed 14 Jan 2026</em>, <em>Signed 3 Feb 2026</em> and
+    <em>countersigned by the medical director</em> exist in no system: no signature date and no
+    countersignatory field is held anywhere, and they sat under the caption style this set uses for sourced
+    provenance, on the one screen where an invented date is a real liability. Removed rather than
+    configured, because under the new model the document's signature is not what authorizes the order.
+    Separately, the cards named <em>Dr. A. Okafor</em> as the NPI's owner by inferring it from whoever was
+    signed in, so the second physician to use the portal would have been shown as the authorizing
+    physician on a record they had never seen. The NPI is now the signed-in physician's own, in the
+    credential block, which is the only reading that is true by construction.</span></p>
+
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The fail-soft caption was inverted.</b> <em>"Canvas order-authorization writes fail soft, with
+    no clinician attribution on the record. The order still transmits; only the Canvas attribution is
+    lost."</em> The real behaviour was the opposite and worse: with no practitioner record nothing is
+    written at all, so the chart carries no evidence the order was ever placed. Under the new model that
+    case cannot arise silently, because an unmatched practitioner record stops the order rather than
+    degrading it, and the row says so.</span></p>
+
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The rail marked Care Plan as the current page.</b> This surface is reached from the rail foot,
+    so the current-page marker moved to the foot link and the six chart sections no longer claim a
+    selection that is not theirs.</span></p>
+
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><b>The menu is now reconciled against the labs, and that reconciliation does not exist yet.</b>
+    <em>16 entries, 14 orderable here</em> was a count of non-empty configuration values presented as a
+    claim about the world, and it could read <em>Orderable</em> for a test the lab had withdrawn. The menu
+    now carries four states, and the two new ones separate two problems with two different owners:
+    <em>Not active at the lab</em> is the lab's own menu changing under us, <em>Not offered on this
+    account</em> is a purchasing question, and <em>Approved, not yet set up</em> is the provisioning task
+    the old single string conflated with both. Needs a nightly reconciliation job with a cache, never a
+    call on page render. The per-row lab name comes from the same read, which also retires sixteen
+    hand-authored <em>(Quest)</em> suffixes that would have kept saying Quest against a Labcorp
+    account.</span></p>
+
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><b>The genetic counseling acknowledgment has no home outside Aleron.</b> It is a physician
+    attestation of fact and it belongs on the order, not on this menu, so the advisory says where it is
+    made and stops. Modelling it as a patient consent would file the physician's attestation in the
+    patient's consent ledger, where an auditor reads it as the patient consenting, and the lab's own
+    consent list is a closed set with no member that means this.</span></p>
+
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The test menu itself and the two standing-order references, from
+    <code>v0/standing-orders.html</code>. v1 has no ordering surface at all, so it has no concept of what
+    authorizes an order. The menu is the reason the screen exists; what changed is what it is reconciled
+    against.</span></p>
+
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>Fail-closed as the default, from v0's rollup and both controllers' gates. An order under
+    something that does not fully resolve refuses rather than transmitting on a partial record, and that is
+    still the behaviour every row on this page describes.</span></p>
+
+  <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
+    <span>The signed-in actor and the way out, in the rail foot. <code>.prail__patient</code> names the
+    patient, so across 21 screens nothing said whose session this was and nothing ended it, while v0 had
+    both in its header. On this screen it earns its place twice over: every credential row above is a
+    property of that named physician, so the name in the foot is what makes the block legible.</span></p>
+
   <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
-    <span>v0 elevates both cards to Tier 1. Two elevated cards on one screen spends the whole
-    emphasis budget twice and leaves nothing to distinguish the authorized record from the one that
-    is refusing. Blood keeps the elevation; genetics is flat and carries the advisory instead.</span></p>
+    <span><b>The two ordering-physician NPI rows, and the kill-switch rows.</b> A config-level NPI
+    authorizes nothing under the new requirement, so a row asserting it as the ordering physician is not
+    fixable by rewording. The per-type kill switches went with them: <em>ordering is off for genetics in
+    this environment</em> is a deployment state, not a fact about this physician or this patient, and it
+    belongs with the release controls rather than in front of a clinician who cannot act on
+    it.</span></p>
+
   <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
-    <span>v0's <code>ds-pill</code> status chips on every menu row. Fourteen identical Orderable
-    pills is noise; the two rows that differ are the only ones worth a treatment, and they get
-    <span class="pna">No test id configured</span> in place of a value.</span></p>
+    <span><b>The catalog keys <em>blood</em> and <em>genetics</em>, and the two-card split.</b> Internal
+    enum values on the product surface, and a split that made the physician read two nearly identical
+    records to answer one question. One menu, two group headers, which also lets the counts be a single
+    number.</span></p>
+
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span><b>The <em>Model under review</em> advisory.</b> It said the authorization model for genetics
+    should move from standing-order authorization to an individual physician's order carrying a counseling
+    acknowledgment. That review has landed and this screen is its outcome, so the advisory would now be
+    describing the page it sits on. Its comparison of two enforcement paths went with it: it rested on a
+    controller built for the superseded model.</span></p>
+
+  <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
+    <span>v0 elevates both cards to Tier 1. Two elevated cards spend the emphasis budget twice; the
+    credential block keeps the elevation, because it is the only block on the page whose contents the
+    physician can change, and the other two are flat.</span></p>
 </div>
 
 </body>

@@ -57,7 +57,7 @@
   .pn-open { color: inherit; text-decoration: none; }
   .pn-open::after { content: ""; position: absolute; inset: 0; }
   .pn-open:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
-  .pn-grip, .pn-act { position: relative; z-index: 1; }
+  .pn-grip, .pn-act, .pn-riskbtn { position: relative; z-index: 1; }
 
   /* Next act. The column was auto-sized with its contents right-aligned, so
      labels of different lengths gave different button widths and a ragged left
@@ -107,10 +107,21 @@
      whose tier lived in font weight, with the legend 200 px below. Here the
      tier is the word, so the row needs no legend at all, and hazard is a
      filled tile because P3 says a hazard always is. */
-  /* Row density. Lifecycle only drops the domain read; the risk is a second
-     question the physician sometimes asks of the same list, not a column the
-     queue needs. */
+  /* Row density. Lifecycle only drops the domain read, and it is the default:
+     no store holds an Aleron risk tier, so every tier on screen is an engine
+     run, and a default that shows the column is a default that demands nine of
+     them before the physician has asked a question. */
   #pn-list[data-density="lifecycle"] .pn-dom { display: none; }
+  /* And inside the domain density the tiers are still per row, on request. The
+     button is a plain disclosure: aria-expanded on the control, the tiers as
+     its aria-controls target, so no live region is needed and none is claimed. */
+  .pn-tiers[hidden], .pn-riskbtn[hidden] { display: none; }
+  .pn-tiers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2xs) var(--s-sm);
+  }
 
   .pn-dom {
     grid-column: 1 / -1;
@@ -200,7 +211,7 @@
       </nav>
 
         <div class="prail__foot">
-          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <a class="prail__out" href="standing-orders.html">Ordering readiness</a>
           <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-34" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-34" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
           <div class="prail__acct">
             <span class="prail__actor">Dr. A. Okafor</span>
@@ -229,9 +240,10 @@
         <span class="pn-tools__spacer"></span>
 
         <!-- Carried from v0/patients.html: the six-domain read. In v0 it was
-             always on and always encoded. Here it is a density choice, because
-             the lifecycle queue is the primary sort and a risk read is a second
-             question the physician sometimes asks of the same list. -->
+             always on and always encoded. Here it is off by default and then
+             per row on request, because the lifecycle queue is the primary sort,
+             a risk read is a second question the physician sometimes asks of the
+             same list, and each tier costs an engine run that nothing caches. -->
         <div class="pn-density">
           <span id="pn-sort-label">Sort by</span>
           <span class="amd-select-wrap pn-sort">
@@ -248,8 +260,8 @@
         <div class="pn-density">
           <span id="pn-density-label">Row density</span>
           <div class="amd-segmented" role="radiogroup" aria-labelledby="pn-density-label" id="pn-density">
-            <button role="radio" aria-checked="false" type="button" data-density="lifecycle">Lifecycle only</button>
-            <button role="radio" aria-checked="true" type="button" data-density="domain">With risk by domain</button>
+            <button role="radio" aria-checked="true" type="button" data-density="lifecycle">Lifecycle only</button>
+            <button role="radio" aria-checked="false" type="button" data-density="domain">With risk by domain</button>
           </div>
         </div>
       </div>
@@ -279,7 +291,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="patient-data.html">Ethan Park</a></span>
-              <span class="pn-code">AL-47M &middot; 47M</span>
+              <span class="pn-code">AL-47M</span>
             </span>
             <span class="pn-prog">Longevity core <small>with genetics</small></span>
             <span class="pn-state" data-tone="ready">Physician review pending</span>
@@ -287,12 +299,16 @@
             <span class="pn-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Start review</button></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="padv">CVD moderate</span>
-              <span class="pbase">CKD low</span>
-              <span class="padv">CAN moderate</span>
-              <span class="ptile">MET high</span>
-              <span class="padv">NEU moderate</span>
-              <span class="padv">SYS moderate</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="true" aria-controls="pn-tiers-AL-47M" hidden>Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-47M">
+                <span class="padv">CVD moderate</span>
+                <span class="pbase">CKD low</span>
+                <span class="padv">CAN moderate</span>
+                <span class="ptile">MET high</span>
+                <span class="padv">NEU moderate</span>
+                <span class="padv">SYS moderate</span>
+              </span>
             </span>
           </div>
 
@@ -304,7 +320,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="care-plan.html">Mara Chen</a></span>
-              <span class="pn-code">AL-56F &middot; 56F</span>
+              <span class="pn-code">AL-56F</span>
             </span>
             <span class="pn-prog">Longevity core <small>genetics declined</small></span>
             <span class="pn-state">Plan editing</span>
@@ -312,12 +328,16 @@
             <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Resume</button></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="padv">CVD moderate</span>
-              <span class="pbase">CKD low</span>
-              <span class="padv">CAN moderate</span>
-              <span class="pbase">MET low</span>
-              <span class="padv">NEU moderate</span>
-              <span class="padv">SYS moderate</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-56F">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-56F" hidden>
+                <span class="padv">CVD moderate</span>
+                <span class="pbase">CKD low</span>
+                <span class="padv">CAN moderate</span>
+                <span class="pbase">MET low</span>
+                <span class="padv">NEU moderate</span>
+                <span class="padv">SYS moderate</span>
+              </span>
             </span>
           </div>
 
@@ -329,7 +349,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="care-plan.html">Helena Vasquez</a></span>
-              <span class="pn-code">AL-58F &middot; 58F</span>
+              <span class="pn-code">AL-58F</span>
             </span>
             <span class="pn-prog">Longevity core <small>with genetics</small></span>
             <span class="pn-state" data-tone="ready">Plan ready for signature</span>
@@ -337,12 +357,16 @@
             <span class="pn-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Preview</button></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="pbase">CVD low</span>
-              <span class="ptile">CKD high</span>
-              <span class="pbase">CAN low</span>
-              <span class="padv">MET moderate</span>
-              <span class="padv">NEU moderate</span>
-              <span class="padv">SYS moderate</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-58F">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-58F" hidden>
+                <span class="pbase">CVD low</span>
+                <span class="ptile">CKD high</span>
+                <span class="pbase">CAN low</span>
+                <span class="padv">MET moderate</span>
+                <span class="padv">NEU moderate</span>
+                <span class="padv">SYS moderate</span>
+              </span>
             </span>
           </div>
 
@@ -354,7 +378,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="care-plan.html">Priya Raghunathan</a></span>
-              <span class="pn-code">AL-44F &middot; 44F</span>
+              <span class="pn-code">AL-44F</span>
             </span>
             <span class="pn-prog">Longevity core <small>with genetics</small></span>
             <span class="pn-state" data-tone="advisory">Signature blocked <span class="ptile">blocked</span></span>
@@ -362,12 +386,16 @@
             <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Open blocker</button></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="pbase">CVD low</span>
-              <span class="pbase">CKD low</span>
-              <span class="padv">CAN moderate</span>
-              <span class="pbase">MET low</span>
-              <span class="pbase">NEU low</span>
-              <span class="pbase">SYS low</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-44F">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-44F" hidden>
+                <span class="pbase">CVD low</span>
+                <span class="pbase">CKD low</span>
+                <span class="padv">CAN moderate</span>
+                <span class="pbase">MET low</span>
+                <span class="pbase">NEU low</span>
+                <span class="pbase">SYS low</span>
+              </span>
             </span>
           </div>
 
@@ -379,7 +407,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="care-plan.html">Tomas Lindqvist</a></span>
-              <span class="pn-code">AL-52M &middot; 52M</span>
+              <span class="pn-code">AL-52M</span>
             </span>
             <span class="pn-prog">Longevity core <small>genetics declined</small></span>
             <span class="pn-state" data-tone="advisory">Physician hold</span>
@@ -387,12 +415,16 @@
             <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Review hold</button></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="padv">CVD moderate</span>
-              <span class="pbase">CKD low</span>
-              <span class="pbase">CAN low</span>
-              <span class="ptile">MET high</span>
-              <span class="pbase">NEU low</span>
-              <span class="padv">SYS moderate</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-52M">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-52M" hidden>
+                <span class="padv">CVD moderate</span>
+                <span class="pbase">CKD low</span>
+                <span class="pbase">CAN low</span>
+                <span class="ptile">MET high</span>
+                <span class="pbase">NEU low</span>
+                <span class="padv">SYS moderate</span>
+              </span>
             </span>
           </div>
 
@@ -404,7 +436,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="patient-data.html">Ana Beatriz Rocha</a></span>
-              <span class="pn-code">AL-49F &middot; 49F</span>
+              <span class="pn-code">AL-49F</span>
             </span>
             <span class="pn-prog">Longevity core <small>with genetics</small></span>
             <span class="pn-state" data-tone="advisory">Monitoring update requires review</span>
@@ -412,12 +444,16 @@
             <span class="pn-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Open</button></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="padv">CVD moderate</span>
-              <span class="pbase">CKD low</span>
-              <span class="padv">CAN moderate</span>
-              <span class="padv">MET moderate</span>
-              <span class="pbase">NEU low</span>
-              <span class="padv">SYS moderate</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-49F">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-49F" hidden>
+                <span class="padv">CVD moderate</span>
+                <span class="pbase">CKD low</span>
+                <span class="padv">CAN moderate</span>
+                <span class="padv">MET moderate</span>
+                <span class="pbase">NEU low</span>
+                <span class="padv">SYS moderate</span>
+              </span>
             </span>
           </div>
 
@@ -429,7 +465,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="patient-data.html">Marcus Bell</a></span>
-              <span class="pn-code">AL-39M &middot; 39M</span>
+              <span class="pn-code">AL-39M</span>
             </span>
             <span class="pn-prog">Longevity core <small>with genetics</small></span>
             <span class="pn-state">Results partially received</span>
@@ -437,12 +473,16 @@
             <span class="pn-act"><span class="pbase">Ops follow-up</span></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="punmod">CVD insufficient data</span>
-              <span class="punmod">CKD insufficient data</span>
-              <span class="punmod">CAN insufficient data</span>
-              <span class="punmod">MET insufficient data</span>
-              <span class="punmod">NEU insufficient data</span>
-              <span class="punmod">SYS insufficient data</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-39M">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-39M" hidden>
+                <span class="punmod">CVD insufficient data</span>
+                <span class="punmod">CKD insufficient data</span>
+                <span class="punmod">CAN insufficient data</span>
+                <span class="punmod">MET insufficient data</span>
+                <span class="punmod">NEU insufficient data</span>
+                <span class="punmod">SYS insufficient data</span>
+              </span>
             </span>
           </div>
 
@@ -454,7 +494,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="journal.html">Joseph Ferreira</a></span>
-              <span class="pn-code">AL-63M &middot; 63M</span>
+              <span class="pn-code">AL-63M</span>
             </span>
             <span class="pn-prog">Longevity core <small>with genetics</small></span>
             <span class="pn-state">Patient plan available</span>
@@ -462,12 +502,16 @@
             <span class="pn-act"><span class="pbase">Read receipt 26 Aug</span></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="ptile">CVD high</span>
-              <span class="padv">CKD moderate</span>
-              <span class="pbase">CAN low</span>
-              <span class="padv">MET moderate</span>
-              <span class="padv">NEU moderate</span>
-              <span class="padv">SYS moderate</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-63M">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-63M" hidden>
+                <span class="ptile">CVD high</span>
+                <span class="padv">CKD moderate</span>
+                <span class="pbase">CAN low</span>
+                <span class="padv">MET moderate</span>
+                <span class="padv">NEU moderate</span>
+                <span class="padv">SYS moderate</span>
+              </span>
             </span>
           </div>
 
@@ -479,7 +523,7 @@
 
             <span class="pn-who">
               <span class="pn-name"><a class="pn-open" href="journal.html">Grace Okonjo</a></span>
-              <span class="pn-code">AL-41F &middot; 41F</span>
+              <span class="pn-code">AL-41F</span>
             </span>
             <span class="pn-prog">Longevity core <small>genetics declined</small></span>
             <span class="pn-state">Action tracking active</span>
@@ -487,17 +531,21 @@
             <span class="pn-act"><span class="pbase">4 of 6 actions started</span></span>
             <span class="pn-dom">
               <span class="pn-dom__k">Risk by domain</span>
-              <span class="pbase">CVD low</span>
-              <span class="pbase">CKD low</span>
-              <span class="padv">CAN moderate</span>
-              <span class="pbase">MET low</span>
-              <span class="pbase">NEU low</span>
-              <span class="pbase">SYS low</span>
+              <button class="pn-riskbtn amd-button" data-density="row" data-variant="secondary" type="button"
+                data-risk-read aria-expanded="false" aria-controls="pn-tiers-AL-41F">Read risk</button>
+              <span class="pn-tiers" id="pn-tiers-AL-41F" hidden>
+                <span class="pbase">CVD low</span>
+                <span class="pbase">CKD low</span>
+                <span class="padv">CAN moderate</span>
+                <span class="pbase">MET low</span>
+                <span class="pbase">NEU low</span>
+                <span class="pbase">SYS low</span>
+              </span>
             </span>
           </div>
 
           <div class="pn-more">
-            <span>137 more patients on this panel, all in states with no physician act outstanding.</span>
+            <span><span class="pval">137<span class="pval__u">more patients</span></span> on this panel.</span>
             <span class="pn-more__spacer"></span>
             <button class="amd-button" data-variant="secondary" type="button">Load next 25</button>
           </div>
@@ -508,18 +556,23 @@
       <details class="pdisc">
         <summary>How the panel differs from the inbox, and what the risk read is worth</summary>
         <div class="pdisc__body">
-          <p>The inbox is filtered to states whose <em>Physician visible</em> column in Role and Release Matrix v1
-          section 4 permits an act. The panel drops that filter, which is why released and tracking patients appear
-          here and not there. Neither list ranks patients by the action layer's own output: the lifecycle is the sort
-          key, because a packet that is ready outranks one that is merely alarming.</p>
+          <p>The inbox is filtered to states whose <em>Physician visible</em> column in the Role and Release
+          Matrix, section 4, permits an act. The panel drops that filter, which is why released and tracking
+          patients appear here and not there. Neither list ranks patients by the action layer's own output: the
+          lifecycle is the sort key, because a packet that is ready outranks one that is merely alarming.</p>
           <p>The domain read is a summary of five modelled domains plus a systemic roll-up. Only cardiovascular
           carries a validated model today; the rest are shown with their tier and carry
           <span class="pna">model provenance pending</span> inside the chart, where the claim can be qualified
           properly rather than compressed into one word on a list row.</p>
+          <p>A tier is worked out when you ask for it and is not kept. That is why the read is a button on the
+          row rather than a column that is simply there: a tier is a reading of everything known about a patient
+          at the moment it was taken, and a kept one would go on looking correct for as long as it took the next
+          result to arrive. The list would then be showing you nine tiers, none of which described anyone.</p>
           <dl class="pfacts">
-            <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> section 4</dd>
+            <dt>Source</dt><dd>Role and Release Matrix, section 4</dd>
             <dt>Panel</dt><dd>Patients assigned to this physician, all lifecycle states</dd>
             <dt>Domains</dt><dd>Cardiovascular, kidney, cancer, metabolic, neurodegenerative, systemic</dd>
+            <dt>Risk read</dt><dd>Worked out per row, on request, from the patient's packet as it stands then. Not kept between visits.</dd>
             <dt>Unmodelled</dt><dd>Shown as <span class="punmod">insufficient data</span> in indigo, never as low. An unassessed risk is not a low risk.</dd>
           </dl>
         </div>
@@ -538,6 +591,92 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The density default demanded nine engine runs before anyone asked a question.</b>
+    <code>With risk by domain</code> shipped <code>aria-checked="true"</code>, so first paint wanted
+    a six-domain read for nine patients and <code>Load next 25</code> wanted a hundred and fifty
+    more. Nothing can serve that. <b>No Canvas resource holds an Aleron risk tier:</b>
+    <code>Observation</code> has no update and its create is restricted in practice to vitals and
+    panel-shaped categories, and the live instance refused a cardiovascular ten-year score outright
+    with <code>422 Requested Sign does not exist</code>; <code>CarePlan</code> and <code>Goal</code>
+    are read and search only; <code>DetectedIssue</code> is a decision-support flag, not a graded
+    score, and its search is patient-scoped; <code>UPSERT_PATIENT_METADATA</code> stores a value
+    per patient but cannot list one, so it can hold a tier and can never answer "give me the tiers
+    for these nine". So each tier means running the engine over that patient's whole packet.
+    <br>The remaining way to make the column cheap is to keep the tiers somewhere in Aleron keyed by
+    patient id, and that is exactly the residency line strict data residency refused, so it is
+    refused rather than priced. It is also wrong on its own terms: a tier is a reading of everything
+    known at the moment it was taken, so a kept one goes stale silently the second a lab lands and
+    the physician scans nine tiers that no longer describe anybody.
+    <br>Default is <code>Lifecycle only</code>. The control itself is unchanged, which is the point:
+    the screen already argued in prose that the risk read is a second question, and the default was
+    contradicting its own copy.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Inside the domain density the read is per row, on request.</b> Flipping the density on
+    does not fetch nine reads either, it reveals nine buttons. Each is an ordinary disclosure:
+    <code>aria-expanded</code> on the button, the tiers as its <code>aria-controls</code> target, so
+    no live region is claimed and none is needed. Ethan Park ships already read, because a row that
+    has been asked and a row that has not are both real states and the screen should show both
+    rather than describing one.
+    <br>The cost is real and is the correct trade: the panel's most distinctive column is one click
+    away instead of visible. What it buys is that a tier on this screen is always a tier somebody
+    asked for, computed from the packet as it stood at that moment, which is the only condition
+    under which the number means anything.
+    <br>Marcus Bell keeps a button like everyone else and it reveals six
+    <span class="punmod">insufficient data</span>. That is deliberate. You do not know a packet is
+    too thin to model until something has looked at it, and hiding his button would be the screen
+    knowing a thing it has not yet been told.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>One string per lifecycle state, and the panel's wording is the one that won.</b>
+    <a href="inbox.html">Inbox</a> ranked <code>Review pending</code> and
+    <code>Ready for signature</code> where this screen ranked
+    <code>Physician review pending</code> and <code>Plan ready for signature</code>, and both
+    claimed to be literals from section 4 of one matrix. The reason this screen's wording is the
+    survivor is not that it is longer: these strings become <code>Task.input</code> labels, which
+    Canvas treats as free text, creates on demand from whatever it is sent, and hands back through
+    <code>label=</code>. The label is the query key. It shares a namespace with anything the
+    clinic's own staff type into Canvas, and <code>Review pending</code> is a phrase anyone might
+    type. <code>Physician review pending</code> is not.
+    <br>Nothing in this file changed as a result, which is the whole finding: this screen was
+    already right and was being contradicted from the other one. Both rank tables now carry the
+    same nine strings.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><b>The queue primitive is Canvas <code>Task</code>, and three of these nine rows do not
+    fit it.</b> The row set and the count come from two genuine cross-patient calls,
+    <code>GET /Patient?_has:CareTeam:participant:member=Practitioner/{id}</code> for the panel and
+    <code>GET /Task?owner=Practitioner/{id}</code> for the state, and <code>146</code> is
+    <code>Bundle.total</code> on a <code>_count=1</code> search, so the header count fetches no
+    rows at all. But <code>Results partially received</code>, <code>Patient plan available</code>
+    and <code>Action tracking active</code> are states in which no physician act is outstanding, and
+    by the inbox's own rule those carry no open physician Task. They are either Tasks owned by
+    somebody else or they arrive from somewhere else entirely, and this screen does not say which.
+    <br>Two further gaps in the same primitive. A label is free text with no enum and no validation,
+    so a typo does not fail, it quietly mints a tenth state and <code>PN_LIFECYCLE_RANK</code> drops
+    that row to 99. And on the live <code>aleronmd-dev</code> instance <code>Task</code> is granted
+    at <b>system</b> scope and not at <code>user</code> scope, so a physician-scoped token may not
+    be able to read this list at all. That one is unresolved and it decides whether the panel is
+    read as the physician or as the service.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The pagination line asserted a property of rows nobody fetched.</b>
+    <em>137 more patients on this panel, all in states with no physician act outstanding</em> was a
+    claim about 146 minus 9 unread rows, and it was false on the evidence already on the two
+    screens: the inbox says seven patients need an act, and four of the nine rows here need none.
+    The arithmetic survives, the claim does not. It reads
+    <span class="pval">137<span class="pval__u">more patients</span></span> on this panel and
+    stops.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The patient code embedded an age.</b> <code>AL-47M &middot; 47M</code> is a Canvas
+    <code>Patient.identifier</code> carrying the age at enrolment, printed beside a live derived
+    age, and identifiers are not rewritten. Within a year the row would read
+    <code>AL-47M &middot; 48M</code> and the identifier would be contradicting the value next to it.
+    The derived age comes off the list row and stays in the chart, where it is read from
+    <code>Patient.birthDate</code> and cannot drift.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>A repository path was on the product surface.</b>
+    <em>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md section 4</em> sat in the disclosure's
+    <code>Source</code> row, which is a source-control path in front of a clinician and the same
+    failure the BRIEF's API rule catches, wearing different vocabulary. The disclosure says
+    <em>Role and Release Matrix, section 4</em>; the path is here.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>There was no way to log out, and no way to tell who was logged in.</b>
     <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
@@ -578,8 +717,9 @@
     detail turns out to be a data problem.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span>Row density works. <b>Lifecycle only</b> drops the domain read and takes a row from 112px to
-    64px; <b>With risk by domain</b> restores it. The risk read is a second question the physician
-    sometimes asks of the same list, which is the argument the control was already making in prose and can
+    64px; <b>With risk by domain</b> restores the line, though what it restores now is a request per row
+    rather than nine finished reads. The risk read is a second question the physician sometimes asks of the
+    same list, which is the argument the control was already making in prose and can
     now demonstrate. <code>aria-checked</code> on the segmented control is the source of truth and the list
     follows it.</span></p>
   <p class="wf-note" data-kind="carried"><span class="wf-note__tag">carried</span>
@@ -611,9 +751,34 @@
 </div>
 
 <script>
+/* The per-row risk read. A tier is not stored anywhere: no Canvas resource
+   holds one, and caching them against a patient id is the residency line this
+   design does not cross, so every tier on screen is an engine run happening
+   because somebody asked for it. That makes the read a disclosure per row, not
+   a column: aria-expanded on the button, the tiers as its aria-controls target.
+   Ethan Park ships already read, because a row that has been asked and a row
+   that has not are both real states and the screen should show both.
+
+   A read holds for the session and dies on reload, which is the honest
+   behaviour: a tier computed an hour ago stops describing the patient the
+   moment a lab lands, and there is nothing here to tell it that happened. */
+(function () {
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-risk-read]");
+    if (!btn) return;
+    e.preventDefault();
+    var tiers = document.getElementById(btn.getAttribute("aria-controls"));
+    if (!tiers) return;
+    btn.setAttribute("aria-expanded", "true");
+    btn.hidden = true;
+    tiers.hidden = false;
+  });
+})();
+
 /* Row density, client only. Nothing is persisted; a reload returns the panel to
-   the density the markup ships with. aria-checked on the segmented control is
-   the single source of truth and the list follows it. */
+   the density the markup ships with, which is now Lifecycle only. aria-checked
+   on the segmented control is the single source of truth and the list follows
+   it. */
 (function () {
   var group = document.getElementById("pn-density");
   var list = document.getElementById("pn-list");

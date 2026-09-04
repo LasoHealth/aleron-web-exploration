@@ -125,6 +125,10 @@
   .ib-sortlabel { font-size: var(--size-caption); color: var(--text-tertiary); }
   .ib-sort { width: 11rem; }
   .ib-sortnote { margin: var(--s-2xs) 0 0; text-align: right; }
+  /* The sort orders the act queue. It has nothing to order on the other two
+     tabs, so it goes away with them rather than sitting there inert. */
+  .ib-sortctl { display: flex; align-items: center; gap: var(--s-xs); }
+  .ib-sortctl[hidden], .ib-sortnote[hidden] { display: none; }
   .ib-grip {
     display: none;
     place-items: center;
@@ -154,6 +158,38 @@
   .ib-row.is-over-after { box-shadow: inset 0 calc(var(--line-signal) * -1) 0 var(--signal-forward); }
   .ib-head__grip { display: none; }
   #ib-list[data-order="custom"] .ib-head__grip { display: block; }
+
+  /* Result review. Two lists, deliberately not one list with a severity column.
+     A critical value is pushed: the lab releases it and it arrives on its own.
+     An abnormal value is pushed by nothing at all, so it is only ever here
+     because a sweep went and looked. Those are different guarantees about
+     completeness, and a physician who cannot tell which they are reading has
+     been handed a queue that is worse than no queue. Same row anatomy so the
+     two compare; different position, different column head, different act. */
+  .ib-res,
+  .ib-reshead {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(112px, auto) minmax(96px, auto) 7.5rem;
+    gap: var(--s-md);
+    align-items: center;
+    padding: var(--s-sm) var(--s-md);
+  }
+  .ib-reshead {
+    padding-top: var(--s-xs);
+    padding-bottom: var(--s-xs);
+    border-bottom: var(--line-thin) solid var(--border-subtle);
+    font-size: var(--size-caption);
+    color: var(--text-tertiary);
+  }
+  .ib-res {
+    position: relative;
+    border-bottom: var(--line-thin) solid var(--hairline);
+  }
+  .ib-res:last-of-type { border-bottom: 0; }
+  .ib-res:hover { background: var(--surface-inset); }
+  .ib-analyte { display: grid; gap: var(--s-3xs); min-width: 0; font-size: var(--size-small); }
+  .ib-ref { font-size: var(--size-caption); color: var(--text-tertiary); }
+  .ib-when { font-size: var(--size-small); color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums; }
 
   .ib-counts {
     display: grid;
@@ -233,7 +269,7 @@
       </nav>
 
         <div class="prail__foot">
-          <a class="prail__out" href="standing-orders.html">Practice standing orders</a>
+          <a class="prail__out" href="standing-orders.html">Ordering readiness</a>
           <span class="wf-ex"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-25" aria-label="Wireframe explanation, not part of the product">i</button><small class="wf-scaffold wf-ex__bubble" id="wf-ex-25" role="note">Synthetic staging queue. Clinical use prohibited.</small></span>
           <div class="prail__acct">
             <span class="prail__actor">Dr. A. Okafor</span>
@@ -253,21 +289,55 @@
         <p>Work waiting on you, ordered by where each patient sits in the lifecycle. A packet that is ready outranks one that is still gathering.</p>
       </header>
 
+      <!-- Critical results sit above the counts and outside the tab filter, on
+           purpose. They are the one thing on this screen that arrives without
+           being asked for, so nothing about them should depend on which tab the
+           physician happens to be standing on. -->
+      <section class="pmod pmod--flat" aria-labelledby="ib-crit-h">
+        <div class="pmod__head">
+          <span class="ptile">critical</span>
+          <h2 id="ib-crit-h">Critical results</h2>
+          <span class="pmod__sub">Delivered the moment the lab released them. They stay above the queue and outside the tabs, because nothing about a critical value waits for a lifecycle position.</span>
+        </div>
+        <div class="pmod__body pmod__body--flush">
+          <div class="ib-reshead" role="row">
+            <span>Patient</span>
+            <span>Result</span>
+            <span>Reading</span>
+            <span style="text-align: right;">Delivered</span>
+            <span style="text-align: right;">Next act</span>
+          </div>
+          <div class="ib-res">
+            <span class="ib-who">
+              <span class="ib-name"><a class="ib-open" href="patient-data.html">Joseph Ferreira</a></span>
+              <span class="ib-code">AL-63M</span>
+            </span>
+            <span class="ib-analyte">
+              <span>Potassium <span class="pval">6.4<span class="pval__u">mmol/L</span></span></span>
+              <span class="ib-ref">Reference <span class="pval">3.5<span class="pval__u">to 5.2 mmol/L</span></span></span>
+            </span>
+            <span><span class="ptile">critical high</span></span>
+            <span class="ib-when">07:42 today</span>
+            <span class="ib-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Open result</button></span>
+          </div>
+        </div>
+      </section>
+
       <dl class="ib-counts">
         <div class="ib-count">
-          <dt>Ready for review</dt>
+          <dt>Physician review pending</dt>
           <dd><span class="pval pval--lg">3</span></dd>
         </div>
         <div class="ib-count">
-          <dt>Review started</dt>
+          <dt>Plan editing</dt>
           <dd><span class="pval pval--lg">2</span></dd>
         </div>
         <div class="ib-count">
           <dt>Blocked or on hold</dt>
-          <dd><span class="pval pval--lg">1</span> <span class="ptile">blocked</span></dd>
+          <dd><span class="pval pval--lg">2</span> <span class="ptile">blocked</span></dd>
         </div>
         <div class="ib-count">
-          <dt>Awaiting results</dt>
+          <dt>Results partially received</dt>
           <dd><span class="pval pval--lg">1</span></dd>
         </div>
       </dl>
@@ -276,18 +346,21 @@
         <div class="amd-tabs" role="tablist" aria-label="Queue filter" id="ib-queues">
           <button class="amd-button" role="tab" aria-selected="true" type="button" data-queue="needs">Needs me <span class="ib-badge">7</span></button>
           <button class="amd-button" role="tab" aria-selected="false" type="button" tabindex="-1" data-queue="waiting">Waiting <span class="ib-badge">12</span></button>
+          <button class="amd-button" role="tab" aria-selected="false" type="button" tabindex="-1" data-queue="results">Abnormal results <span class="ib-badge">3</span></button>
         </div>
         <a class="ib-toponel" href="panel.html">All 146 on Panel <span aria-hidden="true">&rarr;</span></a>
         <span class="ib-filters__spacer"></span>
-        <label class="ib-sortlabel" for="ib-sort">Sort by</label>
-        <span class="amd-select-wrap ib-sort">
-          <select class="amd-select" id="ib-sort">
-            <option value="lifecycle" selected>Lifecycle rank</option>
-            <option value="waited">Waiting longest</option>
-            <option value="fresh">Waiting shortest</option>
-            <option value="name">Patient name</option>
-            <option value="custom">Custom order</option>
-          </select>
+        <span class="ib-sortctl" id="ib-sortctl">
+          <label class="ib-sortlabel" for="ib-sort">Sort by</label>
+          <span class="amd-select-wrap ib-sort">
+            <select class="amd-select" id="ib-sort">
+              <option value="lifecycle" selected>Lifecycle rank</option>
+              <option value="waited">Waiting longest</option>
+              <option value="fresh">Waiting shortest</option>
+              <option value="name">Patient name</option>
+              <option value="custom">Custom order</option>
+            </select>
+          </span>
         </span>
       </div>
       <p class="pbase ib-sortnote" id="ib-sortnote" role="status" aria-live="polite">Lifecycle rank, then the longest wait first.</p>
@@ -295,7 +368,7 @@
       <section class="pmod pmod--tier1 ib-section" data-queues="needs">
         <div class="pmod__head">
           <h2>Needs me</h2>
-          <span class="pmod__sub">Seven items. Each names the act it is waiting for.</span>
+          <span class="pmod__sub">Each item names the act it is waiting for.</span>
         </div>
         <div class="pmod__body pmod__body--flush" id="ib-list">
 
@@ -316,9 +389,9 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="patient-data.html">Ethan Park</a></span>
-              <span class="ib-code">AL-47M &middot; 47M</span>
+              <span class="ib-code">AL-47M</span>
             </span>
-            <span class="ib-state" data-tone="ready">Review pending</span>
+            <span class="ib-state" data-tone="ready">Physician review pending</span>
             <span class="ib-what">Packet frozen, engine run complete. Metabolic <span class="pval">34<span class="pval__u">%</span></span> 10-yr T2D, and an ATM P/LP on the required channel.</span>
             <span class="ib-age">2 d</span>
             <span class="ib-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Start review</button></span>
@@ -332,10 +405,10 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="patient-data.html">Daniel Whitfield</a></span>
-              <span class="ib-code">AL-61M &middot; 61M</span>
+              <span class="ib-code">AL-61M</span>
             </span>
-            <span class="ib-state" data-tone="ready">Review pending</span>
-            <span class="ib-what">Cardiovascular <span class="pval">24<span class="pval__u">%</span></span> 30-yr ASCVD. Coronary calcium gate resulted overnight.</span>
+            <span class="ib-state" data-tone="ready">Physician review pending</span>
+            <span class="ib-what">Cardiovascular <span class="pval">24<span class="pval__u">%</span></span> 30-yr ASCVD. The coronary calcium gate has resulted and is in the chart.</span>
             <span class="ib-age">4 d</span>
             <span class="ib-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Start review</button></span>
           </div>
@@ -348,7 +421,7 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="care-plan.html">Mara Chen</a></span>
-              <span class="ib-code">AL-56F &middot; 56F</span>
+              <span class="ib-code">AL-56F</span>
             </span>
             <span class="ib-state">Plan editing</span>
             <span class="ib-what">You have three problems drafted. Preview note not yet generated.</span>
@@ -364,9 +437,9 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="care-plan.html">Helena Vasquez</a></span>
-              <span class="ib-code">AL-58F &middot; 58F</span>
+              <span class="ib-code">AL-58F</span>
             </span>
-            <span class="ib-state" data-tone="ready">Ready for signature</span>
+            <span class="ib-state" data-tone="ready">Plan ready for signature</span>
             <span class="ib-what">Preview generated and hashed. Four visible actions, one hold resolved.</span>
             <span class="ib-age">1 d</span>
             <span class="ib-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Preview</button></span>
@@ -380,7 +453,7 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="care-plan.html">Priya Raghunathan</a></span>
-              <span class="ib-code">AL-44F &middot; 44F</span>
+              <span class="ib-code">AL-44F</span>
             </span>
             <span class="ib-state" data-tone="advisory">Signature blocked</span>
             <span class="ib-what"><span class="ptile">blocked</span> Two visible recommendations have no provenance. Release validation fails until both carry one.</span>
@@ -396,7 +469,7 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="care-plan.html">Tomas Lindqvist</a></span>
-              <span class="ib-code">AL-52M &middot; 52M</span>
+              <span class="ib-code">AL-52M</span>
             </span>
             <span class="ib-state" data-tone="advisory">Physician hold</span>
             <span class="ib-what">You placed a hold pending the hepatology opinion. Hold copy released to the patient on 24 Aug.</span>
@@ -412,7 +485,7 @@
 
             <span class="ib-who">
               <span class="ib-name"><a class="ib-open" href="patient-data.html">Ana Beatriz Rocha</a></span>
-              <span class="ib-code">AL-49F &middot; 49F</span>
+              <span class="ib-code">AL-49F</span>
             </span>
             <span class="ib-state" data-tone="advisory">Monitoring update requires review</span>
             <span class="ib-what">Wearable delta crossed the alert threshold: resting heart rate up <span class="pval">11<span class="pval__u">bpm</span></span> against her own baseline over 14 days.</span>
@@ -432,7 +505,7 @@
           <a class="ib-row" href="patient-data.html">
             <span class="ib-who">
               <span class="ib-name">Marcus Bell</span>
-              <span class="ib-code">AL-39M &middot; 39M</span>
+              <span class="ib-code">AL-39M</span>
             </span>
             <span class="ib-state">Results partially received</span>
             <span class="ib-what">Blood panel resulted. Genetics kit not returned to the lab since it shipped on 12 Aug.</span>
@@ -442,19 +515,91 @@
         </div>
       </section>
 
+      <!-- The other half of result review, and it is a separate list because it
+           arrives a separate way. Nothing announces an abnormal value and
+           nothing announces a part-returned panel, so both are here only
+           because a sweep went and looked. The head states when. -->
+      <section class="pmod pmod--flat ib-section" data-queues="results" aria-labelledby="ib-abn-h">
+        <div class="pmod__head">
+          <h2 id="ib-abn-h">Abnormal results</h2>
+          <span class="pmod__sub">Found, not delivered. This list is exactly as current as the sweep that built it.</span>
+          <span class="pmod__meta">Last swept 09:12, 31 Aug 2026</span>
+        </div>
+        <div class="pmod__body pmod__body--flush">
+
+          <div class="ib-reshead" role="row">
+            <span>Patient</span>
+            <span>Result</span>
+            <span>Reading</span>
+            <span style="text-align: right;">Found</span>
+            <span style="text-align: right;">Next act</span>
+          </div>
+
+          <div class="ib-res">
+            <span class="ib-who">
+              <span class="ib-name"><a class="ib-open" href="patient-data.html">Mara Chen</a></span>
+              <span class="ib-code">AL-56F</span>
+            </span>
+            <span class="ib-analyte">
+              <span>TSH <span class="pval">4.7<span class="pval__u">mIU/L</span></span></span>
+              <span class="ib-ref">Reference <span class="pval">0.4<span class="pval__u">to 4.0 mIU/L</span></span></span>
+            </span>
+            <span><span class="padv">high</span></span>
+            <span class="ib-when">09:12 sweep</span>
+            <span class="ib-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Open result</button></span>
+          </div>
+
+          <div class="ib-res">
+            <span class="ib-who">
+              <span class="ib-name"><a class="ib-open" href="patient-data.html">Grace Okonjo</a></span>
+              <span class="ib-code">AL-41F</span>
+            </span>
+            <span class="ib-analyte">
+              <span>ALT <span class="pval">78<span class="pval__u">U/L</span></span></span>
+              <span class="ib-ref">Reference <span class="pval">7<span class="pval__u">to 56 U/L</span></span></span>
+            </span>
+            <span><span class="padv">high</span></span>
+            <span class="ib-when">09:12 sweep</span>
+            <span class="ib-act"><button class="amd-button" data-density="row" data-variant="primary" type="button">Open result</button></span>
+          </div>
+
+          <div class="ib-res">
+            <span class="ib-who">
+              <span class="ib-name"><a class="ib-open" href="patient-data.html">Marcus Bell</a></span>
+              <span class="ib-code">AL-39M</span>
+            </span>
+            <span class="ib-analyte">
+              <span>Metabolic panel, part returned</span>
+              <span class="ib-ref"><span class="pval">6<span class="pval__u">of 11 analytes</span></span> back, the rest still open</span>
+            </span>
+            <span><span class="punmod">no reading yet</span></span>
+            <span class="ib-when">09:12 sweep</span>
+            <span class="ib-act"><button class="amd-button" data-density="row" data-variant="secondary" type="button">Open result</button></span>
+          </div>
+
+        </div>
+      </section>
+
             <p class="pbase ib-qnote" id="ib-qnote" role="status" aria-live="polite"></p>
 
       <details class="pdisc">
         <summary>Where these states come from</summary>
         <div class="pdisc__body">
-          <p>Every word in the lifecycle column is a state in the Role and Release Matrix v1
+          <p>Every word in the lifecycle column is a state in the Role and Release Matrix,
           section 4, not a label invented for this screen. The queue shows only states whose
           <em>Physician visible</em> column is not <span class="pna">None</span>, and the
           <em>Next act</em> button is the action that state permits under section 3.</p>
+          <p>Results are not a lifecycle state, which is why they are not a tenth word in that
+          column. A result lands on a patient wherever they already stand, and the two lists split
+          on how the result reached you: a critical value is sent, an abnormal one is found. The
+          abnormal list carries the time of the sweep that built it, because a list nobody was told
+          about is only as complete as the last time somebody looked.</p>
           <dl class="pfacts">
-            <dt>Source</dt><dd><code>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md</code> section 4</dd>
+            <dt>Source</dt><dd>Role and Release Matrix, section 4</dd>
             <dt>Queue</dt><dd>Physician work items, assigned. Ops-only states are filtered out.</dd>
             <dt>Sort</dt><dd>Lifecycle rank, then wait duration descending</dd>
+            <dt>Critical</dt><dd>Sent by the lab on release. Above the queue, outside the tabs, and never filtered away.</dd>
+            <dt>Abnormal</dt><dd>Found by sweep. Includes a panel that came back in part, because a part-returned panel announces nothing at all.</dd>
             <dt>Not shown</dt><dd>Enrolment, invitation and onboarding states. All of them are ops or member work with no physician act, so a patient in one of them is not missing from your queue, they are not yours yet.</dd>
           </dl>
         </div>
@@ -462,7 +607,9 @@
 
       <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-24" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-24" role="note">
         Synthetic staging queue &middot; work items derive from backend lifecycle state, not from
-        local fixtures &middot; a state with no permitted physician act is shown but carries no button.
+        local fixtures &middot; a state with no permitted physician act is shown but carries no button
+        &middot; the Waiting tab counts 12 and 1 of them is drawn here, so the section is short by
+        reviewer scaffolding rather than by a hole in the queue.
       </p></div>
 
     </div>
@@ -473,6 +620,127 @@
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Result review, and why it is two surfaces rather than one.</b> Under the delegated lab
+    flow, validating a result is this physician's job, and nothing on this screen carried that
+    obligation. The vendor emits <code>labtest.result.critical</code> and <b>no</b>
+    <code>labtest.result.abnormal</code>, and a partial result fires no webhook at all, the stated
+    reason being <em>"the possibility of critical values"</em>. Canvas adds nothing:
+    <code>AuditEvent</code> and <code>Subscription</code> both return <code>404</code> on the live
+    <code>aleronmd-dev</code> instance, so there is no push mechanism of any kind on that side.
+    Abnormals therefore have to be polled, from
+    <code>GET /v3/orders</code> filtered on <code>is_critical</code> and
+    <code>interpretation</code>. Three shapes were on the table and only one survives the
+    mechanism.
+    <br><b>Rejected, a tenth lifecycle state.</b> A result is not a position in the lifecycle. It
+    lands on a patient wherever they already stand, so Mara Chen would have to leave
+    <code>Plan editing</code> to acknowledge a lab and then find her way back into it. It would
+    also make the rank table lie: rank is "how far along is this plan", and an abnormal potassium is
+    not further along than anything.
+    <br><b>Rejected, one Results tab holding both.</b> That is the shape the brief warns about. A
+    critical value is sent to you within minutes; an abnormal value is here because a sweep ran, and
+    the newest one may be twenty minutes older than the sweep. Merging them puts a guaranteed
+    delivery and a best-effort discovery in one column under one heading, and the physician cannot
+    tell which they are scanning.
+    <br><b>Built, a standing region plus a tab.</b> Critical sits above the counts strip with no
+    <code>data-queues</code> attribute at all, so it is structurally outside the filter and no tab
+    can hide it, which is the drawn form of "pushed". Abnormal is the third tab, headed with the
+    sweep time, which is the drawn form of "polled". Different column head as well:
+    <em>Delivered</em> against <em>Found</em>. Reading it aloud is the test, and the two sentences
+    do not sound alike.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><b>The rail badge still reads 7 and result review is not in it.</b> That is not an
+    oversight, it is the mechanism showing through. The badge is
+    <code>GET /Task?owner=Practitioner/{id}&amp;status=requested&amp;_count=1</code> read off
+    <code>Bundle.total</code>, and a result is not a Task: it lives in the lab vendor and reaches
+    Aleron by poll. Making the badge 11 would mean either minting a Task per result, which puts a
+    lab value's existence into the shared chart before a physician has looked at it, or summing two
+    systems client-side and calling it one count. Both are decisions above this screen. So the badge
+    counts Task-backed work, the tab badges count what is in the tab, and the discrepancy is left
+    visible rather than papered over.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">finding</span>
+    <span><b>The queue primitive is Canvas <code>Task</code>, and this is where that gets said.</b>
+    <code>GET /Task?owner=Practitioner/{id}&amp;status=requested&amp;_count=100</code> is a genuine
+    cross-patient query, one of only two on this screen, and a Task already carries every field the
+    row needs: <code>for</code> is the patient, <code>owner</code> is the physician,
+    <code>authoredOn</code> is the Waiting column, <code>note</code> is the What is waiting
+    sentence, and <code>input</code> labels are free text, auto-created and searchable with
+    <code>label=</code>, so the lifecycle word is the query key. The patient column is the second
+    call, <code>GET /Patient?_has:CareTeam:participant:member=Practitioner/{id}</code>. That is what
+    lets the queue live in Canvas, so no patient identifier ever has to reach Aleron to build it,
+    and every count here is <code>Bundle.total</code> on a <code>_count=1</code> search, so not one
+    of the four tiles fetches the rows it counts.
+    <br>Two costs come with it. Labels have no enum and no validation, so a typo does not fail, it
+    silently creates a tenth state and <code>LIFECYCLE_RANK</code> drops that row to 99. And on the
+    live instance <code>Task</code> is granted at <b>system</b> scope and not at <code>user</code>
+    scope, so a physician-scoped token may not reach it at all. That is unresolved and it is load
+    bearing: if it holds, this queue reads under a service token while every write in the ordering
+    flow reads under the physician's, and the two do not see the same thing.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>One string per lifecycle state, across both list screens.</b> They disagreed. This
+    screen ranked <code>Review pending</code> and <code>Ready for signature</code>;
+    <a href="panel.html">Panel</a> ranked <code>Physician review pending</code> and
+    <code>Plan ready for signature</code>. Both claimed to be literals from section 4 of the same
+    matrix, which they cannot both be. The count tiles were a third dialect again:
+    <em>Ready for review</em> over a row reading <code>Review pending</code>, and
+    <em>Review started</em> over a row reading <code>Plan editing</code>.
+    <br>The panel's wording wins, on both rows and both tiles, for a reason that is not taste: as a
+    <code>Task.input</code> label the string shares a namespace with whatever the clinic's own staff
+    type into Canvas, and <code>Review pending</code> is a phrase anyone might type, where
+    <code>Physician review pending</code> is not. A self-describing key survives a shared namespace.
+    The vocabulary is now nine strings and both screens carry all nine in the rank table, including
+    the three the inbox never renders, so a state cannot exist on one screen and not the other.
+    <br>The fourth tile changed too: <em>Awaiting results</em> was counting orders in flight at the
+    lab while the other three counted lifecycle labels. It is
+    <code>Results partially received</code> now, so all four tiles are one query with one parameter
+    changed.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The blocked tile said 1 directly above two blocked rows.</b> Priya Raghunathan is
+    <code>Signature blocked</code> and Tomas Lindqvist is <code>Physician hold</code>, both of which
+    the tile's own label names. It reads 2. Worth noting what it costs to compute: it is the one
+    tile that spans two labels, and whether Canvas honours comma-OR on a repeated search parameter
+    is documented neither way, so it is either one call or two and a sum.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>"Seven items" was a hardcoded word for a live count.</b> It agreed with the tab badge
+    beside it only by coincidence of the fixture and would have disagreed with it on the first day
+    an eighth patient arrived. The count comes off the sentence entirely rather than being rendered
+    twice: the badge already carries it, and the sentence's real job is the second half, that each
+    item names its act.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The patient code embedded an age.</b> <code>AL-47M &middot; 47M</code> puts the age at
+    enrolment inside a Canvas <code>Patient.identifier</code>, and identifiers are not rewritten, so
+    on Ethan Park's forty-eighth birthday the row would have read <code>AL-47M &middot; 48M</code>
+    and the identifier would have been contradicting the value printed next to it. The derived age
+    comes off the list row; the code stays, because it is the string a physician says out loud. Age
+    and sex are one click into the chart, where they are read from
+    <code>Patient.birthDate</code> and <code>Patient.gender</code> and cannot go stale. The digits
+    inside the code are historical and the row no longer invites anyone to read them as
+    current.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>"Coronary calcium gate resulted overnight" promised a watch nobody has.</b> The lab
+    vendor is labs only, so a calcium score cannot come from it; the gate is a Canvas
+    <code>ImagingOrder</code> resulting into a <code>DiagnosticReport</code> whose search is
+    patient-scoped, which means there is no cross-patient way to notice it landed. "Overnight" was
+    asserting a same-night arrival that only a scheduled per-patient sweep could deliver. The row
+    now says the gate has resulted and is in the chart, which is true whenever the sweep gets to
+    it and does not claim when.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Reviewer bookkeeping was rendering as product data.</b> <em>1 of 12 waiting patients is
+    carried as a fixture</em> sat in a <code>role="status"</code> live region under the queue, where
+    a physician reads it as their queue being incomplete. It is in the
+    <code>wf-scaffold</code> note now. The live region kept its job and now carries the one line
+    that belongs to a physician: on the Abnormal results tab, that a critical value does not wait
+    for that list.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>A repository path was on the product surface.</b>
+    <em>docs/product/ROLE_AND_RELEASE_MATRIX_V1.md section 4</em> was a <code>Source</code> row in
+    the disclosure, which is a source-control path in front of a clinician and the same failure the
+    BRIEF's API rule exists to catch, in a different vocabulary. The disclosure says
+    <em>Role and Release Matrix, section 4</em>; the path lives here.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The sort control stayed on screen with nothing to sort. With two tabs that was a small
+    defect; with three it is a control that claims to order a list it cannot reach. It now leaves
+    with the queue it belongs to, and so does its status line.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>There was no way to log out, and no way to tell who was logged in.</b>
     <code>.prail__patient</code> names the patient, so across 21 screens nothing said whose session this
@@ -510,10 +778,10 @@
     and is held here rather than resolved locally.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span>The queue tabs filter. Each section declares which queues it belongs to, so switching is a filter
-    over what is on the page rather than two copies of a list. Arrow keys move between tabs and
-    <code>aria-selected</code> is the single source of truth. The live line under the control says how many
-    of a count are carried as fixtures, so a queue of 12 showing one row is legible rather than
-    broken.</span></p>
+    over what is on the page rather than three copies of a list. Arrow keys move between tabs and
+    <code>aria-selected</code> is the single source of truth. Critical results carry no
+    <code>data-queues</code> attribute, so the mechanism that filters the three queues has no way to
+    reach them.</span></p>
   <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">note</span>
     <span><b>All and Released are gone, one turn after being built.</b> <em>All 146</em> was the panel:
     same set, same count, same lifecycle sort, and the panel is a strict superset with search, row density
@@ -620,13 +888,21 @@
    name is the link text, so nothing is duplicated between markup and script and
    they cannot drift apart. */
 
+/* One vocabulary, nine states, identical to the table in panel.html. These
+   strings are the queue's sort key and they are also the label a work item is
+   queried back by, so a second wording for one state is not a synonym, it is a
+   second state. The inbox only renders the first six, but it carries all nine
+   so the two screens cannot drift. */
 const LIFECYCLE_RANK = {
-  "Review pending": 1,
+  "Physician review pending": 1,
   "Plan editing": 2,
-  "Ready for signature": 3,
+  "Plan ready for signature": 3,
   "Signature blocked": 4,
   "Physician hold": 5,
-  "Monitoring update requires review": 6
+  "Monitoring update requires review": 6,
+  "Results partially received": 7,
+  "Patient plan available": 8,
+  "Action tracking active": 9
 };
 
 (function () {
@@ -790,19 +1066,27 @@ const LIFECYCLE_RANK = {
 })();
 
 /* Queue tabs. Each section declares the queues it belongs to, so switching is a
-   filter over what is already on the page rather than four copies of a list.
-   Released has no fixture rows and says so instead of inventing forty-one.
-   aria-selected is the source of truth; the sections follow it. */
+   filter over what is already on the page rather than three copies of a list.
+   aria-selected is the source of truth; the sections follow it.
+
+   Critical results are deliberately not a tab and carry no data-queues, so no
+   filter can hide them.
+
+   The sort control belongs to the act queue and has nothing to order on the
+   other two tabs, so it leaves with them rather than sitting there inert. */
 (function () {
   var group = document.getElementById("ib-queues");
   var note = document.getElementById("ib-qnote");
+  var sortctl = document.getElementById("ib-sortctl");
+  var sortnote = document.getElementById("ib-sortnote");
   if (!group) return;
   var tabs = [].slice.call(group.querySelectorAll('[role="tab"]'));
   var sections = [].slice.call(document.querySelectorAll(".ib-section"));
 
   var NOTE = {
     needs: "",
-    waiting: "1 of 12 waiting patients is carried as a fixture."
+    waiting: "",
+    results: "Abnormal values and part-returned panels. A critical value never waits for this list."
   };
 
   function pick(tab) {
@@ -815,6 +1099,8 @@ const LIFECYCLE_RANK = {
     sections.forEach(function (sec) {
       sec.hidden = sec.getAttribute("data-queues").split(" ").indexOf(q) < 0;
     });
+    if (sortctl) sortctl.hidden = q !== "needs";
+    if (sortnote) sortnote.hidden = q !== "needs";
     note.textContent = NOTE[q] || "";
   }
 

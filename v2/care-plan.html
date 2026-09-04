@@ -72,6 +72,21 @@
   .ap-dstate { font-size: var(--size-small); color: var(--text-secondary); }
   .ap-dtitle { font-size: var(--size-h3); font-weight: var(--w-h3); color: var(--text-primary); }
   .ap-dmeta { margin-left: auto; font-size: var(--size-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  /* The note band. The document is not a form Aleron holds and then posts: the
+     chart note exists from the start of the cycle and every edit below is
+     staged inside it. That fact had no home on the surface, so the screen drew
+     a draft with no stated location. It sits under the document head and above
+     the body, on the inset ground, because it describes the frame rather than
+     any one section of it. */
+  .ap-dnote {
+    padding: var(--s-sm) var(--s-md);
+    border-bottom: var(--line-thin) solid var(--hairline);
+    background: var(--surface-inset);
+    font-size: var(--size-small);
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .ap-dnote b { color: var(--text-primary); font-weight: var(--w-emphasis); }
   /* Top padding is --air-group, not --s-md: at 16px the boundary between the
      draft header and the body read tighter than the 20px gaps inside a single
      problem, so the document ranked its own top edge below an internal one. */
@@ -472,6 +487,15 @@
             <span class="ap-dmeta">31 Aug 2026 &middot; Dr. A. Okafor</span>
           </div>
 
+          <p class="ap-dnote">
+            <b>Chart note NOTE-47M-0114, opened in Canvas 30 Aug 2026</b>, at the start of this cycle.
+            The note is where this draft lives: every problem and every order below is staged inside it,
+            and staged means saved in the chart and not acted on. Editing a line here edits the staged
+            order, removing one takes it back out, and an order you add joins the same note. Nothing
+            reaches the problem list until the note locks, and nothing transmits until the orders are
+            authorized.
+          </p>
+
           <div class="ap-body">
 
             <!-- Carried from v0/care-plan.html: the Indication field, the first
@@ -584,7 +608,7 @@
                     <span class="ap-pname">ATM pathogenic variant, heterozygous</span>
                     <span class="ap-pdx">Z15.09</span>
                   </span>
-                  <span class="ap-pmeta">confirmed &middot; will update existing problem &middot; matches existing genetics condition</span>
+                  <span class="ap-pmeta">confirmed &middot; will add to the existing entry &middot; matches existing genetics condition</span>
                                   <span class="ap-pcaret" aria-hidden="true">
                     <!-- non-nav icon, drawn to match canonical stroke grammar; not yet a ratified icon -->
                     <svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>
@@ -685,8 +709,9 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
 
           <p class="ap-docsig">
             <b>Unsigned.</b> On signature: 4 problems in the signed note &middot; 1 add to active list &middot;
-            1 update existing &middot; 2 note only &middot; 6 order intents remain unsent until they are
-            authorized separately &middot; the prescription is written into the note from Orders and signed in Canvas.
+            1 added to an existing entry, which is added to and never replaced &middot; 2 note only &middot;
+            6 orders staged in this note and still unsent until they are authorized separately &middot;
+            the prescription is written into the note from Orders and signed in Canvas.
           </p>
         </article>
 
@@ -711,6 +736,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
               <button class="amd-button" data-density="row" data-variant="secondary" type="button">Order something not listed</button>
             </div>
             <p class="rl-dim">A physician-added order needs a diagnosis association before it can join the draft. If nothing matches, adding the order creates the problem.</p>
+            <p class="rl-dim">Anything you add, edit or remove here changes the staged contents of chart note NOTE-47M-0114. The draft is the note, so there is no separate copy to reconcile and no submission to undo later.</p>
             <p class="rl-src"><a href="journal.html">View as the journal entry it will become</a></p>
           </div>
 
@@ -739,10 +765,10 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
 
               <dl class="pfacts">
                 <dt>Problems</dt><dd><span class="pval">4</span> included, <span class="pval">0</span> removed</dd>
-                <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> update existing, <span class="pval">2</span> note only</dd>
-                <dt>Orders</dt><dd><span class="pval">6</span> intents, all unsent. Order authorization is act 2.</dd>
+                <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> added to an existing entry, <span class="pval">2</span> note only</dd>
+                <dt>Orders</dt><dd><span class="pval">6</span> staged in this note, none sent. Order authorization is act 2.</dd>
                 <dt>Preview note</dt><dd>Current with the fields above &middot; hash <span class="pval">note 7a41 c0d9 be52 3f8e</span></dd>
-                <dt>On lock</dt><dd>Immutable note snapshot, Note PDF, and the legal-record DocumentReference in Canvas</dd>
+                <dt>On lock</dt><dd>Chart note NOTE-47M-0114 becomes an immutable snapshot and stops accepting changes. The 6 staged orders are frozen as they stand; an order added after this lock opens a new note for the same episode. <span class="wf-scaffold">Canvas documents that locking also produces the note PDF and the legal-record document. It did not reproduce on the staging instance, so treat the PDF as expected rather than confirmed.</span></dd>
               </dl>
 
               <label class="pattest">
@@ -751,7 +777,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
               </label>
               <label class="pattest">
                 <input type="checkbox">
-                <span>I understand that <b>6 pending orders remain unsent</b> after this act.</span>
+                <span>I understand that <b>6 staged orders remain unsent</b> after this act, and that locking the note is not what sends them.</span>
               </label>
 
               <div class="pcommit__acts">
@@ -764,6 +790,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
               <span class="pcommit__step">Revealed when ready</span>
               <h3>2. Order authorization</h3>
               <p>Authorizes the exact enumerated order set. A separate act with a separate attestation, because signing a note and transmitting an order are separate clinical commitments.</p>
+              <p>It is also separate from act 3, and stays that way. Confirming this set transmits the orders; releasing the plan decides only what the patient reads. Different audiences and different failure modes, and an order may transmit while the note is still an open draft.</p>
 
               <div class="preason">
                 <strong>Withheld until all of these clear</strong>
@@ -1020,11 +1047,13 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
                   <summary>Canvas linkage</summary>
                   <div class="pdisc__body">
                     <p>Section 7: patient visibility opens only after both the Aleron release authorization and the
-                    required Canvas linkage are satisfied. The note is locked and the DocumentReference is written;
-                    the Canvas note id links back on release.</p>
+                    required Canvas linkage are satisfied. The linkage is not something release creates. The chart
+                    note has existed since the cycle opened and the plan has been attached to it the whole time;
+                    what release adds is the package id and its hash, written onto that note.</p>
                     <dl class="pfacts">
-                      <dt>Note</dt><dd>Locked 31 Aug, 11:48</dd>
-                      <dt>Canvas note</dt><dd><span class="pna">links on release</span></dd>
+                      <dt>Chart note</dt><dd>NOTE-47M-0114 &middot; opened 30 Aug 2026 &middot; linked since the cycle opened</dd>
+                      <dt>Note state</dt><dd>Locked 31 Aug, 11:48</dd>
+                      <dt>On release</dt><dd>Package id and preview hash attach to the same note</dd>
                       <dt>Signing path</dt><dd>Aleron authorization, Canvas linkage</dd>
                     </dl>
                   </div>
@@ -1058,7 +1087,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
                   three acts stay legible as three; a live chart renders one moment, not three.</span></p>
 
                 <div class="rx-release">
-                  <h4 class="rx-spechead">Authorization blocked <span>Priya Raghunathan &middot; AL-44F &middot; the same act when the gating checks fail</span></h4>
+                  <h4 class="rx-spechead">Authorization blocked <span>Mara Chen &middot; AL-56F &middot; the same act when the gating checks fail</span></h4>
 
                   <div class="pbound">
                     <b>Authorization blocked</b>
@@ -1166,6 +1195,65 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
 
 <div class="wf-annotations">
   <p class="wf-annotations__label">What changed, and where it came from</p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>The order set is a real editable draft, and the draft is a Canvas note.</b> The user story
+    has the physician reviewing, modifying, removing and adding orders, and dispositioning is not editing.
+    Junction settles where the editing has to happen: <code>PATCH /v3/order/{id}</code> accepts exactly one
+    field, <code>activate_by</code>, so nothing is editable after submission and the draft has to precede
+    it. Strict data residency settles where the draft lives: nothing patient-linked sits in Aleron
+    (audit Part 5, decision 2). What is left is a Canvas note holding staged, uncommitted commands.
+    <code>CREATE_NOTE</code> at the start of the cycle, each proposed order originated as a staged command,
+    <code>edit()</code> to modify one, <code>delete()</code> to remove one, another <code>originate()</code>
+    to add one. So the rail now offers <b>Edit this order</b> and <b>Remove, with a reason</b> where it
+    offered <em>Modify</em> and <em>Reject</em>, and the note band says what staged means.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Note creation is drawn.</b> It was undrawn on every screen in the set and everything
+    downstream needs the <code>note_uuid</code>: no command can be originated without one, so the note
+    is the first act of the cycle rather than a consequence of locking. The document now opens with the
+    note band naming the note and its open date, the workbench rail names the same note on every staged
+    change, and act 3's Canvas linkage stops deferring a link it has had since the cycle began.</span></p>
+  <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
+    <span><b>What this costs, stated plainly.</b> Two things follow from putting the draft in the chart.
+    The chart accumulates open notes carrying staged orders, and clinicians working in Canvas will see
+    them, including orders a physician is still deciding about. And the Note API has <b>no state
+    filter</b>, so Aleron cannot list its own drafts back: a physician's open drafts have to be found by
+    an id Aleron holds elsewhere, or not at all. Neither is fixable at the screen; both are the price of
+    decision 2.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>Update existing had no path, and this is now confirmed empirically rather than read off a
+    doc page.</b> A <code>PUT</code> on a Canvas <code>Condition</code> with a changed
+    <code>onsetDateTime</code> returned <code>422</code> on the live instance and the value did not
+    persist; the only supported update is marking one entered in error
+    (<code>docs/INSTANCE-FINDINGS.md</code>, C2). The route for a matched problem is the SDK
+    <code>Assess</code> command against the existing <code>condition_id</code>, which adds to the entry
+    rather than revising it. Problem 3's meta line, the rail's disposition control, the document
+    signature line and act 1's fact list all said <em>update existing</em> and all four now say what
+    actually happens: the existing entry is added to, never replaced.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The lock artefacts are hedged, because they did not reproduce.</b> The card asserted that
+    locking produces the note PDF and the legal-record <code>DocumentReference</code>. Canvas documents
+    exactly that, but on <code>aleronmd-dev</code> a note reached <code>LKD</code> cleanly and the
+    patient's <code>DocumentReference</code> count stayed at zero, instance-wide total zero
+    (<code>docs/INSTANCE-FINDINGS.md</code>, U1). Async generation, a note type that produces one, or
+    <code>SGN</code> rather than <code>LKD</code> could all explain it. So the surface states the one
+    thing that is certain, that the note becomes immutable, and the documented-but-unreproduced part is
+    marked as scaffolding rather than asserted or denied.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span><b>Order authorization and patient release stay separate, and act 2 now says why.</b>
+    Confirming the order set transmits orders; releasing the plan decides what the patient reads. They
+    have different audiences and different failure modes, and orders may transmit while the note is
+    still an open draft. Act 2 also states the one direction the note constrains: it freezes the staged
+    orders, and an order added after the lock opens a new note for the same episode rather than
+    failing (Part 5, decision 11).</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The blocked specimen invented a third patient, <em>Priya Raghunathan, AL-44F</em>. BRIEF fixes
+    two fixtures and forbids a third, so the specimen is AL-56F Mara Chen, who is available and carries
+    no values this specimen depends on.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The obligation fixture said an obligation <em>cannot be rejected</em>, which the screen's own
+    controls contradict: a required channel offers include, defer with a reason, or document an
+    exception. BRIEF is explicit that must be dispositioned is not must be accepted. The three fixture
+    strings now say what is actually forbidden, which is dropping one silently.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>The prescription carve-out was right and had never been given a reason.</b> Every version of
     it said sign-off is "a native, prescriber-only act", which is an assertion. The reason is stronger
@@ -1507,9 +1595,9 @@ const CARE_PLAN = {
     p3: {
       num: "3.", name: "ATM pathogenic variant, heterozygous", dx: "Z15.09",
       certainty: "Confirmed. Reported P/LP on the MBTA 163-gene panel, resulted 23 Jun 2026.",
-      onSignature: "Will update the existing problem rather than adding a second entry.",
+      onSignature: "Adds to the existing entry rather than creating a second one. The entry is added to, never replaced.",
       canvasMatch: "Matches an existing Canvas genetic-susceptibility condition.",
-      status: "Confirmed", disposition: "Update existing"
+      status: "Confirmed", disposition: "Add to existing"
     },
     p4: {
       num: "4.", name: "Health maintenance", dx: "Z12.11",
@@ -1544,21 +1632,21 @@ const CARE_PLAN = {
       source: "Required channel, from the genetics library. Not ranked against scored opportunities.",
       dxAssoc: "problem 3, ATM pathogenic variant, Z15.09.",
       body: "An obligation triggered by the P/LP result, not an opportunity weighed against other actions.",
-      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+      obligation: "Obligation. Include it, defer it with a reason, or document an exception. What it cannot be is dropped in silence."
     },
     o5: {
       name: "Family-history gate: breast, pancreatic, prostate",
       source: "Required channel, from the genetics library.",
       dxAssoc: "problem 3, ATM pathogenic variant, Z15.09.",
       body: "Cascade documentation. Pancreatic surveillance is conditional on a first-degree history, so this gate decides whether that pathway opens at all.",
-      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+      obligation: "Obligation. Include it, defer it with a reason, or document an exception. What it cannot be is dropped in silence."
     },
     o6: {
       name: "Colorectal cancer screening: colonoscopy or FIT",
       source: "Required channel, from the preventive-care rules.",
       dxAssoc: "problem 4, health maintenance, Z12.11.",
       body: "Modality is the patient choice: colonoscopy is a referral every 10 years, FIT is a lab every year. No catalog entry resolves until one is picked, so this order cannot transmit in its current state.",
-      obligation: "Obligation. Address it or document why not; it cannot be rejected."
+      obligation: "Obligation. Include it, defer it with a reason, or document an exception. What it cannot be is dropped in silence."
     }
   }
 };
@@ -1591,12 +1679,12 @@ const CARE_PLAN = {
       (p.edited ? "<dt>Provenance</dt><dd>" + esc(p.edited) + "</dd>" : "") +
       "</dl>" +
       seg("Diagnostic certainty", "rl-ax-status", ["Confirmed", "Provisional", "Monitoring"], p.status) +
-      seg("Problem-list disposition", "rl-ax-disp", ["Add", "Update existing", "Note only"], p.disposition) +
+      seg("Problem-list disposition", "rl-ax-disp", ["Add", "Add to existing", "Note only"], p.disposition) +
       '<div class="rl-acts">' +
       '<button class="amd-button" data-variant="secondary" data-density="row" type="button">Edit framing</button>' +
       '<button class="amd-button" data-variant="hazard" data-density="row" type="button">Remove problem and its orders</button>' +
       "</div>" +
-      '<span class="rl-dim">Problem changes are staged here. They crystallize only when the note is signed.</span>';
+      '<span class="rl-dim">Problem changes are staged in chart note NOTE-47M-0114 as you make them. They crystallize only when the note is locked.</span>';
   }
 
   function orderCard(o) {
@@ -1608,11 +1696,16 @@ const CARE_PLAN = {
       (o.carveOut ? '<p class="rl-src"><b>Prescription carve-out:</b> ' + esc(o.carveOut) + "</p>" : "") +
       (o.obligation ? '<p class="rl-src"><b>Required channel:</b> ' + esc(o.obligation) + "</p>" : "") +
       '<div class="rl-acts">' +
+      '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Edit this order</button>' +
       (o.obligation
         ? '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Document exception</button>'
-        : '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Reject</button>') +
-      '<button class="amd-button" data-density="row" data-variant="secondary" type="button">Modify</button>' +
-      "</div>";
+        : '<button class="amd-button" data-density="row" data-variant="hazard" type="button">Remove, with a reason</button>') +
+      "</div>" +
+      '<span class="rl-dim">Editing changes the staged order in the note. Removing takes it back out of the note. ' +
+      (o.obligation
+        ? "A required item cannot be removed, only deferred or excepted, and either records your reason."
+        : "The reason is kept with the note and is not patient-safe copy.") +
+      " Nothing here transmits: that is order authorization.</span>";
   }
 
   function all() {
