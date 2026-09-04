@@ -1,3 +1,22 @@
+> # ⚠ SUPERSEDED — do not act on this document
+>
+> Two of its foundations are wrong:
+>
+> 1. **Its evidence base is legacy.** Sections 3, 7 and 8 analyse
+>    `JunctionController`, `GeneticsOrderService`, `PhysicianOrderPlacer` and
+>    `OrderCanvasRecorder` as the current model. Those controllers are old and
+>    built against superseded designs. Their behaviour describes what is being
+>    replaced, not what is intended.
+> 2. **Its direction is backwards.** It treats the designs as settled and asks
+>    which of them the code contradicts. The correct direction is the reverse:
+>    the APIs constrain what is possible, and the designs must follow.
+>
+> The question it asks is also answered. Every order is attributed to the
+> physician logged into Aleron, which places Aleron in Junction's **Flow 2**.
+>
+> Being replaced by a master ordering document. The Junction flow definitions in
+> §4 and the source register in §11 remain accurate and are carried forward.
+
 # Decision brief: who is the ordering physician on an Aleron lab order?
 
 **For:** the medical director.
