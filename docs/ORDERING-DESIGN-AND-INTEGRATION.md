@@ -45,8 +45,8 @@ prescription (§3).
 | **F1** | **Canvas attributes a write to whoever authenticated the request.** A plugin route called with an OAuth Authorization Code access token records that staff member as the actor — *"the note is signed and recorded in Canvas as signed by the staff member who authorized the access token."* An API key records **Canvas Bot** instead. | [`/sdk/handlers-simple-api-http/`](https://docs.canvasmedical.com/sdk/handlers-simple-api-http/), [`/guides/writing-commands-over-http/`](https://docs.canvasmedical.com/guides/writing-commands-over-http/) |
 | **F2** | **Every command and effect is plugin-gated.** `CommandAPI` is a Python base class you subclass inside a plugin to *create* an endpoint at `/plugin-io/api/<plugin>/`; it is not an API Canvas hosts. The only externally-reachable Canvas surfaces are FHIR and the Note API. | [`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/) |
 | **F3** | **`send` is the only command action available through the SDK**, for `LabOrder`, `Prescribe`, `Refill` and `AdjustPrescription`. `sign_action` is a **Canvas UI button**, not an HTTP action. Only `ImagingOrder` and `Refer` publish a real `sign()`. | [`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/) |
-| **F4** | **Junction's Flow 2 is a lab-account flag, not a payload choice.** `delegated_flow` ∈ `{order_delegated, result_delegated, fully_delegated, not_delegated}`, and delegation applies *"only when you're using your own lab account or a Junction subaccount. If you only order with Junction platform accounts, these are non-delegated and orders will continue to use our physicians."* | [`GET /v3/lab_test/lab_account`](https://docs.junction.com/api-reference/lab-testing/get-lab-account), Junction changelog, May 2026 |
-| **F5** | **A Junction order cannot be edited after submission.** `PATCH /v3/order/{id}` accepts exactly one field, `activate_by`. Cancellation is impossible past `partial_results`. | [`PATCH /v3/order`](https://docs.junction.com/api-reference/lab-testing/update-order) |
+| **F4** | **Junction's delegated flow is a lab-account setting, not a payload choice.** `ClientFacingLabAccount.delegated_flow` is a **required** field, and delegation applies *"only when you're using your own lab account or a Junction subaccount. If you only order with Junction platform accounts, these are non-delegated and orders will continue to use our physicians."* | [`GET /v3/lab_test/lab_account`](https://docs.junction.com/api-reference/lab-testing/lab_accounts), [changelog, May 2026](https://docs.junction.com/changelog/lab-testing/api) |
+| **F5** | **A Junction order cannot be edited after submission.** `PATCH /v3/order/{id}` accepts exactly one field, `activate_by`. Cancellation is impossible past `partial_results`. | [`PATCH /v3/order`](https://docs.junction.com/api-reference/lab-testing/patch-order), [cancel order](https://docs.junction.com/api-reference/lab-testing/cancel-order) |
 
 **F1 is why priority 1 works.** **F5 is why the user story's "review, modify,
 remove, add" must be a draft inside Aleron rather than post-submission editing —
@@ -71,20 +71,54 @@ Neither is engineering work. Both gate the build.
 
 ### 2.1 A delegated Junction lab account — gates priority 1
 
-Priority 1 requires the order to name the logged-in physician. Per **F4**, that
-requires a `delegated_flow` other than `not_delegated`, which requires **Aleron's
-own certified lab account or a Junction subaccount**. On a Junction platform
-account, orders use Junction's physicians regardless of what the payload says.
+Priority 1 requires the order to name the logged-in physician. Per **F4** that
+needs a delegated lab account. On a **Junction platform account** it cannot work:
+*"If you only order with Junction platform accounts, these are non-delegated and
+orders will continue to use our physicians"* — regardless of what the payload
+says.
 
-`order_delegated` = *"Ordering using client's physicians, critical result follow
-up via Junction"*. `fully_delegated` = *"Order and critical results handled by
-client."* **Which one Aleron is assigned decides whether Junction still phones
-your patients about critical results** — that is a clinical-operations question,
-not a technical one.
+The four settings, quoted verbatim from `LabAccountDelegatedFlow`:
 
-**Ask Junction, before anything is built:** which `delegated_flow` is available
-to us, does it require our own Labcorp/Quest certification, what is the lead
-time, and under `fully_delegated` who contacts a patient with a critical result?
+| Value | Junction's description | Satisfies priority 1? |
+|---|---|---|
+| `order_delegated` | *"Ordering using client's physicians, critical result follow up via Junction"* | Yes, and Junction keeps critical-result follow-up |
+| `result_delegated` | *"Ordering using Junction's Physician Network, critical results handled by client"* | **No** — this is the inverse |
+| `fully_delegated` | *"Order and critical results handled by client"* | Yes, and Aleron owns critical follow-up too |
+| `not_delegated` | *"Junction handles both ordering and results"* | No — where a platform account leaves you |
+
+**Two things make this lighter than it first appears.**
+
+1. **A Junction subaccount may be enough.** Delegation *"only applies when
+   you're using your own lab account **or a Junction subaccount**"*. Junction's
+   own worked example describes *"a non-delegated Junction subaccount"*, so
+   subaccounts come both ways — meaning the question is whether a **delegated
+   subaccount** is available to us, not necessarily whether we must certify our
+   own Labcorp or Quest account. That is a far smaller lift and it should be the
+   first thing asked.
+2. **Enforcement is not yet live.** The changelog section is titled *"Lab account
+   delegation status enforced (May 2026)"* and says *"we will soon be
+   enforcing"*, with *"a grace period to give you time to ensure your
+   integration is always supplying a physician for delegated orders."* Until
+   then *"even if the order should be delegated, we would allow a fallback to
+   using Junction physicians if a physician wasn't provided."* So a delegated
+   account that silently falls back to Junction's physicians is possible today
+   and will stop being possible — build as though enforcement is on, because a
+   silent fallback is precisely a violation of priority 1 that nothing surfaces.
+
+Delegation applies to **Labcorp, Quest and Sonora Quest**. Junction also
+recommends *"specifying the lab account ID in requests"* whenever possible, so
+`lab_account_id` should be sent rather than left to inference.
+
+**Ask Junction, before anything is built:**
+1. Is a **delegated subaccount** available to us, or does `order_delegated`
+   require our own certified Labcorp/Quest account? What is the lead time?
+2. `order_delegated` or `fully_delegated` — because that decides **whether
+   Junction still phones our patients** about critical results.
+3. When does the grace period end?
+
+Check the current state directly: `GET /v3/lab_test/lab_account` team-level, or
+the [org-level endpoint](https://docs.junction.com/api-reference/org-management/lab-accounts/get-lab-accounts)
+for every account at once. `delegated_flow` is in both responses.
 
 Once delegated, supplying `physician` becomes **mandatory per order** — the
 invariant priority 1 wants, enforced by the vendor rather than remembered by us.
@@ -317,7 +351,12 @@ Required per order: `user_id`, `patient_details`
 `patient_address` (`first_line`, `city`, `state`, `zip`, `country`).
 
 The `physician` object requires only **`first_name`, `last_name`, `npi`**;
-`email` and `licensed_states` are optional. Two cautions:
+`email` and `licensed_states` are optional, and the object is **embedded per
+order every time** — the only physician endpoint is read-only
+[`GET /v2/team/{team_id}/physicians`](https://docs.junction.com/api-reference/lab-testing/get-team-physicians),
+returning `{first_name, last_name, npi}` with no POST, PATCH or DELETE. There is
+no physician registration or credentialing step at Junction; the gate is the lab
+account. Two cautions:
 
 - **`licensed_states` is typed bare `string[]`**, not the `USState` enum the same
   spec uses elsewhere, and **no cross-check against `patient_address.state` is
@@ -329,9 +368,13 @@ The `physician` object requires only **`first_name`, `last_name`, `npi`**;
   onto a requisition, and there is no signing endpoint in the API. **Do not
   design on it** without checking a sandbox requisition PDF (§6, T4).
 
+**Send `lab_account_id`.** Junction recommends it explicitly — *"whenever
+possible, we recommend specifying the lab account ID in requests"* — and it is
+what determines whether an order runs delegated at all (§2.1). The account also
+carries a `default_clinical_notes`.
+
 Also worth sending, all currently unused: `icd_codes`, `clinical_notes`
-(**120-character cap**), `billing_type`, `activate_by`, `priority`,
-`lab_account_id`.
+(**120-character cap**), `billing_type`, `activate_by`, `priority`.
 
 ### 5.4 Results back into the chart
 
@@ -442,10 +485,13 @@ Ordered by how much they would change if the answer surprises us.
 | Fact | Source |
 |---|---|
 | The three physician flows and their responsibility language | [Order and Follow-up Physician](https://docs.junction.com/lab/overview/physicians) |
-| `delegated_flow` enum and its mapping to the flows | [Get lab account](https://docs.junction.com/api-reference/lab-testing/get-lab-account) |
-| Delegation requires own or sub- lab account | Junction changelog, [lab testing API](https://docs.junction.com/changelog/lab-testing/api) |
+| `delegated_flow`, all four members with descriptions; `ClientFacingLabAccount` | [Get lab accounts](https://docs.junction.com/api-reference/lab-testing/lab_accounts) |
+| Org-level view of every lab account | [Org management, get lab accounts](https://docs.junction.com/api-reference/org-management/lab-accounts/get-lab-accounts) |
+| Delegation needs own or sub- account; enforcement grace period; `lab_account_id` recommended | [Changelog, lab testing API](https://docs.junction.com/changelog/lab-testing/api) |
+| Read-only team physician list | [Get team physicians](https://docs.junction.com/api-reference/lab-testing/get-team-physicians) |
 | `create-order` schema; `physician` object; `clinical_notes` 120-char cap | [Create order](https://docs.junction.com/api-reference/lab-testing/create-order) |
-| `PATCH` accepts only `activate_by`; no post-submission edits | [Update order](https://docs.junction.com/api-reference/lab-testing/update-order) |
+| `PATCH` accepts only `activate_by`; no post-submission edits | [Patch order](https://docs.junction.com/api-reference/lab-testing/patch-order) |
+| Cancellation window | [Cancel order](https://docs.junction.com/api-reference/lab-testing/cancel-order) |
 | `BiomarkerResult` fields | [Get results](https://docs.junction.com/api-reference/lab-testing/results/get-results) |
 | Critical results, and the ordering-physician contradiction | [Critical Results](https://docs.junction.com/lab/results/critical-results) |
 | Result formats, PDFs, structured data | [Result Formats](https://docs.junction.com/lab/results/result-formats) |

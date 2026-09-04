@@ -6,7 +6,8 @@
     "start": "node scripts/serve.js",
     "check": "node scripts/check.js",
     "build": "node scripts/build-offline.js",
-    "verify-canvas": "node scripts/verify-canvas.js"
+    "verify-canvas": "node scripts/verify-canvas.js",
+    "verify-links": "node scripts/verify-doc-links.js"
   },
   "dependencies": {
     "express": "^5.2.1"
