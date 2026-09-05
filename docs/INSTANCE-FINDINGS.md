@@ -27,6 +27,37 @@ Reproduce: `cd ../aleron-canvas-test && node --env-file=script.env verify-api.mj
 | **X2** | **The Note API returns a real `permalink`.** A locked note came back with `"permalink": "/permalinks/v1/Tm90ZTo5Njo0"`, which resolves — `302 → /login?next=/permalinks/…`, a genuine UI route that lands on the note after auth. | **The prescription hand-off is a supported link, not a URL constructed by convention.** ORDERING §4.7 and Part 5 decision 9 both assume no contract and prescribe a 404 fallback. Use `note.permalink`. |
 | **X3** | **`QuestionnaireResponse` has no create at `user` scope.** Granted scope is `user/QuestionnaireResponse.rs`, while `patient/QuestionnaireResponse.crus` has create and update. | Writing a patient-reported outcome may need a **patient-scoped** token, not a staff one. The documents call this "the cheapest fix in the audit" without accounting for the token. Still unconfirmed by a write test. |
 
+## X4 — attribution has two mechanisms, and they are not the same one
+
+**Corrects a conflation in this project, including the probe built to test it.**
+
+| Surface | Grant | How the physician gets named |
+|---|---|---|
+| **Note API** (`/core/api/notes/v1/Note`) | **`client_credentials`** — the documented example is `grant_type=client_credentials` | the **`providerKey` field**, *"the unique key of the Provider staff who is writing the Note"* |
+| **Plugin effects and commands** | **`authorization_code`** access token | the **token holder**, per F1 |
+
+Verified on the instance: a note written with the service token carries
+`providerKey` naming a real, active practitioner. **"Canvas Bot" is the actor of
+the API call, not the author of the note.** Those are different records and this
+project treated them as one.
+
+Consequences:
+
+1. **The `403` on an `authorization_code` token was expected behaviour**, not a
+   Canvas role to grant. The Note API is not built for per-user tokens.
+2. **The attribution probe tested the wrong surface.** Notes are not a valid
+   proxy for command attribution, and the question priority 1 actually turns on
+   — whose name is on an *order* — remains untested. It cannot be tested without
+   a deployed plugin, which was already the case before the probe was written.
+3. **Priority 2 gets cheaper.** Saving order history into the chart as notes
+   needs `client_credentials` plus a correct `providerKey`, not per-physician
+   OAuth enrolment. §2.2 of the ordering document gates priorities 1 *and* 2 on
+   that enrolment; only priority 1 needs it, and only for commands.
+
+What is still open: whether a plugin route authenticated with a physician's
+token attributes a *command* to that physician. That is F1, it is the load-bearing
+claim for priority 1, and nothing tested so far touches it.
+
 ## Unconfirmed — do not present as settled
 
 | # | Finding | Status |

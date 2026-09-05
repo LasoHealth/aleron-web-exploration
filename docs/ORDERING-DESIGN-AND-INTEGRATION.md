@@ -158,7 +158,14 @@ enforcement arrives.
 Junction also recommends *"specifying the lab account ID in requests"* whenever
 possible, so send `lab_account_id` rather than leaving the account to inference.
 
-### 2.2 Per-physician Canvas OAuth enrolment — gates priorities 1 and 2
+### 2.2 Per-physician Canvas OAuth enrolment — gates priority 1 only
+
+> **Narrowed by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X4.** Canvas has two
+> attribution mechanisms and this section originally treated them as one. The
+> **Note API** takes `client_credentials` and names the clinician in its
+> `providerKey` field, so **priority 2 — order history in the chart — needs no
+> per-physician enrolment at all.** Enrolment is required for *commands*, which
+> is priority 1, and remains untested until a plugin exists.
 
 Per **F1**, attribution follows the token. Staff-session auth also works but
 needs a Canvas session cookie, which a third-party origin cannot hold. So
