@@ -301,17 +301,21 @@ The mechanism is not a per-order document. It is the note: staged and signed
 commands live in it, and locking it via `PATCH /core/api/notes/v1/Note` with
 `stateChange` — externally callable — makes it immutable.
 
-> **Corrected by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5.** This section
-> said locking *"generates the PDF **and** the FHIR `DocumentReference`"*, which
-> is what [`/api/note/`](https://docs.canvasmedical.com/api/note/) states and
-> what the instance contradicts: **11 locked notes, 0 documents.** The two
-> documents that exist belong to the two notes at `SGN`, and the API refuses
-> that transition. **Aleron cannot cause the legal-record PDF from outside
-> Canvas.** The note still carries the order history and is still the record;
-> it is the *document* that Aleron cannot produce. If a filed PDF is required,
-> the pathway is Aleron composing one and writing it to
-> [`DocumentReference` create](https://docs.canvasmedical.com/release-notes/docref-create/)
-> — an Aleron artefact, not Canvas's rendering of the note.
+> **Corrected twice; [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X7 is current.**
+> This section said locking *"generates the PDF **and** the FHIR
+> `DocumentReference`"*, which is what
+> [`/api/note/`](https://docs.canvasmedical.com/api/note/) states and what the
+> instance contradicts: **14 locked notes, 0 documents.** **Signing is what
+> generates them** — the first note signed produced a document within five
+> seconds, `period.start` matching exactly.
+>
+> `stateChange` refuses `SGN`, but `POST /api/NoteStateChangeEvent/` reaches it
+> and accepts a `client_credentials` token, so **the sequence is Aleron's to
+> perform: create, lock, sign.** That endpoint is **undocumented as HTTP** —
+> Canvas's own front end calling itself — so priority 2 rests on something
+> Canvas has not promised to keep. The supported alternative is a plugin
+> `SignNoteActionButton` in the note footer, which is a physician click rather
+> than a headless call. Vendor question 9 asks Canvas to settle this.
 
 For Junction labs, the chart also needs the results, which arrive as **real
 values** via `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` — units, reference
@@ -501,12 +505,18 @@ Ordered by how much they would change if the answer surprises us.
    or only a state transition? Every `sign_action` is documented as
    staged → committed, never as an attestation.
 9. **[Note → Update](https://docs.canvasmedical.com/api/note/#update) says
-   locking generates the PDF and the `DocumentReference`. On `aleronmd-dev` it
-   does not** — 11 API-locked notes, 0 documents ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5).
-   Is generation gated on something the sentence omits, such as the UI's
-   `Create PDF` action or the `SGN` state, and is there **any** API-reachable way
-   for a partner application to cause the legal-record PDF? `stateChange` does
-   not admit `SGN`, so today there appears to be none.
+   locking generates the PDF and the `DocumentReference`. Signing is what does**
+   ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X7) — 14 API-locked notes produced
+   0 documents; one signature produced one. Will Canvas correct the page?
+10. **`stateChange` cannot reach `SGN` or `DLT`, but `POST
+    /api/NoteStateChangeEvent/` can, and it accepts a `client_credentials`
+    token.** That endpoint is undocumented. **Will Canvas support it, or name
+    the supported headless equivalent?** Without one, a partner application
+    cannot sign or delete a note except by putting a button in the Canvas UI for
+    a physician to click.
+11. The same endpoint records a **named human** — the OAuth application's owner
+    — where the v1 Note API records **Canvas Bot**, on one identical token. Is
+    that intended, and is the owner configurable per call?
 
 ---
 

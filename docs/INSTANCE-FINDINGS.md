@@ -60,6 +60,11 @@ claim for priority 1, and nothing tested so far touches it.
 
 ## X5 — locking over the API does not generate the PDF, and the API cannot reach the state that does
 
+> **Half superseded by X7.** The measurements below stand: the v1 REST Note API
+> cannot reach `SGN`, and locking generates nothing. The conclusion drawn from
+> them — that Aleron cannot produce the PDF at all — is **wrong**. Signing does
+> it, and `/api/NoteStateChangeEvent/` reaches `SGN`.
+
 **Resolves U1. Corrects Canvas's own documentation for this instance.**
 
 [**Note → Update → `stateChange`**](https://docs.canvasmedical.com/api/note/#update)
@@ -103,6 +108,10 @@ giving, or is a separate step nobody will remember.
 
 ## X6 — a note cannot be removed, and a signed note's title can still be changed
 
+> **Half superseded by X7.** The title finding stands. "Nothing is removable"
+> is **wrong**: it is unreachable over the v1 REST API, but
+> `/api/NoteStateChangeEvent/` deletes with `DLT`, reversibly.
+
 Two halves of one question: **what does the Note API let you undo?**
 
 **Nothing is removable.** `DELETE /Note/{key}` answers
@@ -137,6 +146,98 @@ Consequences:
 3. The harness at `aleron-canvas-test/notes` makes all of this pressable —
    `Delete` attempts both routes and shows what Canvas said; `Void` retitles,
    which is the only cleanup that works.
+
+## X7 — `NoteStateChangeEvent`: signing makes the PDF, and delete exists after all
+
+**Overturns the "unreachable" halves of X5 and X6.** Found by watching the
+Canvas UI delete a note in the browser's network tab:
+`POST /api/NoteStateChangeEvent/` with `{noteId, state: "DLT", noteChecksum,
+lastModifiedBySessionKey}`.
+
+### Where it is documented
+
+`NoteStateChangeEvent` is documented, but **only as a plugin SDK concept, never
+as an HTTP endpoint**:
+
+| Where | What it says |
+|---|---|
+| [SDK data — Note](https://docs.canvasmedical.com/sdk/data-note/) | `NoteStateChangeEvent` is the note's audit history, reachable as `note.state_history`. `CurrentNoteStateEvent` holds the present state. |
+| [SDK events](https://docs.canvasmedical.com/sdk/events/) | `NOTE_STATE_CHANGE_EVENT_PRE_CREATE`, `_CREATED`, `_UPDATED`. The pre-create event **can block a transition** by returning an `EventValidationError` effect. |
+| [SDK action buttons](https://docs.canvasmedical.com/sdk/handlers-action-buttons/) | `NoteStateActionButton`, with `LockNoteActionButton` and `SignNoteActionButton`. Its transition table includes **`NoteStates.DELETED`** and **`NoteStates.SIGNED`**. |
+| [Release notes](https://docs.canvasmedical.com/product-updates/release-notes/) | *"Adds NoteStateChangeEvent to the data module for improved note event tracking."* |
+
+The SDK page also says the locked note's PDF is *"stored on a
+`DocumentReference` pointing back at the `NoteStateChangeEvent` that recorded
+the lock"* — a generic foreign key, reached through `note.state_history`, not
+from the note. And: *"Only encounter, inpatient, and review note types are
+captured this way."*
+
+### What the endpoint actually does
+
+`POST /api/NoteStateChangeEvent/` is **undocumented**, and it **accepts a
+`client_credentials` bearer token**. It needs two ids, neither of them the
+`noteKey`:
+
+- **`noteId`** — an integer, carried base64 in the note's own `permalink`:
+  `Tm90ZTo5NjoxNg==` decodes to `Note:96:16`.
+- **`noteChecksum`** — optimistic concurrency, readable at `GET /api/Note/{noteId}`.
+  A stale one is refused `409 "This note is out of date."`
+- `lastModifiedBySessionKey`, present in the captured UI payload, is **not required**.
+
+`GET /api/Note/{noteId}` also returns the note type's own
+**`stateTransitionMatrix`**, which is far richer than the REST API's:
+
+| From | Permitted |
+|---|---|
+| `NEW` / `ULK` / `PSH` / `CVD` / `UND` | Lock `LKD`, Push charges `PSH`, **Delete `DLT`** |
+| `LKD` | Unlock `ULK`, **Sign `SGN`** |
+| `SGN` | Amend `ULK`, Sign `SGN` |
+| `DLT` | **Restore `UND`** |
+
+### Measured on the instance
+
+| Act | Result |
+|---|---|
+| `DLT` via the endpoint | **`201`**, note reaches `DLT`. **17 of 17 test notes deleted.** Soft and reversible via `UND`. |
+| `SGN` via the endpoint | **`201`**, note reaches `SGN` |
+| `DocumentReference` after that `SGN` | **`2 → 3` within 5 seconds**, `period.start` matching the note's `datetimeOfService` exactly |
+| `LKD` via the **same** endpoint | `201`, and **no document, ever** |
+
+**So signing generates the PDF, not locking** — and it is the transition, not
+the endpoint. Both Canvas pages attribute it to the lock; on this instance 14
+locked notes produced none and the first signature produced one.
+
+### Attribution differs by surface, on one identical token
+
+State history of a note created, locked and signed with the *same*
+`client_credentials` token:
+
+```
+NEW | Canvas Bot created this note
+LKD | Canvas Bot locked this note
+SGN | Kaede Ito signed this note
+```
+
+The v1 Note API records **Canvas Bot**; `/api/NoteStateChangeEvent/` records a
+**named human** — the OAuth application's owner. A third attribution mechanism,
+after the two in X4, and still not "the physician who is logged into Aleron".
+
+### What this means for the design
+
+1. **X5's "Aleron cannot produce the legal-record PDF" is wrong.** It can:
+   lock, then sign. §4.5 and the EMR screen need revising again.
+2. **X6's "a note cannot be withdrawn" is wrong.** `DLT` works and `UND`
+   reverses it, so a mistaken note is recoverable.
+3. **Both depend on an undocumented endpoint.** Canvas's own front end calls
+   it and nothing obliges Canvas to keep it stable. Building priority 2 on it
+   is a deliberate risk, not a free win — **vendor question 9 should now ask
+   Canvas to support it, or to say what the supported equivalent is.**
+4. **A plugin reaches the same transitions supported:** `NoteStateActionButton`
+   with `STATE_ACTION = NoteStates.SIGNED` / `DELETED`. That is a physician
+   clicking a button Aleron placed in the Canvas note footer — documented,
+   stable, but not headless.
+5. **`NOTE_STATE_CHANGE_EVENT_PRE_CREATE` can block a transition.** Aleron
+   could refuse a lock whose orders are inconsistent, from inside Canvas.
 
 ## Still untestable without more setup
 
