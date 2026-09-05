@@ -364,6 +364,12 @@ If you are still reading, these three facts override anything above that conflic
   `currentState`, `patientKey`, `providerKey`, `practiceLocationKey`,
   `noteTypeName`, `noteTypeSystem`, `noteTypeCoding`.
 
+> **Corrected by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5.** Locking over
+> the API generates **neither** the PDF nor the `DocumentReference` on
+> `aleronmd-dev`: 11 locked notes hold 0 documents, the only 2 documents belong
+> to the only 2 notes at `SGN`, and `stateChange` refuses `SGN`. The claim below
+> is Canvas's documentation, not this instance's behaviour.
+
 **The consequence that matters:** `stateChange` **locks** a note, and locking is
 what "generat[es] PDFs and FHIR DocumentReference records". So Aleron does not
 construct a DocumentReference for a locked note — **it locks the note and Canvas

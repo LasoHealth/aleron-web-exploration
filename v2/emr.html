@@ -171,10 +171,10 @@
                   <td><span class="pval">cvs-note-4471aa</span>
                     <small class="pledger__prov"><span class="pna">no document id yet</span></small>
                   </td>
-                  <td>Locked 11:49 &middot; <span class="punmod">legal PDF unconfirmed</span>
-                    <small class="pledger__prov">Locking the note is what fixes everything in it. Canvas is meant to produce the legal-record PDF and
-                    the DocumentReference that carries it at that moment; on this instance the lock took cleanly and no document
-                    appeared, so this row shows the PDF as unconfirmed rather than filed. Attribution: Dr. A. Okafor, practitioner
+                  <td>Locked 11:49 &middot; <span class="punmod">no legal PDF</span>
+                    <small class="pledger__prov">Locking the note is what fixes everything in it, and that is all it does. The legal-record PDF and the
+                    DocumentReference that carries it are made by an act inside Canvas that Aleron has no way to perform, so this
+                    row shows the lock as done and the PDF as absent rather than filed. Attribution: Dr. A. Okafor, practitioner
                     <span class="pval">prac-9f2c41</span>.</small>
                   </td>
                 </tr>
@@ -513,15 +513,16 @@
     Two rows were added for what the lab route puts in the chart on the way back: the values, and the
     vendor's requisition beside them.</span></p>
   <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
-    <span><b>Canvas is documented to make the legal PDF when a note locks. It did not, on our instance.</b>
-    The note reached the locked state cleanly and the patient's document count stayed at zero, as did the
-    instance-wide total. Four things could explain it, generation being asynchronous, a note needing
-    content, the signed state rather than the locked one, or a particular note type, and none of them has
-    been tested. So row one shows the lock as fact and the PDF as
-    <span class="punmod">legal PDF unconfirmed</span>, using P7's indigo dashed treatment for a thing the
-    instrument has not established. Drawing it as written would be a claim, and drawing it as absent would
-    be the opposite claim; the audit's verdict 1 asserts the first and six screens rest on it. Until it
-    reproduces, neither belongs on a surface a physician trusts for the legal record.</span></p>
+    <span><b>Canvas is documented to make the legal PDF when a note locks. On our instance it does not, and
+    Aleron cannot reach the state that does.</b> Eleven notes locked over the API hold no documents between
+    them. The instance has exactly two, and they belong to the only two notes that reached the signed state,
+    which the API refuses outright: <code>400, this note state change is not allowed</code>. So the lock is
+    drawn as fact and the PDF as <span class="punmod">no legal PDF</span>, in P7's indigo dashed treatment,
+    because its absence is now the established reading rather than an open question. The audit's verdict 1
+    asserts the opposite and six screens rested on it. There is a way to put a document in the chart &mdash;
+    <code>DocumentReference</code> has create, and Aleron can compose and file its own order-history PDF
+    &mdash; but that is an Aleron document, not Canvas's rendering of the note, and the two should not be
+    drawn as the same artefact.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
     <span><b>The referral was drawn as the imaging order's twin and it is not one.</b> Both are signed from
     Aleron, but only the imaging order publishes a send. Aleron can sign a referral and can neither transmit

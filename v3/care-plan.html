@@ -1657,13 +1657,14 @@
     <code>Assess</code> route and said the entry is added to and never replaced; the note-lock fact list
     still carried the retired <em>update existing</em> wording and now matches.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
-    <span><b>The lock artefacts are hedged, because they did not reproduce.</b> The card asserted that
-    locking produces the note PDF and the legal-record <code>DocumentReference</code>. Canvas documents
-    that, but on <code>aleronmd-dev</code> a note reached <code>LKD</code> cleanly and the patient's
-    <code>DocumentReference</code> count stayed at zero, instance-wide total zero
-    (<code>docs/INSTANCE-FINDINGS.md</code>, U1). The surface now states only what is certain, that the
-    note becomes immutable and stops accepting changes, and marks the documented-but-unreproduced part as
-    scaffolding rather than asserting or denying it.</span></p>
+    <span><b>Aleron cannot produce the legal PDF, and the card no longer implies it can.</b> The card
+    asserted that locking produces the note PDF and the legal-record <code>DocumentReference</code>.
+    Canvas documents that; on <code>aleronmd-dev</code> it is false. Eleven notes locked over the API
+    hold zero documents between them, the only two documents on the instance belong to the only two notes
+    that reached <code>SGN</code>, and the API refuses that state outright
+    (<code>docs/INSTANCE-FINDINGS.md</code>, X5). The surface now states what locking really does, that
+    the note becomes immutable and stops accepting changes, and stops promising a document that only an
+    act inside Canvas can create.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span><b>Order authorization and patient release stay separate, and step 3 now says why.</b>
     Authorizing the set transmits orders; releasing the plan decides what the patient reads. Different

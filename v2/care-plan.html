@@ -1230,14 +1230,14 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
     signature line and act 1's fact list all said <em>update existing</em> and all four now say what
     actually happens: the existing entry is added to, never replaced.</span></p>
   <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
-    <span><b>The lock artefacts are hedged, because they did not reproduce.</b> The card asserted that
-    locking produces the note PDF and the legal-record <code>DocumentReference</code>. Canvas documents
-    exactly that, but on <code>aleronmd-dev</code> a note reached <code>LKD</code> cleanly and the
-    patient's <code>DocumentReference</code> count stayed at zero, instance-wide total zero
-    (<code>docs/INSTANCE-FINDINGS.md</code>, U1). Async generation, a note type that produces one, or
-    <code>SGN</code> rather than <code>LKD</code> could all explain it. So the surface states the one
-    thing that is certain, that the note becomes immutable, and the documented-but-unreproduced part is
-    marked as scaffolding rather than asserted or denied.</span></p>
+    <span><b>Aleron cannot produce the legal PDF, and the card no longer implies it can.</b> The card
+    asserted that locking produces the note PDF and the legal-record <code>DocumentReference</code>.
+    Canvas documents exactly that; on <code>aleronmd-dev</code> it is false. Eleven notes locked over the
+    API hold zero documents between them, the only two documents on the instance belong to the only two
+    notes that reached <code>SGN</code>, and the API refuses that state outright &mdash;
+    <code>400, this note state change is not allowed</code> (<code>docs/INSTANCE-FINDINGS.md</code>, X5).
+    So the surface states what locking really does, that the note becomes immutable, and stops promising
+    a document that only an act inside Canvas can create.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span><b>Order authorization and patient release stay separate, and act 2 now says why.</b>
     Confirming the order set transmits orders; releasing the plan decides what the patient reads. They

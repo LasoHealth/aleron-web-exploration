@@ -298,10 +298,20 @@ orders with four different endings. Three states are enough:
 Priority 2 is *"the complete order history is save-able to the patient's chart."*
 
 The mechanism is not a per-order document. It is the note: staged and signed
-commands live in it, and **locking it generates the PDF *and* the FHIR
-`DocumentReference`** — Aleron does not write the document, Canvas produces it
-([`/api/note/`](https://docs.canvasmedical.com/api/note/)). Lock via
-`PATCH /core/api/notes/v1/Note` with `stateChange`, which is externally callable.
+commands live in it, and locking it via `PATCH /core/api/notes/v1/Note` with
+`stateChange` — externally callable — makes it immutable.
+
+> **Corrected by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5.** This section
+> said locking *"generates the PDF **and** the FHIR `DocumentReference`"*, which
+> is what [`/api/note/`](https://docs.canvasmedical.com/api/note/) states and
+> what the instance contradicts: **11 locked notes, 0 documents.** The two
+> documents that exist belong to the two notes at `SGN`, and the API refuses
+> that transition. **Aleron cannot cause the legal-record PDF from outside
+> Canvas.** The note still carries the order history and is still the record;
+> it is the *document* that Aleron cannot produce. If a filed PDF is required,
+> the pathway is Aleron composing one and writing it to
+> [`DocumentReference` create](https://docs.canvasmedical.com/release-notes/docref-create/)
+> — an Aleron artefact, not Canvas's rendering of the note.
 
 For Junction labs, the chart also needs the results, which arrive as **real
 values** via `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` — units, reference

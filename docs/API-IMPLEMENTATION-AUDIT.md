@@ -48,6 +48,12 @@ Four things are true, in descending order of consequence.
 
 **1. The set's model of how Canvas is written to is wrong, and it is wrong the
 same way on six screens.** The designs describe Aleron writing a
+> **Corrected by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5.** Locking over
+> the API generates **neither** the PDF nor the `DocumentReference` on
+> `aleronmd-dev`: 11 locked notes hold 0 documents, the only 2 documents belong
+> to the only 2 notes at `SGN`, and `stateChange` refuses `SGN`. The claim below
+> is Canvas's documentation, not this instance's behaviour.
+
 `DocumentReference` to lock a note. That is not the mechanism. Canvas's Note API
 creates a note and a `stateChange` **locks** it, and *locking is what generates
 the PDF and the `DocumentReference`*. Aleron does not write the document; it

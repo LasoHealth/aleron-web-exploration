@@ -58,11 +58,44 @@ What is still open: whether a plugin route authenticated with a physician's
 token attributes a *command* to that physician. That is F1, it is the load-bearing
 claim for priority 1, and nothing tested so far touches it.
 
-## Unconfirmed — do not present as settled
+## X5 — locking over the API does not generate the PDF, and the API cannot reach the state that does
 
-| # | Finding | Status |
-|---|---|---|
-| **U1** | **Locking a note did not generate a `DocumentReference`.** The note reached `currentState: LKD` cleanly, but the patient's `DocumentReference` count stayed `0` and the instance-wide total is `0`. | The audit's **verdict 1** — that locking generates the PDF and the DocumentReference, and that six screens have this backwards — is documented by Canvas but **did not reproduce here**. Possible causes: async generation, a note needs content or commands, `SGN` rather than `LKD`, or a note type that produces one. **Any screen copy asserting this must hedge until it reproduces.** |
+**Resolves U1. Corrects Canvas's own documentation for this instance.**
+
+The Note API page states plainly: *"Locking a note will result in the Note PDF
+being generated along with it associated FHIR DocumentReference record."* On
+`aleronmd-dev` it does not. Three measurements, all reproducible:
+
+| Measurement | Result |
+|---|---|
+| **11 notes at `currentState: LKD`**, every one locked by `PATCH … {"stateChange":"LKD"}` returning `200` | **0 `DocumentReference`s between them** |
+| The instance holds **exactly 2 `DocumentReference`s**, both `category: clinical-note`, both `application/pdf`, `period.start` matching a note's `datetimeOfService` exactly | they are the **only 2 notes at `SGN`** |
+| `PATCH … {"stateChange":"SGN"}` | **`400 — "This note state change is not allowed. NEW -> SGN"`** |
+
+The documented transition table confirms the refusal is by design: `stateChange`
+admits `ULK/NEW/CVD → LKD` and `LKD → ULK`, plus appointment states. **`SGN`
+appears nowhere in it.** Both documents were generated at `01:17`, minutes after
+the API had locked those notes at `01:15`–`01:16`, and while a human was signed
+into the Canvas UI — so the generating act was a UI action, not our `PATCH`.
+
+**Consequence, and it is a real constraint on priority 2.** Aleron can create a
+note, fill it and lock it, and the chart will hold that note — but Aleron
+**cannot cause the legal-record PDF or the `DocumentReference` from outside
+Canvas**, because the state that produces them is unreachable over the API. Any
+screen promising a filed legal document as a consequence of an Aleron act is
+promising something Aleron cannot perform.
+
+Alternative pathway, since the document is what the chart wants:
+**`DocumentReference` has `create`** (`user/DocumentReference.crs`, C5) and
+Canvas supports [writing a PDF to it directly](https://docs.canvasmedical.com/release-notes/docref-create/).
+Aleron can compose its own order-history PDF and file it. That is an
+Aleron-authored document rather than Canvas's rendering of the note, and the
+difference should be visible on the screen rather than glossed.
+
+Still open: **which UI act generated them** — the sign action, or the `Create PDF`
+menu item. Both are UI-only, so the constraint above holds either way; it decides
+only whether the PDF rides along with a signature the physician is already
+giving, or is a separate step nobody will remember.
 
 ## Still untestable without more setup
 
