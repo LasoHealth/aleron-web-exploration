@@ -213,7 +213,7 @@
           <h1>Journal</h1>
           <span class="phead__aside"><span class="pbase">5 entries &middot; 1 unsigned</span></span>
         </div>
-        <p>The chronological record. Every decision lives in a note; signed entries never change, and a changed decision is a new entry.</p>
+        <p>The chronological record. Every decision lives in a note, and a changed decision is a new entry rather than an edit.</p>
       </header>
 
       <!-- Canvas mirror state. Quiet boundary, not a hazard tile: the signed
@@ -330,8 +330,8 @@
               <p class="jn-sig">
                 Orders authorized &amp; released 6/8 11:02. Note signed 6/8 18:47 &middot;
                 <b>Dr. A. Okafor</b>. Visit medicine splits the two clocks: orders cannot wait,
-                documentation can. Statuses above are live reads from the ledger; the signed text
-                below them never changes.
+                documentation can. Statuses above are live reads from the ledger, and the signed text
+                below them has no route that edits it.
               </p>
 
               <!-- Carried from v0's locked-note record block. -->
@@ -436,8 +436,8 @@
 
       <div class="wf-ex wf-ex--up"><button class="wf-ex__pin" type="button" aria-describedby="wf-ex-26" aria-label="Wireframe explanation, not part of the product">i</button><p class="pfoot wf-scaffold wf-ex__bubble" id="wf-ex-26" role="note">
         Synthetic record &middot; order statuses are live reads from the ledger and the signed text
-        beside them never changes &middot; external documents are read-only and keep their external
-        author &middot; a changed decision is a new entry.
+        beside them has no route that edits it &middot; external documents are read-only and keep
+        their external author &middot; a changed decision is a new entry.
       </p></div>
 
     </div>
@@ -507,6 +507,16 @@
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
     <span>Entry state rides on the spine node's shape, not on a tint: a filled dot is signed, an
     open dot is a draft, a square is imported. An external mark is a different shape.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span><b>The screen said signed entries never change. The title does.</b> Three places asserted a
+    blanket immutability. What the instance shows is narrower and stranger: the note body has no field
+    on the Note API that edits it, so the signed text is safe by omission rather than by rule, while
+    <code>PATCH</code> of a <em>title</em> returned <code>200</code> on all 17 test notes including the
+    two at <code>SGN</code> and the 13 at <code>LKD</code> (<code>docs/INSTANCE-FINDINGS.md</code>, X6).
+    So the copy now claims only what holds, that nothing edits the text and a changed decision is a new
+    entry. Whether the named author is equally mutable could not be tested: <code>providerKey</code> is
+    on the same allow-list, but the instance holds one practitioner, so there is no second identity to
+    move a note to.</span></p>
   <p class="wf-note" data-kind="gap"><span class="wf-note__tag">gap</span>
     <span>The time spine, the document layout and the locked-record block have no canonical
     component. All three are screen-local; the locked-record block is the strongest candidate for

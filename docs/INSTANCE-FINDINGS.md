@@ -101,6 +101,43 @@ menu item. Both are UI-only, so the constraint above holds either way; it decide
 only whether the PDF rides along with a signature the physician is already
 giving, or is a separate step nobody will remember.
 
+## X6 — a note cannot be removed, and a signed note's title can still be changed
+
+Two halves of one question: **what does the Note API let you undo?**
+
+**Nothing is removable.** `DELETE /Note/{key}` answers
+`405 Method "DELETE" not allowed.` The `stateChange` enum *does* accept `DLT` —
+`DEL`, `DELETED`, `EIE`, `ERR`, `VOID` and `CAN` are all refused as invalid
+choices, while `DLT` is refused as a *transition* — but it is unreachable from
+`NEW`, `LKD` and `ULK` alike, which is every state a partner application can put
+a note in. Attempted across all 17 test notes on the fixture patient: **17
+attempted, 0 deleted.** So a note Aleron writes is permanent, and a wrong one can
+only be marked, never withdrawn.
+
+**But the title is not fixed by signing.** `PATCH {"title": …}` returned `200` on
+all 17, including **both notes at `SGN`** and the 13 at `LKD`. This extends the
+earlier locked-note observation to signed notes: the state that is supposed to
+settle a record does not settle its title.
+
+Consequences:
+
+1. **`journal.html` asserted *"signed entries never change"* in three places,
+   and for the title that is false.** Corrected: the note body has no field on
+   the Note API that edits it, so the signed *text* is safe by omission rather
+   than by rule, and the screen now claims only that.
+   **Untested, and it matters:** `providerKey` — the field that names the
+   author — is on the same `PATCH` allow-list as `title`. Whether a signed
+   note's author can be reassigned could not be established, because the
+   instance holds **exactly one `Practitioner`** and there is no second
+   identity to move a note to. If it is mutable, attribution is not settled by
+   signing, which bears directly on priority 1.
+2. **Aleron needs its own guard against writing a note it did not mean to.**
+   There is no cleanup path, so a mistaken note is a permanent chart artefact.
+   This belongs in the confirm surface, before the write, not after it.
+3. The harness at `aleron-canvas-test/notes` makes all of this pressable —
+   `Delete` attempts both routes and shows what Canvas said; `Void` retitles,
+   which is the only cleanup that works.
+
 ## Still untestable without more setup
 
 - **Every command** (`ImagingOrder`, `Refer`, `LabOrder`, `Prescribe`) and every **effect**
