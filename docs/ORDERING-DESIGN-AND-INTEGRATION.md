@@ -500,6 +500,13 @@ Ordered by how much they would change if the answer surprises us.
 8. Does `sign()` on `ImagingOrder` / `Refer` constitute a clinical attestation,
    or only a state transition? Every `sign_action` is documented as
    staged → committed, never as an attestation.
+9. **[Note → Update](https://docs.canvasmedical.com/api/note/#update) says
+   locking generates the PDF and the `DocumentReference`. On `aleronmd-dev` it
+   does not** — 11 API-locked notes, 0 documents ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5).
+   Is generation gated on something the sentence omits, such as the UI's
+   `Create PDF` action or the `SGN` state, and is there **any** API-reachable way
+   for a partner application to cause the legal-record PDF? `stateChange` does
+   not admit `SGN`, so today there appears to be none.
 
 ---
 

@@ -62,9 +62,13 @@ claim for priority 1, and nothing tested so far touches it.
 
 **Resolves U1. Corrects Canvas's own documentation for this instance.**
 
-The Note API page states plainly: *"Locking a note will result in the Note PDF
-being generated along with it associated FHIR DocumentReference record."* On
-`aleronmd-dev` it does not. Three measurements, all reproducible:
+[**Note → Update → `stateChange`**](https://docs.canvasmedical.com/api/note/#update)
+states plainly, as the second sentence of the first allowed transition and
+nowhere else on the page: *"Locking a note will result in the Note PDF being
+generated along with it associated FHIR DocumentReference record."* It is
+attached directly to `"ULK" → "LKD"`, `"NEW" → "LKD"`, `"CVD" → "LKD"` — so it
+describes exactly the transition tested below, not some other path. On
+`aleronmd-dev` it does not hold. Three measurements, all reproducible:
 
 | Measurement | Result |
 |---|---|
