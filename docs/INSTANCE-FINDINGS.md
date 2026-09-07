@@ -9,6 +9,12 @@ Documentation describes Canvas in general; this describes the instance.
 
 Reproduce: `cd ../aleron-canvas-test && node --env-file=script.env verify-api.mjs --write`
 
+Each finding below is carried by a claim in that runner, so it can be re-checked
+rather than taken on trust. **A `FAIL` there means a document is wrong, not that
+Canvas is broken** — X5 and X7 both surface as `FAIL` on `W3`, and X6/X7 as
+`FAIL` on `W5`. The `/notes` page of the same app drives the note lifecycle by
+hand: create, lock, sign, retrieve the PDF, delete.
+
 ## Confirmed — the design can rely on these
 
 | # | Finding | Evidence |
