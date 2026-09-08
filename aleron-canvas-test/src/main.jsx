@@ -2,6 +2,7 @@ import { Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import Callback from './Callback.jsx'
 import NoteLifecycle from './NoteLifecycle.jsx'
+import OrderLifecycle from './OrderLifecycle.jsx'
 import PatientTest from './PatientTest.jsx'
 import PhysicianLogin from './PhysicianLogin.jsx'
 
@@ -19,18 +20,20 @@ function Landing() {
         <a className="btn" href="/patient">Patient scoping test</a>
         <a className="btn" href="/physician">Physician app</a>
         <a className="btn" href="/notes">Note lifecycle</a>
+        <a className="btn" href="/orders">Order lifecycle</a>
       </p>
     </>
   )
 }
 
-// Four routes, so a router dependency would be all cost and no benefit.
+// Five routes, so a router dependency would be all cost and no benefit.
 function App() {
   switch (location.pathname) {
     case '/callback': return <Callback />
     case '/patient': return <PatientTest />
     case '/physician': return <PhysicianLogin />
     case '/notes': return <NoteLifecycle />
+    case '/orders': return <OrderLifecycle />
     default: return <Landing />
   }
 }

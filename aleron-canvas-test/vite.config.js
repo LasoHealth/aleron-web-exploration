@@ -129,6 +129,87 @@ async function attemptDelete(svc, noteKey) {
   return { ...r, deleted: r.ok, restorableWith: r.ok ? 'UND' : undefined }
 }
 
+// The internal /api/ endpoints key on integer primary keys, not the uuids the
+// FHIR and Note APIs use. A note carries its own pk base64 in its permalink.
+const pkFromPermalink = (permalink) =>
+  Number(Buffer.from((permalink ?? '').split('/').pop() ?? '', 'base64').toString().split(':').pop())
+
+async function patientPk(svc, patientId) {
+  const r = await fetch(`${AUTH}/api/Patient/?key=${patientId}`, { headers: bearer(svc) })
+  const j = await r.json().catch(() => null)
+  const pk = Number(j?.entry?.[0]?.resource?.id)
+  return Number.isFinite(pk) ? pk : null
+}
+
+// Orders are documented as plugin-gated. They are not, on this instance: the
+// UI's own /api/LabOrder/ takes a client_credentials token and returns 201.
+// Undocumented, so this is a deliberate dependency rather than a supported one.
+async function createLabOrder(svc, { patientId, providerKey, title }) {
+  const [pr, loc] = await Promise.all([
+    fetch(`${FHIR}/Practitioner?_count=1`, { headers: bearer(svc) }).then((r) => r.json()),
+    fetch(`${FHIR}/Location?_count=1`, { headers: bearer(svc) }).then((r) => r.json()),
+  ])
+  // The order inherits orderingProvider from the note's provider, so the note
+  // is where the physician's identity is decided. That is the one identity on
+  // an order that Aleron controls.
+  const note = await fetch(NOTE_API, {
+    method: 'POST',
+    headers: { ...bearer(svc), 'content-type': 'application/json' },
+    body: JSON.stringify({
+      patientKey: patientId,
+      providerKey: providerKey || pr.entry?.[0]?.resource?.id,
+      practiceLocationKey: loc.entry?.[0]?.resource?.id,
+      noteTypeName: 'Office visit',
+      encounterStartTime: new Date().toISOString(),
+      title: title || `Aleron order test ${new Date().toISOString()} - sign or delete`,
+    }),
+  }).then((r) => r.json())
+  if (!note?.permalink) return { error: `note create failed: ${JSON.stringify(note).slice(0, 200)}` }
+
+  const pk = await patientPk(svc, patientId)
+  if (!pk) return { error: 'could not resolve the patient primary key' }
+
+  const r = await fetch(`${AUTH}/api/LabOrder/`, {
+    method: 'POST',
+    headers: { ...bearer(svc), 'content-type': 'application/json' },
+    body: JSON.stringify({ patient: pk, note: pkFromPermalink(note.permalink) }),
+  })
+  const order = await r.json().catch(() => null)
+  return {
+    status: r.status,
+    order,
+    note: {
+      noteKey: note.noteKey,
+      id: pkFromPermalink(note.permalink),
+      title: note.titleDisplay ?? note.title,
+      permalink: AUTH + note.permalink,
+      provider: note.providerKey,
+    },
+  }
+}
+
+// No hard delete: DELETE answers 405, and a chart wants a withdrawal recorded
+// rather than a row removed. enteredInError first, then deleted, and the values
+// come back on the PATCH response rather than a later read.
+async function withdrawLabOrder(svc, id) {
+  const patch = async (body) => {
+    const r = await fetch(`${AUTH}/api/LabOrder/${id}`, {
+      method: 'PATCH',
+      headers: { ...bearer(svc), 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    return { status: r.status, body: await r.json().catch(() => null) }
+  }
+  const eie = await patch({ enteredInError: true })
+  const del = await patch({ deleted: true })
+  return {
+    id,
+    ok: eie.status < 300 && del.status < 300,
+    enteredInError: eie.body?.enteredInError ?? null,
+    deleted: del.body?.deleted ?? null,
+  }
+}
+
 // Bulk acts are confined to the patients in created-patients.json. A mistyped
 // or stale id should fail closed rather than retitle notes on a chart that is
 // not ours to touch — the roster is the only list of subjects this harness
@@ -527,6 +608,100 @@ const canvasAuth = {
 
     // Streams the PDF bytes, since the FHIR attachment URL needs a bearer token
     // the browser has no way to attach to a link or an iframe.
+    // ---- orders -----------------------------------------------------------
+    server.middlewares.use('/api/order', async (req, res) => {
+      res.setHeader('content-type', 'application/json')
+      if (req.method !== 'POST') {
+        res.statusCode = 405
+        return res.end('{"error":"method_not_allowed"}')
+      }
+      const send = (status, body) => {
+        res.statusCode = status
+        res.end(JSON.stringify(body, null, 2))
+      }
+      try {
+        const { op, patientId, providerKey, orderId, title } = JSON.parse((await readBody(req)) || '{}')
+        const svc = await serviceToken()
+
+        if (op === 'list') {
+          const r = await fetch(`${AUTH}/api/LabOrder/?limit=100`, { headers: bearer(svc) })
+          const body = await r.json().catch(() => null)
+          const rows = (body?.entry ?? []).map((e) => e.resource ?? e).map((o) => ({
+            id: o.id,
+            requisitionNumber: o.requisitionNumber,
+            status: o.status,
+            note: o.note,
+            // The three identities, which is the whole point of this screen.
+            originator: o.audit?.originator ?? null,
+            committer: o.audit?.committer ?? null,
+            enteredInError: o.audit?.enteredInError ?? null,
+            orderingProvider: o.orderingProvider ?? null,
+            tests: o.tests ?? [],
+            permalink: o.permalink ? AUTH + o.permalink : null,
+          }))
+          return send(r.status, { op, status: r.status, total: body?.total ?? rows.length, orders: rows })
+        }
+
+        if (op === 'create') {
+          if (!patientId) return send(400, { error: 'need patientId' })
+          const made = await createLabOrder(svc, { patientId, providerKey, title })
+          if (made.error) return send(502, { op, ...made })
+          return send(made.status ?? 200, {
+            op,
+            ...made,
+            note_on_mechanism:
+              'Created through POST /api/LabOrder/, which Canvas does not document as an HTTP ' +
+              'endpoint. F2/F3 say every order command is plugin-gated; this one is not. ' +
+              'orderingProvider is inherited from the note provider, so that is where the ' +
+              'physician on the order is decided.',
+          })
+        }
+
+        if (op === 'withdraw') {
+          if (!orderId) return send(400, { error: 'need orderId' })
+          return send(200, { op, ...(await withdrawLabOrder(svc, orderId)) })
+        }
+
+        // Staff the note can be attributed to. Only some are FHIR
+        // Practitioners, so this reads the internal list and says which.
+        if (op === 'staff') {
+          const prac = await fetch(`${FHIR}/Practitioner?_count=50`, { headers: bearer(svc) })
+            .then((r) => r.json()).catch(() => null)
+          const practitioners = (prac?.entry ?? []).map((e) => ({
+            key: e.resource.id,
+            name: e.resource.name?.[0]?.text ?? e.resource.id,
+            isPractitioner: true,
+          }))
+          // Note providers seen in the chart catch staff who are not exposed as
+          // Practitioners — Moosa Mohammed is one, and an order can name them.
+          const notes = await fetch(`${NOTE_API}?limit=100`, { headers: bearer(svc) })
+            .then((r) => r.json()).catch(() => null)
+          const seen = new Map(practitioners.map((p) => [p.key, p]))
+          for (const n of notes?.results ?? []) {
+            if (n.providerKey && !seen.has(n.providerKey)) {
+              // The Note API gives only the key. The internal note read carries
+              // providerDisplay with a real name, and a dropdown of uuids is
+              // useless for choosing a physician.
+              let name = n.providerKey
+              try {
+                const full = await fetch(`${AUTH}/api/Note/${pkFromPermalink(n.permalink)}`, {
+                  headers: bearer(svc),
+                }).then((r) => r.json())
+                name = full?.providerDisplay?.nameAndRoles || name
+              } catch { /* fall back to the key */ }
+              seen.set(n.providerKey, { key: n.providerKey, name, isPractitioner: false })
+            }
+          }
+          return send(200, { op, staff: [...seen.values()] })
+        }
+
+        return send(400, { error: 'op must be list, create, withdraw or staff' })
+      } catch (err) {
+        res.statusCode = err?.status ?? 500
+        res.end(JSON.stringify({ error: 'order_route_failed', detail: String(err?.stack ?? err) }, null, 2))
+      }
+    })
+
     server.middlewares.use('/api/note-pdf', async (req, res) => {
       const id = new URL(req.url, REDIRECT_URI).searchParams.get('doc')
       if (!id) {

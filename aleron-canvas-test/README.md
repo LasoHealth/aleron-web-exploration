@@ -103,6 +103,21 @@ HTTPS comes from the Tailscale cert files in this folder. Open
   `created-patients.json`, and only notes this harness wrote are touched — the
   fixture's own `Data import` and `Home visit` notes are left alone.
 
+- **`/orders`** — create a lab order, name the ordering physician, then sign it
+  off in Canvas. **Orders are documented as plugin-gated and they are not**:
+  `POST /api/LabOrder/` takes this app's `client_credentials` token and returns
+  `201`. The FHIR route really is closed (`ServiceRequest` `POST` → `405`).
+
+  Three identities land on one order and the table shows all three, because
+  only one is ours to choose: `originator` is the API caller,
+  **`orderingProvider` is inherited from the note's provider** so the dropdown
+  decides it, and `committer` stays null until a human signs in Canvas. Create
+  an order, open its note, sign, come back and Refresh — `committer` filling in
+  is the evidence on priority 1.
+
+  Nothing here signs or sends. **Withdraw** marks the order entered-in-error and
+  deleted; there is no hard delete.
+
 ### Why the patient route has no login
 
 Canvas has a patient portal (`/app/login-form`) but it is a Canvas-hosted app, not
