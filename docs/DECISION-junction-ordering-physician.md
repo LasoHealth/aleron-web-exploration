@@ -14,7 +14,7 @@
 > The question it asks is also answered. Every order is attributed to the
 > physician logged into Aleron, which places Aleron in Junction's **Flow 2**.
 >
-> **Replaced by [ORDERING-DESIGN-AND-INTEGRATION.md](ORDERING-DESIGN-AND-INTEGRATION.md).**
+> **Replaced by [ORDERING-DESIGN-AND-INTEGRATION.md](../../aleron-canvas-test/ORDERING-DESIGN-AND-INTEGRATION.md).**
 > The Junction flow definitions in §4 and the source register in §11 remain
 > accurate and are carried forward there.
 

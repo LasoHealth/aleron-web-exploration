@@ -4,7 +4,7 @@ Run against the real Canvas instance with `aleron-canvas-test/verify-api.mjs`.
 **These override the documents where they conflict**, including
 [API-GROUND-TRUTH.md](API-GROUND-TRUTH.md),
 [API-IMPLEMENTATION-AUDIT.md](API-IMPLEMENTATION-AUDIT.md) and
-[ORDERING-DESIGN-AND-INTEGRATION.md](ORDERING-DESIGN-AND-INTEGRATION.md).
+[ORDERING-DESIGN-AND-INTEGRATION.md](../../aleron-canvas-test/ORDERING-DESIGN-AND-INTEGRATION.md).
 Documentation describes Canvas in general; this describes the instance.
 
 Reproduce: `cd ../aleron-canvas-test && node --env-file=script.env verify-api.mjs --write`

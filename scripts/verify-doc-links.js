@@ -14,6 +14,10 @@ const path = require('path');
 const https = require('https');
 
 const DOCS = path.join(__dirname, '..', 'docs');
+// The ordering master document now lives with the test harness that reproduces
+// its claims, but its vendor citations are the load-bearing ones in the set, so
+// keep checking them from here. A missing sibling checkout is not a failure.
+const ROOTS = [DOCS, path.join(__dirname, '..', '..', 'aleron-canvas-test')];
 // Only the vendor documentation we cite as evidence. Everything else (HL7,
 // LOINC, healthit.gov) is checked too, but a redirect there is normal.
 // Require a real host: at least one dot-separated label followed by a TLD.
@@ -32,16 +36,29 @@ const NOT_A_CITATION = [
   /^https:\/\/YOUR-/i,
   /^https:\/\/webhook\.site/,
   /^https:\/\/fumage-\{/,
+  // The harness README names its own dev host. Local, and down whenever the
+  // server is not running, so it is never evidence of anything.
+  /^https:\/\/maple-desktop\./,
+  /^https:\/\/localhost/,
 ];
 
 const files = [];
-(function walk(dir) {
+function walk(dir, recurse) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(p);
-    else if (entry.name.endsWith('.md')) files.push(p);
+    if (entry.isDirectory()) {
+      // Only recurse inside docs/. The harness folder holds node_modules.
+      if (recurse) walk(p, true);
+    } else if (entry.name.endsWith('.md')) files.push(p);
   }
-})(DOCS);
+}
+for (const [i, root] of ROOTS.entries()) {
+  if (!fs.existsSync(root)) {
+    console.warn(`skipping ${path.relative(process.cwd(), root)} — not checked out here`);
+    continue;
+  }
+  walk(root, i === 0);
+}
 
 const cites = new Map(); // url -> Set of files
 for (const f of files) {
@@ -50,7 +67,7 @@ for (const f of files) {
     const url = m.replace(/[.,;:]+$/, '');
     if (NOT_A_CITATION.some((re) => re.test(url))) continue;
     if (!cites.has(url)) cites.set(url, new Set());
-    cites.get(url).add(path.relative(DOCS, f));
+    cites.get(url).add(path.relative(path.join(__dirname, '..', '..'), f));
   }
 }
 
