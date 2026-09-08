@@ -103,17 +103,22 @@ HTTPS comes from the Tailscale cert files in this folder. Open
   `created-patients.json`, and only notes this harness wrote are touched — the
   fixture's own `Data import` and `Home visit` notes are left alone.
 
-- **`/orders`** — create a lab order, name the ordering physician, then sign it
-  off in Canvas. **Orders are documented as plugin-gated and they are not**:
+- **`/orders`** — create a lab order and name the ordering physician.
   `POST /api/LabOrder/` takes this app's `client_credentials` token and returns
-  `201`. The FHIR route really is closed (`ServiceRequest` `POST` → `405`).
+  `201` with no plugin; the FHIR route really is closed (`ServiceRequest`
+  `POST` → `405`).
 
-  Three identities land on one order and the table shows all three, because
-  only one is ours to choose: `originator` is the API caller,
-  **`orderingProvider` is inherited from the note's provider** so the dropdown
-  decides it, and `committer` stays null until a human signs in Canvas. Create
-  an order, open its note, sign, come back and Refresh — `committer` filling in
-  is the evidence on priority 1.
+  **An order made this way cannot be signed.** It never reaches the note as a
+  command, so Canvas opens an empty note with nothing to sign, `committer`
+  stays null, there is no commit route, and `PATCH {committer}` answers `200`
+  while changing nothing. A record is reachable from outside Canvas; a signable
+  order is not, so ORDERING F2/F3 hold for the layer that matters.
+
+  What *is* ours: **`orderingProvider` is inherited from the note's
+  `providerKey`**, proven by placing two otherwise identical orders under
+  different providers. The dropdown decides who is named on the order. The
+  table shows all three identities — `originator` (the API caller),
+  `orderingProvider` (ours), `committer` (needs a plugin).
 
   Nothing here signs or sends. **Withdraw** marks the order entered-in-error and
   deleted; there is no hard delete.

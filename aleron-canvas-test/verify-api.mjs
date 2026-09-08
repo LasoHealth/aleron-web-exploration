@@ -137,6 +137,17 @@ async function patientPkFor(patientKey) {
   return Number.isFinite(pk) ? pk : null
 }
 
+// Distinct staff keys to attribute a note to. The Practitioner search finds
+// only clinicians exposed as FHIR resources; note providers reveal the rest,
+// and an order can name those too.
+async function staffKeys() {
+  const prac = await call('GET', '/Practitioner?_count=50')
+  const keys = new Set((prac.body?.entry ?? []).map((e) => e.resource.id))
+  const notes = await call('GET', `${AUTH}/core/api/notes/v1/Note?limit=100`, { base: '' })
+  for (const n of notes.body?.results ?? []) if (n.providerKey) keys.add(n.providerKey)
+  return [...keys]
+}
+
 // ── the claims ─────────────────────────────────────────────────────────────
 // status: PASS (document is right) | FAIL (document is wrong) | INFO | SKIP
 
@@ -466,98 +477,136 @@ const claims = [
   // rather than FHIR or a plugin.
   {
     id: 'O2',
-    claim: 'Every order command is plugin-gated, so a standalone external app cannot create one',
+    claim: 'Every order command is plugin-gated, so a standalone external app cannot create a signable order',
     doc: 'ORDERING §1 facts F2 and F3, which the routing table in §3 and priority 3 both rest on',
     write: true,
     async run() {
       if (!SUBJECT) return { status: 'SKIP', detail: 'no fixture patients' }
 
-      // These endpoints take integer primary keys, not the uuids the rest of
-      // the API uses. The note's pk is carried base64 in its permalink; the
-      // patient's comes from the same internal API.
       const note = await openNoteFor(SUBJECT.id)
       if (!note) return { status: 'SKIP', detail: 'no open note on the fixture patient to attach a command to' }
       const patientPk = await patientPkFor(SUBJECT.id)
       if (!patientPk) return { status: 'SKIP', detail: 'could not resolve the patient primary key' }
 
+      // The row: the internal endpoint really does create one.
       const made = await call('POST', `${AUTH}/api/LabOrder/`, {
         base: '', body: { patient: patientPk, note: note.id },
       })
       if (made.status >= 300) {
-        return {
-          status: 'PASS',
-          detail: `POST /api/LabOrder/ → ${made.status}: ${why(made)}. The order surfaces stay closed.`,
-        }
+        return { status: 'PASS', detail: `POST /api/LabOrder/ → ${made.status}: ${why(made)}. Every order surface is closed.` }
       }
-
       const id = made.body?.id
       created.push(`LabOrder ${id} (marked entered-in-error by this run)`)
 
-      // Does an order made this way become visible as FHIR?
-      const sr = await call('GET', '/ServiceRequest?_count=5')
-      const mine = (sr.body?.entry ?? []).length
+      // The command: does the order appear in the note the physician opens?
+      // This is what an earlier version of this claim never checked, and it is
+      // the difference between a record and a signable order.
+      const full = await call('GET', `${AUTH}/api/Note/${note.id}`, { base: '' })
+      const commands = (full.body?.body ?? []).filter((b) => b?.type && b.type !== 'text')
 
-      // Withdraw it the way a clinician would: entered-in-error, not deleted.
-      // DELETE answers 405, and a hard delete is not what a chart wants anyway.
-      // The withdrawal result is on the PATCH responses. A follow-up GET omits
-      // both fields, so reading it there reports undefined and a cleanup that
-      // stopped working would look the same as one that worked.
+      // And is there any route that commits it?
+      const commit = await call('POST', `${AUTH}/api/LabOrder/${id}/commit`, { base: '', body: {} })
+      const forced = await call('PATCH', `${AUTH}/api/LabOrder/${id}`, { base: '', body: { committer: 1 } })
+
       const eie = await call('PATCH', `${AUTH}/api/LabOrder/${id}`, { base: '', body: { enteredInError: true } })
       const del = await call('PATCH', `${AUTH}/api/LabOrder/${id}`, { base: '', body: { deleted: true } })
-      const after = { body: { enteredInError: eie.body?.enteredInError, deleted: del.body?.deleted } }
 
+      const signable = commands.length > 0
       return {
-        status: 'FAIL',
+        status: signable ? 'FAIL' : 'PASS',
         detail:
-          `POST /api/LabOrder/ {patient, note} → ${made.status}, requisition ` +
-          `${made.body?.requisitionNumber}, orderingProvider ${JSON.stringify(made.body?.orderingProvider)}. ` +
-          `ServiceRequest is readable back (${mine} on the instance). ` +
-          `Withdrawn: enteredInError=${JSON.stringify(after.body?.enteredInError)}, ` +
-          `deleted=${JSON.stringify(after.body?.deleted)}. ` +
-          `FAIL is the finding: an order command IS reachable with client_credentials and no plugin, ` +
-          `through the same undocumented /api/ surface as X7. F2/F3 are wrong about this endpoint.`,
+          `POST /api/LabOrder/ → ${made.status}, requisition ${made.body?.requisitionNumber}, ` +
+          `orderingProvider ${JSON.stringify(made.body?.orderingProvider)} — so an order ROW is ` +
+          `creatable with client_credentials and no plugin. But the note body holds ` +
+          `${commands.length} command(s), /commit → ${commit.status}, and PATCH {committer} → ` +
+          `${forced.status} leaving committer ${JSON.stringify(forced.body?.audit?.committer)}. ` +
+          (signable
+            ? 'FAIL: the order reached the note as a command, so F2/F3 are wrong.'
+            : 'PASS with a caveat worth reading: the row exists but never becomes a command in the ' +
+              'note, so Canvas shows an empty note, there is nothing for a physician to sign, and ' +
+              'committer cannot be set. F2/F3 hold for the layer that matters. ') +
+          `Withdrawn: enteredInError=${JSON.stringify(eie.body?.enteredInError)}, ` +
+          `deleted=${JSON.stringify(del.body?.deleted)}.`,
       }
     },
   },
   {
     id: 'O3',
-    claim: 'An order names the physician who placed it, so priority 1 can be satisfied',
+    claim: 'An order cannot be made to name a physician of our choosing, so priority 1 needs a plugin',
     doc: 'ORDERING §0 priority 1 and §4.8; F1 says attribution follows whoever authenticated',
     write: true,
     async run() {
       if (!SUBJECT) return { status: 'SKIP', detail: 'no fixture patients' }
-      const note = await openNoteFor(SUBJECT.id)
-      const patientPk = note ? await patientPkFor(SUBJECT.id) : null
-      if (!note || !patientPk) return { status: 'SKIP', detail: 'need an open note and a patient pk' }
+      const patientPk = await patientPkFor(SUBJECT.id)
+      if (!patientPk) return { status: 'SKIP', detail: 'could not resolve the patient primary key' }
 
-      const made = await call('POST', `${AUTH}/api/LabOrder/`, {
-        base: '', body: { patient: patientPk, note: note.id },
-      })
-      if (made.status >= 300) return { status: 'SKIP', detail: `could not create an order: ${made.status}` }
-      const id = made.body?.id
-      created.push(`LabOrder ${id} (marked entered-in-error by this run)`)
+      // Two staff to choose between. The instance exposes one Practitioner, so
+      // the second comes from a note provider — an order can name staff who are
+      // not FHIR Practitioners, which is worth knowing on its own.
+      const providers = await staffKeys()
+      if (providers.length < 2) {
+        return { status: 'SKIP', detail: `need two staff to compare, found ${providers.length}` }
+      }
 
-      const audit = made.body?.audit ?? {}
-      // Nothing here signs the order. A signed lab order can be transmitted to
-      // a real facility, so committer is expected to stay null.
-      const provider = made.body?.orderingProvider
-      const credentialed = made.body?.orderingProviderCredentialedName
+      const [pr, loc] = await Promise.all([
+        call('GET', '/Practitioner?_count=1'),
+        call('GET', '/Location?_count=1'),
+      ])
+      const locationKey = loc.body?.entry?.[0]?.resource?.id
+      if (!locationKey) return { status: 'SKIP', detail: 'no Location to reference' }
 
-      await call('PATCH', `${AUTH}/api/LabOrder/${id}`, { base: '', body: { enteredInError: true } })
-      await call('PATCH', `${AUTH}/api/LabOrder/${id}`, { base: '', body: { deleted: true } })
+      // One order per provider, identical in every other respect.
+      const placed = []
+      for (const providerKey of providers.slice(0, 2)) {
+        const note = await call('POST', `${AUTH}/core/api/notes/v1/Note`, {
+          base: '',
+          body: {
+            patientKey: SUBJECT.id,
+            providerKey,
+            practiceLocationKey: locationKey,
+            noteTypeName: 'Office visit',
+            encounterStartTime: new Date().toISOString(),
+            title: `${stamp} — ordering-provider inheritance test`,
+          },
+        })
+        const noteId = Number(
+          Buffer.from((note.body?.permalink ?? '').split('/').pop() ?? '', 'base64')
+            .toString().split(':').pop(),
+        )
+        if (!noteId) { placed.push({ providerKey, error: `note create → ${note.status}` }); continue }
+        created.push(`Note ${note.body?.noteKey}`)
 
-      // The document's claim is that the order names the placing physician. It
-      // records a staff pk for the originator and a display name for the
-      // ordering provider, and those are not the same thing.
-      const named = Boolean(provider)
+        const order = await call('POST', `${AUTH}/api/LabOrder/`, {
+          base: '', body: { patient: patientPk, note: noteId },
+        })
+        if (order.body?.id) created.push(`LabOrder ${order.body.id} (marked entered-in-error by this run)`)
+        placed.push({
+          providerKey,
+          orderId: order.body?.id,
+          orderingProvider: order.body?.orderingProvider ?? null,
+          originator: order.body?.audit?.originator ?? null,
+        })
+        if (order.body?.id) {
+          await call('PATCH', `${AUTH}/api/LabOrder/${order.body.id}`, { base: '', body: { enteredInError: true } })
+          await call('PATCH', `${AUTH}/api/LabOrder/${order.body.id}`, { base: '', body: { deleted: true } })
+        }
+      }
+
+      const names = placed.map((x) => x.orderingProvider)
+      const differed = names[0] && names[1] && names[0] !== names[1]
       return {
-        status: named ? 'INFO' : 'FAIL',
+        // The document says we cannot choose. If the two names differ, we can.
+        status: differed ? 'FAIL' : 'PASS',
         detail:
-          `audit = ${JSON.stringify(audit)}; orderingProvider = ${JSON.stringify(provider)}` +
-          (credentialed ? `, credentialed = ${JSON.stringify(credentialed)}` : '') +
-          `. originator is a staff primary key, committer stays null because this test never signs. ` +
-          `orderingProvider was populated by Canvas, not supplied by us — so whether it can be set to ` +
-          `the Aleron physician is T3 and is still untested. Priority 1 is not settled by this.`,
+          placed.map((x) => `provider ${String(x.providerKey).slice(0, 8)} → order ${x.orderId} ` +
+            `orderingProvider ${JSON.stringify(x.orderingProvider)}`).join('; ') +
+          (differed
+            ? `. FAIL is the finding: orderingProvider is inherited from the note's providerKey, so ` +
+              `Aleron chooses the physician named on an order by choosing the note's provider. ` +
+              `originator stays the API caller (${JSON.stringify(placed[0].originator)}) and committer ` +
+              `stays null — the name on the order and the signer are different fields, and only the ` +
+              `first is ours. Priority 1 is partly satisfiable without a plugin.`
+            : `. Both orders carry the same provider, so the note's providerKey does not decide it.`),
       }
     },
   },

@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react'
 import { fetchRoster } from './canvas.js'
 
-// Orders are documented as plugin-gated (ORDERING F2/F3), and the FHIR route is
-// closed (ServiceRequest POST -> 405). Neither is the whole truth: the Canvas
-// UI's own /api/LabOrder/ takes this app's client_credentials token and returns
-// 201. This page is that made pressable.
+// What this page establishes, and it took a real sign-off attempt to find:
 //
-// What it is really for is the round trip. Three identities land on one order
-// and only one is ours to choose:
+//   POST /api/LabOrder/ creates an order ROW with client_credentials and no
+//   plugin. 201, a requisition number, and orderingProvider inherited from the
+//   note's providerKey — so Aleron chooses the physician named on an order.
+//
+//   It does NOT create a command. The order never appears in the note's body,
+//   so Canvas opens an empty note, there is nothing for a physician to sign,
+//   and committer stays null. No commit route exists and PATCH {committer}
+//   answers 200 while leaving the field null.
+//
+// So F2/F3 hold for the layer that matters. An order record is reachable; a
+// signable order is not. Three identities land on one order and only the middle
+// one is ours:
 //
 //   originator        the API caller, a staff pk we do not control
 //   orderingProvider  inherited from the note's provider, which we DO set
-//   committer         null until a human signs in the Canvas UI
-//
-// So: create an order here, open its note in Canvas, sign, come back and press
-// Refresh. If committer fills in with the signer, that is the first direct
-// evidence on priority 1 — whose name ends up on an order.
+//   committer         set only by a real commit, which needs a plugin
 export default function OrderLifecycle() {
   const [patients, setPatients] = useState([])
   const [patientId, setPatientId] = useState('')
@@ -70,12 +73,18 @@ export default function OrderLifecycle() {
     <>
       <h1>Order lifecycle</h1>
       <p className="muted">
-        <b>Orders are documented as plugin-gated and they are not.</b>{' '}
         <code>POST /api/LabOrder/</code> takes this app's <code>client_credentials</code> token and
-        returns <code>201</code> — the same undocumented <code>/api/</code> surface that signs notes.
-        The FHIR route really is closed: <code>ServiceRequest</code> <code>POST</code> answers{' '}
-        <code>405</code>. Nothing here signs or sends an order; signing is the physician's act, in
-        Canvas.
+        returns <code>201</code> with no plugin — the same undocumented <code>/api/</code> surface
+        that signs notes. The FHIR route really is closed: <code>ServiceRequest</code>{' '}
+        <code>POST</code> answers <code>405</code>.
+      </p>
+      <p className="muted">
+        <b>But an order created this way cannot be signed, and that is the finding.</b> It never
+        reaches the note as a command, so <b>Canvas opens an empty note with nothing to sign</b>.
+        Signing that note signs an empty note and leaves <code>committer</code> null — there is no
+        commit route, and <code>PATCH {'{'}committer{'}'}</code> answers <code>200</code> while
+        changing nothing. An order <em>record</em> is reachable from outside Canvas; a{' '}
+        <em>signable</em> order is not, so ORDERING F2/F3 hold for the layer that matters.
       </p>
 
       <h2>Subject</h2>
@@ -105,9 +114,10 @@ export default function OrderLifecycle() {
       </p>
       <p className="muted">
         This sets <code>providerKey</code> on the note, and the order inherits it as{' '}
-        <code>orderingProvider</code>. That is the one identity on an order Aleron controls, and it
-        is how priority 1 would be satisfied — so changing it here and checking the resulting order
-        is the actual test.
+        <code>orderingProvider</code> — proven by placing two otherwise identical orders under
+        different providers and getting different names back. It is the one identity on an order
+        Aleron controls, and it is how the <em>naming</em> half of priority 1 is satisfied without a
+        plugin. The <em>signing</em> half is not.
       </p>
 
       <h2>Acts</h2>
@@ -135,6 +145,12 @@ export default function OrderLifecycle() {
         )}
       </h2>
       {orders.length === 0 && <p className="muted">No lab orders on the instance.</p>}
+      {orders.length > 0 && signed === 0 && (
+        <p className="muted">
+          <b>Expect every order to read unsigned.</b> Signing its note in Canvas will not change
+          this: the note has no order command in it to sign.
+        </p>
+      )}
       {orders.length > 0 && (
         <table>
           <thead>
@@ -142,7 +158,7 @@ export default function OrderLifecycle() {
               <th>Order</th>
               <th>Ordering provider<br /><span className="muted">from the note — ours</span></th>
               <th>Originator<br /><span className="muted">the API caller</span></th>
-              <th>Committer<br /><span className="muted">who signed</span></th>
+              <th>Committer<br /><span className="muted">needs a plugin</span></th>
               <th>Sign / withdraw</th>
             </tr>
           </thead>
@@ -201,7 +217,7 @@ export default function OrderLifecycle() {
           {entry.body?.note?.permalink && (
             <p>
               <a className="btn" href={entry.body.note.permalink} target="_blank" rel="noreferrer">
-                Open the note to sign ↗
+                Open the note in Canvas ↗
               </a>
             </p>
           )}

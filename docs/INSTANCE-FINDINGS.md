@@ -245,6 +245,80 @@ after the two in X4, and still not "the physician who is logged into Aleron".
 5. **`NOTE_STATE_CHANGE_EVENT_PRE_CREATE` can block a transition.** Aleron
    could refuse a lock whose orders are inconsistent, from inside Canvas.
 
+## X8 — an order row is reachable without a plugin; a signable order is not
+
+**Found by attempting the sign-off, which is the only way it could have been
+found.** An earlier version of this finding claimed F2/F3 were simply wrong.
+They are not, and the claim was retracted the same day.
+
+### What is reachable
+
+`POST /api/LabOrder/ {patient, note}` returns **`201`** with a
+`client_credentials` token and no plugin — the same undocumented `/api/` surface
+as [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all).
+It comes back with a requisition number, and the order reads back as a FHIR
+`ServiceRequest`. `/api/ImagingOrder/` and `/api/ChartSectionReview/` answer the
+same way; `/api/Prescribe/`, `/api/Refer/`, `/api/Command/` and
+`/api/ServiceRequest/` are all `404`.
+
+Both endpoints key on **integer primary keys**, not the uuids the rest of the
+API uses. A note's pk is carried base64 in its own permalink
+(`TGFiT3JkZXI6MTY4OjE=` is `LabOrder:168:1`); the patient's comes from
+`GET /api/Patient/?key=<uuid>`.
+
+### What is not
+
+**The order never becomes a command in the note.** After creating one and
+signing its note in the Canvas UI:
+
+| Measurement | Result |
+|---|---|
+| note state history | `NEW → LKD → SGN`, signed by a named human |
+| non-text items in the note body | **0** — the order is not in it |
+| `audit.committer` | **`null`**, and `modified` unchanged since creation |
+| `POST /api/LabOrder/{id}/commit` | `404` |
+| `PATCH /api/LabOrder/{id} {"committer": 1}` | **`200`, and the field stays `null`** |
+
+So Canvas opens an **empty note** with nothing to sign, signing it signs an
+empty note, and the order stays detached forever. **F2/F3 hold for the layer
+that matters:** the signable command layer is plugin-gated exactly as
+documented. A record is reachable; an order a physician can sign is not.
+
+### What Aleron does control
+
+**`orderingProvider` is inherited from the note's `providerKey`.** Proven by a
+controlled comparison rather than inference — two orders identical but for the
+note's provider:
+
+| Note `providerKey` | Order's `orderingProvider` |
+|---|---|
+| `e766816672f34a5b866771c773e38f3c` | Youta Priti |
+| `5eede137ecfe4124b8b773040e33be14` | Canvas Bot |
+
+An order can also name **staff who are not FHIR `Practitioner`s** — the instance
+exposes one Practitioner and at least three staff.
+
+**Three identities land on one order, and only the middle one is ours:**
+
+| Field | Who | Settable by Aleron |
+|---|---|---|
+| `audit.originator` | the API caller — the OAuth app's owner | no |
+| `orderingProvider` | the note's provider | **yes** |
+| `audit.committer` | set by a real commit | no, needs a plugin |
+
+**Consequence for priority 1.** The *naming* half is satisfiable without a
+plugin: set the note's provider and the order carries that physician. The
+*signing* half is not, and it is the half that makes an order an order. A fourth
+vendor question follows: is there a supported route that commits a command, or
+is `NoteStateActionButton` in a plugin the only one?
+
+**Withdrawal works and is the right shape:** `PATCH {enteredInError: true}` then
+`{deleted: true}`. `DELETE` answers `405`, and the FHIR `ServiceRequest` then
+reads `status: entered_in_error` rather than vanishing.
+
+Reproduced by `O2` and `O3` in the runner, and drivable by hand at
+`aleron-canvas-test`'s `/orders`.
+
 ## Still untestable without more setup
 
 - **Every command** (`ImagingOrder`, `Refer`, `LabOrder`, `Prescribe`) and every **effect**

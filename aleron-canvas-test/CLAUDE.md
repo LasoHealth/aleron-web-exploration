@@ -71,11 +71,10 @@ npm run dev                                          # then /notes for the note 
 ```
 
 **In that runner, `FAIL` means a document is wrong, not that Canvas is broken.**
-The `--write` run currently reports **8 confirmed, 4 contradicted, 2 skipped**, and
-each of the four is a recorded finding. Without `--write` the write claims skip
-instead, so the counts drop to 5 and 2 — fewer failures there means less was
-tested, not that something was fixed. The two skips are Junction, pending an API
-key.
+The `--write` run currently reports **9 confirmed, 5 contradicted, 2 skipped**,
+and each of the five is a recorded finding. Without `--write` the write claims
+skip instead, so fewer failures appear — that means less was tested, not that
+something was fixed. The two skips are Junction, pending an API key.
 
 ```sh
 cd ..
