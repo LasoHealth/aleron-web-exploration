@@ -2,3 +2,18 @@ dist/
 node_modules/
 scripts/.cache/
 .impeccable/
+
+# Canvas harness. These arrived when aleron-canvas-test was moved in, and this
+# repo is published to GitHub Pages, so anything secret here is one `git add -A`
+# from being public.
+#
+# OAuth client secrets for the two Canvas app registrations.
+*.env
+!*.env.example
+# Tailscale-issued TLS material for the dev server's HTTPS.
+*.key
+*.crt
+# Real patient uuids on a live Canvas instance, written by create-patients.
+aleron-canvas-test/created-patients.json
+# Dev-server output.
+*.log

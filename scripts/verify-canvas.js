@@ -75,7 +75,7 @@ const LOAD_BEARING_ABSENCES = [
   }
   for (const name of LOAD_BEARING_ABSENCES) {
     if (resources[name]) {
-      problems.push(`${name} now EXISTS — this reopens a design decision, see ../aleron-canvas-test/docs/API-IMPLEMENTATION-AUDIT.md`);
+      problems.push(`${name} now EXISTS — this reopens a design decision, see docs/API-IMPLEMENTATION-AUDIT.md`);
     }
   }
   for (const [type, params] of Object.entries(snap.search_params || {})) {

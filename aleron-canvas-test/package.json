@@ -1,0 +1,23 @@
+{
+  "name": "aleron-canvas-test",
+  "private": true,
+  "type": "module",
+  "description": "Canvas/Junction integration harness: fixture patients, a claims runner against the live instance, and a web app for driving the flows by hand.",
+  "engines": {
+    "node": "^22.21.1 || >=24.9.0"
+  },
+  "scripts": {
+    "create-patients": "node --env-file=script.env create-patients.mjs",
+    "selftest": "node create-patients.mjs --selftest",
+    "verify-api": "node --env-file=script.env verify-api.mjs",
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.0",
+    "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}

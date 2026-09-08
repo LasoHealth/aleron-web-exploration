@@ -17,15 +17,13 @@ const DOCS = path.join(__dirname, '..', 'docs');
 // The ordering master document now lives with the test harness that reproduces
 // its claims, but its vendor citations are the load-bearing ones in the set, so
 // keep checking them from here. A missing sibling checkout is not a failure.
-// Four of these documents now live with the test harness that reproduces their
-// claims, and their vendor citations are the load-bearing ones in the set, so
-// keep checking them from here. Recurse is per root: the harness folder itself
-// is shallow because it holds node_modules, its docs/ is not.
-const HARNESS = path.join(__dirname, '..', '..', 'aleron-canvas-test');
+// The harness lives inside this repo now and carries its own README, whose
+// vendor citations are worth checking too. Recurse is per root: the harness
+// folder is shallow because it holds node_modules and a React src tree.
+const HARNESS = path.join(__dirname, '..', 'aleron-canvas-test');
 const ROOTS = [
   { dir: DOCS, recurse: true },
   { dir: HARNESS, recurse: false },
-  { dir: path.join(HARNESS, 'docs'), recurse: true },
 ];
 // Only the vendor documentation we cite as evidence. Everything else (HL7,
 // LOINC, healthit.gov) is checked too, but a redirect there is normal.
@@ -75,7 +73,7 @@ for (const f of files) {
     const url = m.replace(/[.,;:]+$/, '');
     if (NOT_A_CITATION.some((re) => re.test(url))) continue;
     if (!cites.has(url)) cites.set(url, new Set());
-    cites.get(url).add(path.relative(path.join(__dirname, '..', '..'), f));
+    cites.get(url).add(path.relative(path.join(__dirname, '..'), f));
   }
 }
 

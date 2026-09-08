@@ -1,13 +1,23 @@
 {
   "name": "aleron-physician-portal-designs",
   "private": true,
-  "description": "Static wireframe set for the Aleron MD physician portal.",
+  "description": "Static wireframe set for the Aleron MD physician portal, and the Canvas/Junction harness that checks its API claims.",
+  "//": "A workspace rather than one merged package: these scripts are CommonJS and use require(), while the harness is an ESM Vite/React app that needs \"type\": \"module\". Merging the two package.json files would mean rewriting every script in scripts/ for no gain. Workspaces let each keep its own module system under one npm install.",
+  "workspaces": [
+    "aleron-canvas-test"
+  ],
+  "engines": {
+    "node": "^22.21.1 || >=24.9.0"
+  },
   "scripts": {
     "start": "node scripts/serve.js",
     "check": "node scripts/check.js",
     "build": "node scripts/build-offline.js",
     "verify-canvas": "node scripts/verify-canvas.js",
-    "verify-links": "node scripts/verify-doc-links.js"
+    "verify-links": "node scripts/verify-doc-links.js",
+    "dev": "npm run dev --workspace aleron-canvas-test",
+    "verify-api": "npm run verify-api --workspace aleron-canvas-test",
+    "create-patients": "npm run create-patients --workspace aleron-canvas-test"
   },
   "dependencies": {
     "express": "^5.2.1"

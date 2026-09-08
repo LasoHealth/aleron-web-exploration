@@ -1,0 +1,6 @@
+first,middle,last,gender,birthsex,birthDate,phone,email,line1,city,state,postalCode,race,ethnicity,identifier
+Samantha,Ann,Okafor,female,F,1980-11-13,5554320501,samantha.okafor@example.com,1234 Main St,Los Angeles,CA,90012,2054-5,2186-5,test-001
+Marcus,Lee,Whitfield,male,M,1974-03-02,5554320502,marcus.whitfield@example.com,88 Cedar Ave,Portland,OR,97205,2106-3,2186-5,test-002
+Priya,,Raghunathan,female,F,1992-07-21,5554320503,priya.raghunathan@example.com,410 Birch Ln Apt 6,Austin,TX,78702,2028-9,2186-5,test-003
+Jordan,Reese,Calloway,other,OTH,1999-01-09,5554320504,jordan.calloway@example.com,7 Harbor Rd,Providence,RI,02903,2131-1,2135-2,test-004
+Eleanor,Mae,Thompson,female,F,1958-05-30,5554320505,eleanor.thompson@example.com,2200 Oakview Dr,Naperville,IL,60540,2106-3,2186-5,test-005
