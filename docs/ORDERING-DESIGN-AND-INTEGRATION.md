@@ -43,9 +43,9 @@ prescription (§3).
 
 | # | Fact | Source |
 |---|---|---|
-| **F1** | **Canvas attributes a write to whoever authenticated the request.** A plugin route called with an OAuth Authorization Code access token records that staff member as the actor — *"the note is signed and recorded in Canvas as signed by the staff member who authorized the access token."* An API key records **Canvas Bot** instead. | [`/sdk/handlers-simple-api-http/`](https://docs.canvasmedical.com/sdk/handlers-simple-api-http/), [`/guides/writing-commands-over-http/`](https://docs.canvasmedical.com/guides/writing-commands-over-http/) |
-| **F2** | **Every command and effect is plugin-gated.** `CommandAPI` is a Python base class you subclass inside a plugin to *create* an endpoint at `/plugin-io/api/<plugin>/`; it is not an API Canvas hosts. The only externally-reachable Canvas surfaces are FHIR and the Note API. | [`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/) |
-| **F3** | **`send` is the only command action available through the SDK**, for `LabOrder`, `Prescribe`, `Refill` and `AdjustPrescription`. `sign_action` is a **Canvas UI button**, not an HTTP action. Only `ImagingOrder` and `Refer` publish a real `sign()`. | [`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/) |
+| **F1** | **Canvas attributes a write to whoever authenticated the request.** A plugin route called with an OAuth Authorization Code access token records that staff member as the actor — *"the note is signed and recorded in Canvas as signed by the staff member who authorized the access token."* An API key or shared secret records **Canvas Bot** instead, and *"by default, a SimpleAPI request isn't tied to a specific person."* **Attribution comes from the token, not from the auth mixin** — see [VERIFY-commands-over-http](audit/VERIFY-commands-over-http.md) §3, which also records a summarizer's fabricated table that this project nearly believed. | [`/sdk/handlers-simple-api-http/`](https://docs.canvasmedical.com/sdk/handlers-simple-api-http/), [`/guides/writing-commands-over-http/`](https://docs.canvasmedical.com/guides/writing-commands-over-http/) |
+| **F2** | **Every command is plugin-gated, and Canvas says so in the guide dedicated to it.** *"`CommandAPI` is that endpoint, templated … All you add is the part that should be yours."* It is a `SimpleAPI` subclass, so **the plugin hosts the route** at `/plugin-io/api/<plugin>/`; Canvas hosts none. Confirmed on the instance: `/api/Command/`, `/api/Prescribe/`, `/api/Refer/` and `/api/ServiceRequest/` all `404` ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X8). | [writing-commands-over-http](https://docs.canvasmedical.com/guides/writing-commands-over-http/), [`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/) |
+| **F3** | **Each order type is finished by a different action, and `action()` reaches seven of them over HTTP** — `commit`, `delete`, `enter_in_error`, `review`, `send`, `delegate`, `sign`. *"Not even `commit` is universal."* **`LabOrder`, `Prescribe`, `Refill` and `AdjustPrescription` are not committed — `send` finishes them**; `ImagingOrder` and `Refer` take **`sign`** or `delegate`. So signing an imaging order or referral *is* reachable over HTTP, from a plugin route — what is not an HTTP action is `sign_action`, the Canvas UI button. | [Commands API](https://docs.canvasmedical.com/sdk/handlers-simple-api-commands/), [`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/) |
 | **F4** | **Junction's delegated flow is a lab-account setting, not a payload choice.** `ClientFacingLabAccount.delegated_flow` is a **required** field, and delegation applies *"only when you're using your own lab account or a Junction subaccount. If you only order with Junction platform accounts, these are non-delegated and orders will continue to use our physicians."* | [`GET /v3/lab_test/lab_account`](https://docs.junction.com/api-reference/lab-testing/lab_accounts), [changelog, May 2026](https://docs.junction.com/changelog/lab-testing/api) |
 | **F5** | **A Junction order cannot be edited after submission.** `PATCH /v3/order/{id}` accepts exactly one field, `activate_by`. Cancellation is impossible past `partial_results`. | [`PATCH /v3/order`](https://docs.junction.com/api-reference/lab-testing/patch-order), [cancel order](https://docs.junction.com/api-reference/lab-testing/cancel-order) |
 
@@ -58,7 +58,12 @@ the API permits nothing else.** **F3 is why priority 3 costs one redirect.**
 Both return success and write nothing. Neither is discoverable at runtime without
 a caller-side pre-check.
 
-- **A closed note answers `201` with a `command_uuid` and writes nothing.**
+- **A closed note answers `201` with a `command_uuid` and writes nothing** —
+  Canvas's own words, and the reason is stated: *"command effects are applied
+  after your response has already gone back … Checking before you write is the
+  only way the caller ever finds out."* **The pre-check is the caller's job**,
+  and the open-state list to check against is `NEW`, `PUSHED`, `CONVERTED`,
+  `UNLOCKED`, `RESTORED`, `UNDELETED`.
 - **An unsupported action answers `200` and is then refused** by the
   effect-application layer — *"The caller is told the write succeeded when it did
   not."* This is exactly what `POST /commands/prescribe/<id>/commit` does.
@@ -368,6 +373,12 @@ no current screen carries it.
 
 ## 5. How the backend should work
 
+> **The plugin this needs is scoped in [PLUGIN-SCOPE.md](PLUGIN-SCOPE.md).** It
+> is thin — one `CommandAPI` subclass, three routes, an auth mixin, a note-state
+> pre-check and an action allow-list — and it exists for the order commands and
+> nothing else. Its real cost is the per-physician OAuth consent that F1
+> requires, which is a rollout problem rather than an engineering one.
+
 ### 5.1 Identity and tokens
 
 - Authorization Code + PKCE per physician; store the refresh token per physician,
@@ -470,13 +481,13 @@ Ordered by how much they would change if the answer surprises us.
 
 | # | Test | Decides |
 |---|---|---|
-| **T1** | On a Prescribe command: `review()`, do **not** sign, then `send()`. Inspect `committer`. | Whether *"sending is how they are finished"* means `send` performs the sign. If it does, §3's prescription row and the whole redirect flip. This is the one contradiction the research did not resolve. |
+| **T1** | On a Prescribe command: `review()`, do **not** sign, then `send()`. Inspect `committer`. | Whether *"sending is how they are finished"* means `send` performs the sign. If it does, §3's prescription row and the whole redirect flip. This is the one contradiction the research did not resolve, though it is narrowed: Prescribe takes `review` and `send`, and *"those four are not committed — sending is how they are finished."* |
 | **T2** | Call a plugin route with a physician's OAuth token; originate and sign an `ImagingOrder`. Inspect `originator`, `committer`, `Provenance.agent`. | Whether **F1** holds in practice. Priority 1 depends on it. |
 | **T3** | Set `ordering_provider_key` to a provider **other than** the token holder. | Whether Canvas validates it, or writes the self-contradicting record. Decides whether the field is useful or a liability. |
 | **T0** | `GET /v3/lab_test/lab_account`, then place a sandbox order with `physician` set and read `order.physician` back. | Whether priority 1 already works. Cheapest test in this table and it may delete §2.1 entirely. Run it first. |
 | **T4** | Place a sandbox Junction order with `signature_image`; fetch `GET /v3/order/{id}/requisition/pdf`. | Whether the physician's signature appears on the requisition. Decides whether labs truly need nothing further. |
 | **T5** | Originate under a service key, sign under the physician's token. | Confirms the token must thread through every call, or shows the sign alone suffices. |
-| **T6** | `POST` a command to a **locked** note. | Confirms the silent `201`, and fixes the pre-check. |
+| ~~**T6**~~ | ~~`POST` a command to a locked note.~~ | **Answered by documentation** — Canvas states the silent `201` outright and supplies the open-state list. The test is unnecessary; the pre-check is not. [VERIFY-commands-over-http](audit/VERIFY-commands-over-http.md) §4. |
 | **T7** | Sign a prescription for a controlled substance via API. | EPCS-at-sign is genuinely unsettled — one release note references *"an error that could prevent EPCS signing for refill prescriptions."* |
 
 ---

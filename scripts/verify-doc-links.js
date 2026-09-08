@@ -40,6 +40,9 @@ const NOT_A_CITATION = [
   /\/\.\.\./,        // path elisions in prose
   /[{}[\]]/,         // template placeholders
   /^https:\/\/instance\./,
+  // Canvas's own documentation placeholder host, which appears inside quoted
+  // example requests. Never a citation.
+  /^https:\/\/example\.canvasmedical\.com/,
   /^https:\/\/YOUR-/i,
   /^https:\/\/webhook\.site/,
   /^https:\/\/fumage-\{/,
