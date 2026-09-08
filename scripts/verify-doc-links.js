@@ -17,7 +17,16 @@ const DOCS = path.join(__dirname, '..', 'docs');
 // The ordering master document now lives with the test harness that reproduces
 // its claims, but its vendor citations are the load-bearing ones in the set, so
 // keep checking them from here. A missing sibling checkout is not a failure.
-const ROOTS = [DOCS, path.join(__dirname, '..', '..', 'aleron-canvas-test')];
+// Four of these documents now live with the test harness that reproduces their
+// claims, and their vendor citations are the load-bearing ones in the set, so
+// keep checking them from here. Recurse is per root: the harness folder itself
+// is shallow because it holds node_modules, its docs/ is not.
+const HARNESS = path.join(__dirname, '..', '..', 'aleron-canvas-test');
+const ROOTS = [
+  { dir: DOCS, recurse: true },
+  { dir: HARNESS, recurse: false },
+  { dir: path.join(HARNESS, 'docs'), recurse: true },
+];
 // Only the vendor documentation we cite as evidence. Everything else (HL7,
 // LOINC, healthit.gov) is checked too, but a redirect there is normal.
 // Require a real host: at least one dot-separated label followed by a TLD.
@@ -47,17 +56,16 @@ function walk(dir, recurse) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      // Only recurse inside docs/. The harness folder holds node_modules.
       if (recurse) walk(p, true);
     } else if (entry.name.endsWith('.md')) files.push(p);
   }
 }
-for (const [i, root] of ROOTS.entries()) {
-  if (!fs.existsSync(root)) {
-    console.warn(`skipping ${path.relative(process.cwd(), root)} — not checked out here`);
+for (const { dir, recurse } of ROOTS) {
+  if (!fs.existsSync(dir)) {
+    console.warn(`skipping ${path.relative(process.cwd(), dir)} — not checked out here`);
     continue;
   }
-  walk(root, i === 0);
+  walk(dir, recurse);
 }
 
 const cites = new Map(); // url -> Set of files
