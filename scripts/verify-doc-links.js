@@ -79,14 +79,43 @@ for (const { dir, recurse } of ROOTS) {
 }
 
 // ---- Internal section links -------------------------------------------------
-// GitHub's heading slug: lowercase, drop anything but word chars, spaces and
-// hyphens, then spaces to hyphens. An em dash leaves its two spaces behind, so
-// "## X7 — foo" anchors as "#x7--foo".
-const slug = (s) => s.toLowerCase().replace(/[^\w\- ]/g, '').replace(/ /g, '-');
+// GitHub's heading slug. Verified against GitHub's own /markdown renderer for
+// every heading in docs/INSTANCE-FINDINGS.md, plus accents, duplicate headings,
+// code spans, inline links, and `+ # % & / \` punctuation.
+//
+// Two things the first version of this got wrong, both silent:
+//   - accents. `\w` is ASCII-only, so "Café" slugged to "caf" while GitHub
+//     keeps "café". That is a false failure on a correct link.
+//   - duplicate headings. GitHub appends -1, -2; this did not, so a link to
+//     the second "## Notes" passed while pointing at the first.
+//
+// Known limit: `_` is kept, because a snake_case identifier in a heading is far
+// more likely here than _emphasis_. A heading that writes emphasis with
+// underscores instead of asterisks will report a false failure. Use asterisks,
+// or teach this to parse markdown.
+function slugger() {
+  const seen = new Map();
+  return (text) => {
+    const base = text
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // a link contributes its text
+      .replace(/[`*~]/g, '') // inline code and emphasis markers
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}_\- ]/gu, '')
+      .replace(/ /g, '-');
+    const n = seen.get(base);
+    if (n === undefined) {
+      seen.set(base, 0);
+      return base;
+    }
+    seen.set(base, n + 1);
+    return `${base}-${n + 1}`;
+  };
+}
 
 const headingCache = new Map();
 function headingsOf(file) {
   if (!headingCache.has(file)) {
+    const slug = slugger(); // per document: duplicate numbering is per page
     headingCache.set(
       file,
       fs
