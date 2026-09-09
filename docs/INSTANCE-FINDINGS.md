@@ -11,7 +11,7 @@ Reproduce, from the repo root: `cd aleron-canvas-test && node --env-file=script.
 
 Each finding below is carried by a claim in that runner, so it can be re-checked
 rather than taken on trust. **A `FAIL` there means a document is wrong, not that
-Canvas is broken** — X5 and X7 both surface as `FAIL` on `W3`, and X6/X7 as
+Canvas is broken** — [X5](#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does) and [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all) both surface as `FAIL` on `W3`, and [X6](#x6--a-note-cannot-be-removed-and-a-signed-notes-title-can-still-be-changed)/[X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all) as
 `FAIL` on `W5`. The `/notes` page of the same app drives the note lifecycle by
 hand: create, lock, sign, retrieve the PDF, delete.
 
@@ -72,7 +72,7 @@ claim for priority 1, and nothing tested so far touches it.
 
 ## X5 — locking over the API does not generate the PDF, and the API cannot reach the state that does
 
-> **Half superseded by X7.** The measurements below stand: the v1 REST Note API
+> **Half superseded by [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all).** The measurements below stand: the v1 REST Note API
 > cannot reach `SGN`, and locking generates nothing. The conclusion drawn from
 > them — that Aleron cannot produce the PDF at all — is **wrong**. Signing does
 > it, and `/api/NoteStateChangeEvent/` reaches `SGN`.
@@ -120,7 +120,7 @@ giving, or is a separate step nobody will remember.
 
 ## X6 — a note cannot be removed, and a signed note's title can still be changed
 
-> **Half superseded by X7.** The title finding stands. "Nothing is removable"
+> **Half superseded by [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all).** The title finding stands. "Nothing is removable"
 > is **wrong**: it is unreachable over the v1 REST API, but
 > `/api/NoteStateChangeEvent/` deletes with `DLT`, reversibly.
 
@@ -161,7 +161,7 @@ Consequences:
 
 ## X7 — `NoteStateChangeEvent`: signing makes the PDF, and delete exists after all
 
-**Overturns the "unreachable" halves of X5 and X6.** Found by watching the
+**Overturns the "unreachable" halves of [X5](#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does) and [X6](#x6--a-note-cannot-be-removed-and-a-signed-notes-title-can-still-be-changed).** Found by watching the
 Canvas UI delete a note in the browser's network tab:
 `POST /api/NoteStateChangeEvent/` with `{noteId, state: "DLT", noteChecksum,
 lastModifiedBySessionKey}`.
@@ -232,13 +232,13 @@ SGN | Kaede Ito signed this note
 
 The v1 Note API records **Canvas Bot**; `/api/NoteStateChangeEvent/` records a
 **named human** — the OAuth application's owner. A third attribution mechanism,
-after the two in X4, and still not "the physician who is logged into Aleron".
+after the two in [X4](#x4--attribution-has-two-mechanisms-and-they-are-not-the-same-one), and still not "the physician who is logged into Aleron".
 
 ### What this means for the design
 
-1. **X5's "Aleron cannot produce the legal-record PDF" is wrong.** It can:
+1. **[X5](#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does)'s "Aleron cannot produce the legal-record PDF" is wrong.** It can:
    lock, then sign. §4.5 and the EMR screen need revising again.
-2. **X6's "a note cannot be withdrawn" is wrong.** `DLT` works and `UND`
+2. **[X6](#x6--a-note-cannot-be-removed-and-a-signed-notes-title-can-still-be-changed)'s "a note cannot be withdrawn" is wrong.** `DLT` works and `UND`
    reverses it, so a mistaken note is recoverable.
 3. **Both depend on an undocumented endpoint.** Canvas's own front end calls
    it and nothing obliges Canvas to keep it stable. Building priority 2 on it
@@ -323,7 +323,7 @@ exposes one Practitioner and at least three staff.
 plugin: set the note's provider and the order carries that physician. The
 *signing* half is not, and it is the half that makes an order an order.
 
-**X9 narrows what is missing.** Committing is not the gap — signing the note
+**[X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits) narrows what is missing.** Committing is not the gap — signing the note
 commits whatever commands are staged in it, with no plugin and no separate call.
 The gap is getting a command staged there in the first place, which is what the
 `/api/LabOrder/` row never becomes. So the vendor question is not "what commits
@@ -376,7 +376,7 @@ PARTNER`. **Sections appear only where content exists** — an empty note produc
 Both notes hold a `labOrder` command; only the state differs. **No separate
 commit call, no plugin and no token exchange were involved** — signing the note
 commits what is staged in it. This is a cheaper mechanism than the design
-assumed, and it is why X8's "needs a plugin" phrasing for `committer` is
+assumed, and it is why [X8](#x8--an-order-row-is-reachable-without-a-plugin-a-signable-order-is-not)'s "needs a plugin" phrasing for `committer` is
 narrowed below.
 
 > **Caveat on this evidence.** `committer` and `originator` are both `"5"` here,

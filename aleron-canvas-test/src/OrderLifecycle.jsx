@@ -18,10 +18,15 @@ import { fetchRoster } from './canvas.js'
 //
 //   originator        the API caller, a staff pk we do not control
 //   orderingProvider  the note's provider when created here; the acting user
-//                     when created in the Canvas UI (INSTANCE-FINDINGS X8/X9)
+//                     when created in the Canvas UI. Origin-dependent, per
+//                     docs/INSTANCE-FINDINGS.md — X8, "an order row is
+//                     reachable without a plugin; a signable order is not",
+//                     corrected by X9, "how an order actually reaches the
+//                     signed PDF, and what the PDF omits".
 //   committer         set when the note is signed — signing commits whatever
-//                     commands are staged in it, no plugin needed (X9). An
-//                     order row made here never becomes one, so it stays null.
+//                     commands are staged in it, no plugin needed (X9, same
+//                     file). An order row made here never becomes a command,
+//                     so it stays null.
 export default function OrderLifecycle() {
   const [patients, setPatients] = useState([])
   const [patientId, setPatientId] = useState('')
