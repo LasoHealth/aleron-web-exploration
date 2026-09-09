@@ -55,11 +55,13 @@ because it is cited. It reasoned from the legacy controllers, which is backwards
   outside.
 - **Vendor documentation is a claim, not a fact.** Canvas's Note API page states
   that locking a note generates the PDF and its `DocumentReference`. On this
-  instance it does not — signing does (INSTANCE-FINDINGS X7). Several of the seven
+  instance it does not — signing does (INSTANCE-FINDINGS X7). Several of the
   corrections there contradict Canvas's own pages. **Test before you build on a
   sentence.**
 - **A section with a correction banner has been overturned in part.** Read the
-  banner before the section. X4–X7 each narrow or reverse something earlier.
+  banner before the section. Every numbered correction from X4 on narrows or
+  reverses something stated earlier, and new ones get appended — so read the
+  list, do not assume a range.
 - **Cite with a link, and check that the link resolves.** A fabricated citation
   has happened here; `../scripts/verify-doc-links.js` exists because of it.
 

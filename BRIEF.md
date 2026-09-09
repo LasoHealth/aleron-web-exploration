@@ -2,18 +2,20 @@
 
 Read this fully before building any screen. It applies to every file in this
 repo. Your screen assignment says which files to produce and what goes in
-them; this file is the shared rules, so 34 files feel like one system.
+them; this file is the shared rules, so all 36 files feel like one system.
 
 ## What this is
 
-Three parallel, complete versions of the Aleron MD **physician** web portal,
-built as high-fidelity static HTML you open directly in a browser:
+Four parallel versions of the Aleron MD **physician** web portal, built as
+high-fidelity static HTML you open directly in a browser. The first three are
+complete sets; v3 is a single screen posing one question:
 
 | | What it is | Source of truth |
 |---|---|---|
 | **v0** | A faithful replica of the portal as it stands today | `C:\LASOHealth\apps\Aleron-Web` |
 | **v1** | The canonical reference surface, recreated | `aleron-canonical-documents/system-design/diagrams/aleron-actionmap-al47m-ds.html` |
 | **v2** | v1, plus every v0 capability that v1 has no home for | both, plus the role/release matrix |
+| **v3** | v2’s care plan again, opt-in instead of opt-out, with its four acts split into steps | v2, plus the open question in `docs/ORDERING-DESIGN-AND-INTEGRATION.md` |
 
 They exist to be demoed side by side. v0 is the baseline you are arguing
 against; if v0 does not look like the thing the team uses today, the argument
@@ -22,7 +24,7 @@ shipped app violates the design system, the replica violates it too, and the
 violation gets a comment saying so.
 
 The patient side of this product already has its wireframe set at
-`C:\LASOHealth\apps\aleron-wireframes` (85 screens, member Cabin register).
+`C:\LASOHealth\apps\aleron-wireframes` (113 screens, member Cabin register).
 This repo is its physician sibling and follows the same conventions, with one
 deliberate improvement: everything shared lives in `physician-chrome.css`
 instead of being copy-pasted into each file's `<style>` block.

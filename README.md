@@ -8,10 +8,13 @@ Start at [`index.html`](index.html).
 
 | | Screens | What it is |
 |---|---:|---|
-| **v0** baseline | 11 | A replica of the portal as it stands today, in its own visual language |
-| **v1** canonical | 8 | The reference surface the canonical documents already designed |
-| **v2** proposed | 14 | v1's chart plus the queue, ordering, release and audit surfaces v0 has |
+| **v0** baseline | 10 | A replica of the portal as it stands today, in its own visual language |
+| **v1** canonical | 7 | The reference surface the canonical documents already designed |
+| **v2** proposed | 13 | v1's chart plus the queue, ordering, release and audit surfaces v0 has |
 | **v3** open question | 1 | The same care plan with an opt-in model instead of opt-out, and its four acts separated into steps |
+
+Screen counts exclude each version’s `_flow.html` nav map, so they match the
+per-screen counts in [`docs/API-IMPLEMENTATION-AUDIT.md`](docs/API-IMPLEMENTATION-AUDIT.md).
 
 ## Running it
 
