@@ -1,4 +1,4 @@
-# Live-instance findings — `aleronmd-dev`, 4 Sep 2026
+# Live-instance findings — `aleronmd-dev`, 4–8 Sep 2026
 
 Run against the real Canvas instance with `aleron-canvas-test/verify-api.mjs`.
 **These override the documents where they conflict**, including
@@ -15,6 +15,12 @@ Canvas is broken** — X5 and X7 both surface as `FAIL` on `W3`, and X6/X7 as
 `FAIL` on `W5`. The `/notes` page of the same app drives the note lifecycle by
 hand: create, lock, sign, retrieve the PDF, delete.
 
+**One exception: [X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits)
+has no runner claim.** It came from a note driven by hand in the Canvas UI and a
+PDF retrieved afterwards, because the thing it measures — what a committed
+command looks like in the signed artefact — is not reachable from the API at
+all. Re-checking it means repeating that by hand.
+
 ## Confirmed — the design can rely on these
 
 | # | Finding | Evidence |
@@ -29,7 +35,7 @@ hand: create, lock, sign, retrieve the PDF, delete.
 
 | # | Finding | Consequence |
 |---|---|---|
-| **X1** | **`$create-lab-report` exists and is externally callable.** `POST /DiagnosticReport/$create-lab-report` returns `400 body -> parameter must contain at least 1 item` (a body complaint, not a missing route), and `user/DiagnosticReport.create-lab-report` is a granted scope. It is simply absent from the CapabilityStatement's `operation` array. | **Junction lab results can be written into the chart without a plugin.** ORDERING §5.4 and audit Part 1 step 5 both say to use the plugin `CREATE_LAB_REPORT` effect. Results are no longer plugin-gated. |
+| **X1** | **`$create-lab-report` exists and is externally callable.** `POST /DiagnosticReport/$create-lab-report` returns `400 body -> parameter must contain at least 1 item` (a body complaint, not a missing route), and `user/DiagnosticReport.create-lab-report` is a granted scope. It is simply absent from the CapabilityStatement's `operation` array. | **Junction lab results can be written into the chart without a plugin.** Results are no longer plugin-gated, so they are not blocked on the plugin in [AL-100](https://lasohealth.atlassian.net/browse/AL-100). **ORDERING §5.4 and §4.5 now say this** (corrected 8 Sep); **audit Part 1 step 5 still says to use the plugin `CREATE_LAB_REPORT` effect.** Still unproven: a *successful* write through the operation, and whether the `ATTACH_LAB_REPORT_RESULTS` half has a non-plugin route. |
 | **X2** | **The Note API returns a real `permalink`.** A locked note came back with `"permalink": "/permalinks/v1/Tm90ZTo5Njo0"`, which resolves — `302 → /login?next=/permalinks/…`, a genuine UI route that lands on the note after auth. | **The prescription hand-off is a supported link, not a URL constructed by convention.** ORDERING §4.7 and Part 5 decision 9 both assume no contract and prescribe a 404 fallback. Use `note.permalink`. |
 | **X3** | **`QuestionnaireResponse` has no create at `user` scope.** Granted scope is `user/QuestionnaireResponse.rs`, while `patient/QuestionnaireResponse.crus` has create and update. | Writing a patient-reported outcome may need a **patient-scoped** token, not a staff one. The documents call this "the cheapest fix in the audit" without accounting for the token. Still unconfirmed by a write test. |
 
@@ -286,14 +292,21 @@ documented. A record is reachable; an order a physician can sign is not.
 
 ### What Aleron does control
 
-**`orderingProvider` is inherited from the note's `providerKey`.** Proven by a
-controlled comparison rather than inference — two orders identical but for the
-note's provider:
+**For an order created through `/api/LabOrder/`, `orderingProvider` is inherited
+from the note's `providerKey`.** Proven by a controlled comparison rather than
+inference — two orders identical but for the note's provider:
 
 | Note `providerKey` | Order's `orderingProvider` |
 |---|---|
 | `e766816672f34a5b866771c773e38f3c` | Youta Priti |
 | `5eede137ecfe4124b8b773040e33be14` | Canvas Bot |
+
+**The rule is origin-dependent, and this is narrower than it first read.** An
+order placed through the Canvas UI on the same kind of note came back with
+`orderingProvider` set to the **acting user** (Kaede Ito), not the note's
+provider (Youta Priti MD) — see [X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits).
+So: note provider for API-created, acting user for UI-created. Only the first
+half is a lever Aleron holds.
 
 An order can also name **staff who are not FHIR `Practitioner`s** — the instance
 exposes one Practitioner and at least three staff.
@@ -303,14 +316,19 @@ exposes one Practitioner and at least three staff.
 | Field | Who | Settable by Aleron |
 |---|---|---|
 | `audit.originator` | the API caller — the OAuth app's owner | no |
-| `orderingProvider` | the note's provider | **yes** |
-| `audit.committer` | set by a real commit | no, needs a plugin |
+| `orderingProvider` | the note's provider when API-created, the acting user when UI-created | **yes, for the API path** |
+| `audit.committer` | set when the note is signed, which commits its staged commands — **no plugin involved** ([X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits)) | not directly |
 
 **Consequence for priority 1.** The *naming* half is satisfiable without a
 plugin: set the note's provider and the order carries that physician. The
-*signing* half is not, and it is the half that makes an order an order. A fourth
-vendor question follows: is there a supported route that commits a command, or
-is `NoteStateActionButton` in a plugin the only one?
+*signing* half is not, and it is the half that makes an order an order.
+
+**X9 narrows what is missing.** Committing is not the gap — signing the note
+commits whatever commands are staged in it, with no plugin and no separate call.
+The gap is getting a command staged there in the first place, which is what the
+`/api/LabOrder/` row never becomes. So the vendor question is not "what commits
+a command" but whether anything other than `CommandAPI` in a plugin can
+originate one.
 
 **Withdrawal works and is the right shape:** `PATCH {enteredInError: true}` then
 `{deleted: true}`. `DELETE` answers `405`, and the FHIR `ServiceRequest` then
@@ -318,6 +336,80 @@ reads `status: entered_in_error` rather than vanishing.
 
 Reproduced by `O2` and `O3` in the runner, and drivable by hand at
 `aleron-canvas-test`'s `/orders`.
+
+## X9 — how an order actually reaches the signed PDF, and what the PDF omits
+
+**Measured on 8 Sep 2026 from a real note**: the user opened note 66 for a
+fixture patient, added a Lab Order through the Canvas UI, signed the note, and
+the PDF was retrieved over the API. Everything below is read off that document
+and the two orders either side of it — order 19 on unsigned note 64, order 20 on
+signed note 66. It corrects [X8](#x8--an-order-row-is-reachable-without-a-plugin-a-signable-order-is-not)
+on two points and settles the shape of the Junction artefact.
+
+### What the PDF contains
+
+```
+PLAN
+LabOrder:
+CMV IGG AVIDITY INDEX  (Last Modified on 9/8/26 at 6:45 PM PDT)
+FASTING: NO
+INDICATIONS: Prediabetes (R73.03)
+LAB PARTNER: Generic Lab
+
+SIGNATURES
+Electronically signed by Kaede Ito on 9/8/26 at 6:46 PM PDT
+```
+
+The order lands under **`PLAN`**, labelled with the command's schema key
+(`LabOrder:`), not under an "Orders" heading. Printed fields: test name,
+last-modified timestamp, `FASTING`, `INDICATIONS` with the ICD-10 code, `LAB
+PARTNER`. **Sections appear only where content exists** — an empty note produced
+`SIGNATURES` alone.
+
+### Signing the note commits its staged commands
+
+| Note | State | Order | `audit.committer` |
+|---|---|---|---|
+| 64 | `NEW` | 19 | **`null`** |
+| 66 | `SGN` | 20 | **`"5"`** |
+
+Both notes hold a `labOrder` command; only the state differs. **No separate
+commit call, no plugin and no token exchange were involved** — signing the note
+commits what is staged in it. This is a cheaper mechanism than the design
+assumed, and it is why X8's "needs a plugin" phrasing for `committer` is
+narrowed below.
+
+> **Caveat on this evidence.** `committer` and `originator` are both `"5"` here,
+> because the same person created the order and signed the note. This does
+> **not** prove the two fields track different people. A clean test needs one
+> person to originate and another to sign; folded into T2 of
+> [AL-100](https://lasohealth.atlassian.net/browse/AL-100).
+
+### Committing did not transmit
+
+`transmissionType: null`, `manualProcessingStatus: "NEEDS_REVIEW"`. `Generic
+Lab` is a configured partner on this instance and **nothing reached it**. That
+softens the duplicate-order risk from a certainty to a configuration question —
+it is this instance's setup, not a guarantee.
+
+### The PDF prints no ordering physician
+
+The only clinician names in the whole legal document are the header — *"seen by
+Youta Priti MD"*, the note's provider — and `SIGNATURES`, the signer. **Per-order
+attribution is stored and never printed.** If the requirement is that the chart
+*shows* which physician ordered what, the artefact does not do it today; that is
+a gap in the PDF, not in the data.
+
+### Canvas mints its own requisition and asserts a lab partner
+
+The order came back with Canvas requisition `B232B1844E2` and printed `LAB
+PARTNER: Generic Lab`. For an order actually placed through Junction **both are
+false in the record**: a second requisition number competing with Junction's,
+and a lab that never touched the specimen. **This is the strongest argument for
+`CustomCommand` over `LabOrder` for the Junction artefact** — a custom command
+renders under its own declared section with our content, inventing neither.
+Scoped in AL-100, whose T5 asks whether a `CustomCommand` survives into the
+signed PDF at all; the docs describe what it renders, not what is preserved.
 
 ## Still untestable without more setup
 

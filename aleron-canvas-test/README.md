@@ -114,11 +114,13 @@ HTTPS comes from the Tailscale cert files in this folder. Open
   while changing nothing. A record is reachable from outside Canvas; a signable
   order is not, so ORDERING F2/F3 hold for the layer that matters.
 
-  What *is* ours: **`orderingProvider` is inherited from the note's
-  `providerKey`**, proven by placing two otherwise identical orders under
-  different providers. The dropdown decides who is named on the order. The
-  table shows all three identities — `originator` (the API caller),
-  `orderingProvider` (ours), `committer` (needs a plugin).
+  What *is* ours: **for orders created here, `orderingProvider` is inherited
+  from the note's `providerKey`**, proven by placing two otherwise identical
+  orders under different providers. The dropdown decides who is named on the
+  order. (An order created in the Canvas UI takes the acting user instead —
+  INSTANCE-FINDINGS X9.) The table shows all three identities —
+  `originator` (the API caller), `orderingProvider` (ours), `committer` (set
+  when the note is signed, which commits its staged commands).
 
   Nothing here signs or sends. **Withdraw** marks the order entered-in-error and
   deleted; there is no hard delete.

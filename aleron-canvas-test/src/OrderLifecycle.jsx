@@ -17,8 +17,11 @@ import { fetchRoster } from './canvas.js'
 // one is ours:
 //
 //   originator        the API caller, a staff pk we do not control
-//   orderingProvider  inherited from the note's provider, which we DO set
-//   committer         set only by a real commit, which needs a plugin
+//   orderingProvider  the note's provider when created here; the acting user
+//                     when created in the Canvas UI (INSTANCE-FINDINGS X8/X9)
+//   committer         set when the note is signed — signing commits whatever
+//                     commands are staged in it, no plugin needed (X9). An
+//                     order row made here never becomes one, so it stays null.
 export default function OrderLifecycle() {
   const [patients, setPatients] = useState([])
   const [patientId, setPatientId] = useState('')
@@ -158,7 +161,7 @@ export default function OrderLifecycle() {
               <th>Order</th>
               <th>Ordering provider<br /><span className="muted">from the note — ours</span></th>
               <th>Originator<br /><span className="muted">the API caller</span></th>
-              <th>Committer<br /><span className="muted">needs a plugin</span></th>
+              <th>Committer<br /><span className="muted">set when the note is signed</span></th>
               <th>Sign / withdraw</th>
             </tr>
           </thead>

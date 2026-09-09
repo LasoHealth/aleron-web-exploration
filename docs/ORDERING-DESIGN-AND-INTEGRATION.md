@@ -323,10 +323,19 @@ commands live in it, and locking it via `PATCH /core/api/notes/v1/Note` with
 > than a headless call. Vendor question 9 asks Canvas to settle this.
 
 For Junction labs, the chart also needs the results, which arrive as **real
-values** via `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` — units, reference
-ranges and abnormal flags, not a PDF. Junction's requisition PDF is retrievable
-at `GET /v3/order/{id}/requisition/pdf` and belongs in the chart as the
-order-side artefact.
+values** — units, reference ranges and abnormal flags, not a PDF. The route is
+`$create-lab-report`, externally callable per
+[INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1, with the plugin effects
+`CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` as the fallback; §5.4 has the
+detail and the two remaining unknowns.
+
+**The order side is a command, not just an attachment.** Junction's requisition
+PDF is retrievable at `GET /v3/order/{id}/requisition/pdf` and belongs in the
+chart, but a PDF hanging off the note is not what this section promises — the
+order history *is* the note, and only commands are in it. That artefact is a
+`CustomCommand` carrying Junction's order id and requisition, for the reason
+X9 measured: a `LabOrder` would print a Canvas lab partner and a competing
+requisition number. See §5.3.
 
 ### 4.6 Order authorization and patient release stay separate
 
@@ -446,6 +455,28 @@ carries a `default_clinical_notes`.
 Also worth sending, all currently unused: `icd_codes`, `clinical_notes`
 (**120-character cap**), `billing_type`, `activate_by`, `priority`.
 
+**What comes back has to become a chart artefact, and it must not be a
+`LabOrder`.** Junction returns an order id and a requisition; priority 2 needs
+that preserved on the patient's note, not only in Aleron's database. The obvious
+command is the wrong one:
+[INSTANCE-FINDINGS X9](INSTANCE-FINDINGS.md#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits)
+measured a `LabOrder` in a signed PDF and it printed **`LAB PARTNER: Generic
+Lab`** alongside a Canvas-minted requisition number. On a Junction order both
+assertions are false — a lab that never touched the specimen, and a second
+requisition competing with Junction's.
+
+So the Junction artefact is a
+[`CustomCommand`](https://docs.canvasmedical.com/sdk/commands-custom-command/):
+`content` for the chart, `print_content` for the PDF, rendered under a `section`
+we declare, carrying Junction's own order id and requisition and asserting
+nothing about a Canvas lab partner. It is plugin-hosted like every other command
+(F2), and it is the second command in
+[AL-100](https://lasohealth.atlassian.net/browse/AL-100) — `ImagingOrder` for
+orders Canvas really places, `CustomCommand` for the record of one Junction
+placed. **Whether a `CustomCommand` survives into the signed PDF is not yet
+proven** — the docs describe what it renders, not what is preserved — and that is
+AL-100's T5, which is the acceptance test for this whole approach.
+
 ### 5.4 Results back into the chart
 
 - Webhook `labtest.result.critical` → immediate physician surfacing.
@@ -453,8 +484,19 @@ Also worth sending, all currently unused: `icd_codes`, `clinical_notes`
   have no event.
 - Structured `BiomarkerResult` (`name`, `value`, `unit`, `reference_range`,
   `min_range_value`, `max_range_value`, `is_above_max_range`,
-  `is_below_min_range`, `interpretation`, `loinc`) →
-  `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS`.
+  `is_below_min_range`, `interpretation`, `loinc`) → a lab report in the chart.
+  **This section used to say that meant the plugin effects `CREATE_LAB_REPORT` +
+  `ATTACH_LAB_REPORT_RESULTS`, and that is no longer the only route.**
+  [INSTANCE-FINDINGS X1](INSTANCE-FINDINGS.md) found
+  `POST /DiagnosticReport/$create-lab-report` answering a *body* complaint
+  rather than `404`, with `user/DiagnosticReport.create-lab-report` among the
+  granted scopes — it is simply missing from the CapabilityStatement. **Results
+  are therefore not plugin-gated**, which decouples them from AL-100: results
+  can land before the plugin exists. Two things stay unproven — a *successful*
+  write through that operation (only the route is confirmed), and whether
+  anything outside a plugin does the `ATTACH_LAB_REPORT_RESULTS` half. Prefer
+  the FHIR operation, keep the effects as the fallback the plugin already
+  affords.
 - Result PDFs and the requisition PDF are separately retrievable and belong in
   the chart alongside.
 - Model `order.status` and the 52-value `OrderStatus` **as strings**. Both are

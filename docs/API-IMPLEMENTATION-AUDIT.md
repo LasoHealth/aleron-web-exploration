@@ -123,7 +123,7 @@ screens describe it. Changes from the drawn version are marked **▲**.
 | 2 | Problem-list decisions | Canvas | `Diagnose` (new), **`Assess`** ▲ (existing) | *Not* FHIR `Condition` update: the **only** supported Condition update is marking it `entered-in-error`. |
 | 3 | **Lock the note** ▲ | Canvas | `stateChange` → `LKD`, or `SIGN_NOTE` | Canvas generates the PDF **and** the `DocumentReference`. Aleron does not write the document. |
 | 4 | Lab / genetic order | **Junction** | `POST /v3/order` | Canvas holds no order record, by design. Results return by webhook. |
-| 5 | Results into the chart | Canvas | `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` (SDK) | Real values, units, ranges, abnormal flags — not a PDF. Needs no Canvas lab order to exist. `POST /DiagnosticReport/$create-lab-report` looked like an external alternative but is **not declared on `aleronmd-dev`** — untested, so assume the effect. |
+| 5 | Results into the chart | Canvas | `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` (SDK) | Real values, units, ranges, abnormal flags — not a PDF. Needs no Canvas lab order to exist. `POST /DiagnosticReport/$create-lab-report` is **undeclared on `aleronmd-dev` but reachable** — it answers a body complaint, not a `404`, and its scope is granted ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1). Prefer it; keep the effect as the fallback. A successful write is still untested. |
 | 6 | Imaging order | Canvas | `ImagingOrder` — originate, **sign**, then **`send()`** ▲ | **Two calls, not one.** A failed `send()` after a successful `sign()` leaves the row lying. |
 | 7 | Referral | Canvas | `Refer` — originate, **sign**, **no `send()`** ▲ | Aleron can sign a referral and **cannot transmit it or learn that it was transmitted.** Transmission is Canvas-native. |
 | 8 | Prescription | Canvas | `Prescribe` — originate only, **no `sign()`** | Physician redirected to Canvas. `send()` exists but Canvas's own example applies it to commands **a human already committed**. |
@@ -627,7 +627,7 @@ Strict residency was chosen with these consequences understood:
 |---|---|
 | The constructed note URL shape on `aleronmd-dev` | Whether decision 9's deep link works before the fallback is the only path |
 | Is the genetics panel a Junction order or the Canvas genetics integration? | Gates rows on four screens; `BiomarkerResult` has no shape for a variant call |
-| Does `$create-lab-report` exist undeclared? | Not in the instance CapabilityStatement. If absent, Junction results reach the chart only through the plugin's `CREATE_LAB_REPORT` effect |
+| ~~Does `$create-lab-report` exist undeclared?~~ **Answered: yes.** | Absent from the CapabilityStatement, present on the instance — [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1. Junction results do **not** depend on the plugin. |
 | Do events fire for externally-staged commands? | Now low-stakes — decision 8 subscribes to no events |
 
 
