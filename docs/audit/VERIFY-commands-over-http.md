@@ -1,7 +1,9 @@
 # Applying commands from the API: what Canvas actually documents
 
 Researched 2026-09-08 against `docs.canvasmedical.com`. Prompted by
-[INSTANCE-FINDINGS X8](../INSTANCE-FINDINGS.md): `POST /api/LabOrder/` creates an
+[INSTANCE-FINDINGS X8: an order row is reachable without a plugin, a signable
+order is not](../INSTANCE-FINDINGS.md#x8--an-order-row-is-reachable-without-a-plugin-a-signable-order-is-not):
+`POST /api/LabOrder/` creates an
 order row from outside Canvas but the order never becomes a command, so nothing
 is signable. The question that raised was whether Canvas documents a supported
 route for applying commands over HTTP.
@@ -65,7 +67,9 @@ Also: Reason for Visit takes `originate`, `edit` and `delete` only; Chart Sectio
 Review "is committed as it is originated"; custom commands are neither edited
 nor committed.
 
-**Consequence for X8.** A Lab Order has no `commit` and no `sign` — it is
+**Consequence for [X8](../INSTANCE-FINDINGS.md#x8--an-order-row-is-reachable-without-a-plugin-a-signable-order-is-not),
+which found that an order row is reachable without a plugin but a signable order
+is not.** A Lab Order has no `commit` and no `sign` — it is
 finished by `send`. So the absent commit route was not a gap to find; a lab
 order has nothing to commit by design. **F3 stands**, and gains the detail that
 `sign` *is* reachable over HTTP via `action()` for Imaging Order and Refer. The
