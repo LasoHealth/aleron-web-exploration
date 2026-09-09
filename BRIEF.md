@@ -2,7 +2,7 @@
 
 Read this fully before building any screen. It applies to every file in this
 repo. Your screen assignment says which files to produce and what goes in
-them; this file is the shared rules, so all 36 files feel like one system.
+them; this file is the shared rules, so the whole set feels like one system.
 
 ## What this is
 
@@ -24,7 +24,7 @@ shipped app violates the design system, the replica violates it too, and the
 violation gets a comment saying so.
 
 The patient side of this product already has its wireframe set at
-`C:\LASOHealth\apps\aleron-wireframes` (113 screens, member Cabin register).
+`C:\LASOHealth\apps\aleron-wireframes` (the member Cabin register).
 This repo is its physician sibling and follows the same conventions, with one
 deliberate improvement: everything shared lives in `physician-chrome.css`
 instead of being copy-pasted into each file's `<style>` block.
