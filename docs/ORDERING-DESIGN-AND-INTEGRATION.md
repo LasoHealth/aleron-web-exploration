@@ -373,11 +373,14 @@ no current screen carries it.
 
 ## 5. How the backend should work
 
-> **The plugin this needs is scoped in [PLUGIN-SCOPE.md](PLUGIN-SCOPE.md).** It
-> is thin — one `CommandAPI` subclass, three routes, an auth mixin, a note-state
-> pre-check and an action allow-list — and it exists for the order commands and
-> nothing else. Its real cost is the per-physician OAuth consent that F1
-> requires, which is a rollout problem rather than an engineering one.
+> **The plugin this needs is scoped in [AL-100](https://lasohealth.atlassian.net/browse/AL-100),
+> which is the single source for it.** It is thin — one `CommandAPI` subclass,
+> three routes, an auth mixin, a note-state pre-check and an action allow-list —
+> and it exists for the order commands and nothing else. The ticket also carries
+> the seven build and deploy steps, each cited to the Canvas page it came from.
+> Its real cost is the per-physician OAuth consent that F1 requires, which is a
+> rollout problem rather than an engineering one. AL-101 covers the prescription
+> question; AL-99 the physician token.
 
 ### 5.1 Identity and tokens
 

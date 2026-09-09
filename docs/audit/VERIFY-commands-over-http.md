@@ -164,4 +164,4 @@ And on authorization, as distinct from authentication:
 | F3 phrased around `sign_action` being a UI button | **Stands**, and `sign` is reachable via `action()` for Imaging Order and Refer; Lab Order is finished by `send` |
 | T6 listed as a test to run | **Answered in the documentation** |
 | T1 — does `send` perform the sign for Prescribe | Still open, but narrowed: Prescribe takes `review` and `send` and is "not committed — sending is how they are finished" |
-| "A plugin is unavoidable" | True, and it is **thin**: three routes, one auth mixin, a note-state pre-check and an action allow-list. See [PLUGIN-SCOPE.md](../PLUGIN-SCOPE.md) |
+| "A plugin is unavoidable" | True, and it is **thin**: three routes, one auth mixin, a note-state pre-check and an action allow-list. Scoped, with the build steps, in [AL-100](https://lasohealth.atlassian.net/browse/AL-100) |

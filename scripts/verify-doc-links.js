@@ -43,6 +43,9 @@ const NOT_A_CITATION = [
   // Canvas's own documentation placeholder host, which appears inside quoted
   // example requests. Never a citation.
   /^https:\/\/example\.canvasmedical\.com/,
+  // Jira needs a session, so a ticket link can never resolve here. It is a
+  // pointer to our own tracker rather than a citation to check.
+  /^https:\/\/[a-z0-9-]+\.atlassian\.net\//,
   /^https:\/\/YOUR-/i,
   /^https:\/\/webhook\.site/,
   /^https:\/\/fumage-\{/,
