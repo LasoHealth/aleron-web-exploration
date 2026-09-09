@@ -165,7 +165,8 @@ possible, so send `lab_account_id` rather than leaving the account to inference.
 
 ### 2.2 Per-physician Canvas OAuth enrolment — gates priority 1 only
 
-> **Narrowed by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X4.** Canvas has two
+> **Narrowed by [INSTANCE-FINDINGS X4: attribution has two mechanisms, and they
+> are not the same one](INSTANCE-FINDINGS.md#x4--attribution-has-two-mechanisms-and-they-are-not-the-same-one).** Canvas has two
 > attribution mechanisms and this section originally treated them as one. The
 > **Note API** takes `client_credentials` and names the clinician in its
 > `providerKey` field, so **priority 2 — order history in the chart — needs no
@@ -306,7 +307,8 @@ The mechanism is not a per-order document. It is the note: staged and signed
 commands live in it, and locking it via `PATCH /core/api/notes/v1/Note` with
 `stateChange` — externally callable — makes it immutable.
 
-> **Corrected twice; [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X7 is current.**
+> **Corrected twice; [INSTANCE-FINDINGS X7: signing makes the PDF, not
+> locking](INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all) is current.**
 > This section said locking *"generates the PDF **and** the FHIR
 > `DocumentReference`"*, which is what
 > [`/api/note/`](https://docs.canvasmedical.com/api/note/) states and what the
@@ -325,7 +327,8 @@ commands live in it, and locking it via `PATCH /core/api/notes/v1/Note` with
 For Junction labs, the chart also needs the results, which arrive as **real
 values** — units, reference ranges and abnormal flags, not a PDF. The route is
 `$create-lab-report`, externally callable per
-[INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1, with the plugin effects
+[INSTANCE-FINDINGS X1: `$create-lab-report` exists and is externally
+callable](INSTANCE-FINDINGS.md#corrections--documents-are-wrong-on-these), with the plugin effects
 `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` as the fallback; §5.4 has the
 detail and the two remaining unknowns.
 
@@ -334,7 +337,8 @@ PDF is retrievable at `GET /v3/order/{id}/requisition/pdf` and belongs in the
 chart, but a PDF hanging off the note is not what this section promises — the
 order history *is* the note, and only commands are in it. That artefact is a
 `CustomCommand` carrying Junction's order id and requisition, for the reason
-X9 measured: a `LabOrder` would print a Canvas lab partner and a competing
+[X9](INSTANCE-FINDINGS.md#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits) measured
+from a signed PDF: a `LabOrder` would print a Canvas lab partner and a competing
 requisition number. See §5.3.
 
 ### 4.6 Order authorization and patient release stay separate
@@ -562,7 +566,8 @@ Ordered by how much they would change if the answer surprises us.
    staged → committed, never as an attestation.
 9. **[Note → Update](https://docs.canvasmedical.com/api/note/#update) says
    locking generates the PDF and the `DocumentReference`. Signing is what does**
-   ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X7) — 14 API-locked notes produced
+   ([INSTANCE-FINDINGS X7: signing makes the PDF, not
+   locking](INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all)) — 14 API-locked notes produced
    0 documents; one signature produced one. Will Canvas correct the page?
 10. **`stateChange` cannot reach `SGN` or `DLT`, but `POST
     /api/NoteStateChangeEvent/` can, and it accepts a `client_credentials`

@@ -48,7 +48,11 @@ Four things are true, in descending order of consequence.
 
 **1. The set's model of how Canvas is written to is wrong, and it is wrong the
 same way on six screens.** The designs describe Aleron writing a
-> **Corrected by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5.** Locking over
+> **Corrected by [INSTANCE-FINDINGS X5: locking over the API does not generate
+> the PDF, and the API cannot reach the state that does](INSTANCE-FINDINGS.md#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does).**
+> Read [X7](INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all)
+> after it: it overturns the "unreachable" half, because signing is what
+> generates the PDF. Locking over
 > the API generates **neither** the PDF nor the `DocumentReference` on
 > `aleronmd-dev`: 11 locked notes hold 0 documents, the only 2 documents belong
 > to the only 2 notes at `SGN`, and `stateChange` refuses `SGN`. The claim below
@@ -123,7 +127,7 @@ screens describe it. Changes from the drawn version are marked **▲**.
 | 2 | Problem-list decisions | Canvas | `Diagnose` (new), **`Assess`** ▲ (existing) | *Not* FHIR `Condition` update: the **only** supported Condition update is marking it `entered-in-error`. |
 | 3 | **Lock the note** ▲ | Canvas | `stateChange` → `LKD`, or `SIGN_NOTE` | Canvas generates the PDF **and** the `DocumentReference`. Aleron does not write the document. |
 | 4 | Lab / genetic order | **Junction** | `POST /v3/order` | Canvas holds no order record, by design. Results return by webhook. |
-| 5 | Results into the chart | Canvas | `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` (SDK) | Real values, units, ranges, abnormal flags — not a PDF. Needs no Canvas lab order to exist. `POST /DiagnosticReport/$create-lab-report` is **undeclared on `aleronmd-dev` but reachable** — it answers a body complaint, not a `404`, and its scope is granted ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1). Prefer it; keep the effect as the fallback. A successful write is still untested. |
+| 5 | Results into the chart | Canvas | `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` (SDK) | Real values, units, ranges, abnormal flags — not a PDF. Needs no Canvas lab order to exist. `POST /DiagnosticReport/$create-lab-report` is **undeclared on `aleronmd-dev` but reachable** — it answers a body complaint, not a `404`, and its scope is granted ([INSTANCE-FINDINGS X1](INSTANCE-FINDINGS.md#corrections--documents-are-wrong-on-these)). Prefer it; keep the effect as the fallback. A successful write is still untested. |
 | 6 | Imaging order | Canvas | `ImagingOrder` — originate, **sign**, then **`send()`** ▲ | **Two calls, not one.** A failed `send()` after a successful `sign()` leaves the row lying. |
 | 7 | Referral | Canvas | `Refer` — originate, **sign**, **no `send()`** ▲ | Aleron can sign a referral and **cannot transmit it or learn that it was transmitted.** Transmission is Canvas-native. |
 | 8 | Prescription | Canvas | `Prescribe` — originate only, **no `sign()`** | Physician redirected to Canvas. `send()` exists but Canvas's own example applies it to commands **a human already committed**. |
@@ -627,7 +631,7 @@ Strict residency was chosen with these consequences understood:
 |---|---|
 | The constructed note URL shape on `aleronmd-dev` | Whether decision 9's deep link works before the fallback is the only path |
 | Is the genetics panel a Junction order or the Canvas genetics integration? | Gates rows on four screens; `BiomarkerResult` has no shape for a variant call |
-| ~~Does `$create-lab-report` exist undeclared?~~ **Answered: yes.** | Absent from the CapabilityStatement, present on the instance — [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1. Junction results do **not** depend on the plugin. |
+| ~~Does `$create-lab-report` exist undeclared?~~ **Answered: yes.** | Absent from the CapabilityStatement, present on the instance — [INSTANCE-FINDINGS X1](INSTANCE-FINDINGS.md#corrections--documents-are-wrong-on-these). Junction results do **not** depend on the plugin. |
 | Do events fire for externally-staged commands? | Now low-stakes — decision 8 subscribes to no events |
 
 
