@@ -6,12 +6,16 @@ portal code.
 
 Start at [`index.html`](index.html).
 
-| | Screens | What it is |
-|---|---:|---|
-| **v0** baseline | 11 | A replica of the portal as it stands today, in its own visual language |
-| **v1** canonical | 8 | The reference surface the canonical documents already designed |
-| **v2** proposed | 14 | v1's chart plus the queue, ordering, release and audit surfaces v0 has |
-| **v3** open question | 1 | The same care plan with an opt-in model instead of opt-out, and its four acts separated into steps |
+| | What it is |
+|---|---|
+| **v0** baseline | A replica of the portal as it stands today, in its own visual language |
+| **v1** canonical | The reference surface the canonical documents already designed |
+| **v2** proposed | v1's chart plus the queue, ordering, release and audit surfaces v0 has |
+| **v3** open question | The same care plan with an opt-in model instead of opt-out, and its four acts separated into steps |
+
+`npm run check` prints the current screen and link counts. They are deliberately
+not written down here: every count in this repo had drifted from the files it
+described, and one of them sat inside a rule agents follow.
 
 ## Running it
 
@@ -70,11 +74,11 @@ BRIEF.md                the binding rules every screen follows
 physician-chrome.css    ALL shared chrome, in three labelled sections
 v0/  v0-tokens.css      the baseline's own visual language, scoped to .v0
      _flow.html         flow map
-     *.html             10 screens
+     *.html             the version's screens
 v1/  _flow.html         flow map
-     *.html             7 screens
+     *.html             the version's screens
 v2/  _flow.html         flow map
-     *.html             13 screens
+     *.html             the version's screens
 v3/  _flow.html         what v3 asks, and why it is one screen
      care-plan.html     the opt-in alternative
 scripts/check.js        standing rule checks, non-zero exit

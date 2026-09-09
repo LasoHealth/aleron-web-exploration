@@ -1,4 +1,5 @@
-// Check that every external citation in docs/ actually resolves.
+// Check that every citation in docs/ resolves: external URLs over the network,
+// and internal `file.md#section` links against the target's real headings.
 //
 //   node scripts/verify-doc-links.js
 //
@@ -6,6 +7,11 @@
 // constructed from the endpoint name rather than copied from the vendor's own
 // index, and it looked entirely plausible. A resolving URL is still not proof
 // the page says what you claim — but a 404 is proof it does not.
+//
+// A bare finding id is worse than a dead URL: "INSTANCE-FINDINGS X7" cannot be
+// resolved by a first-time reader, and no checker can tell it is wrong. The
+// convention is to link the section and say what it found, which makes the
+// reference legible and checkable. The anchor pass below checks it.
 //
 // Exit code is non-zero if any citation is dead, so this can gate a commit.
 
@@ -71,6 +77,49 @@ for (const { dir, recurse } of ROOTS) {
   }
   walk(dir, recurse);
 }
+
+// ---- Internal section links -------------------------------------------------
+// GitHub's heading slug: lowercase, drop anything but word chars, spaces and
+// hyphens, then spaces to hyphens. An em dash leaves its two spaces behind, so
+// "## X7 — foo" anchors as "#x7--foo".
+const slug = (s) => s.toLowerCase().replace(/[^\w\- ]/g, '').replace(/ /g, '-');
+
+const headingCache = new Map();
+function headingsOf(file) {
+  if (!headingCache.has(file)) {
+    headingCache.set(
+      file,
+      fs
+        .readFileSync(file, 'utf8')
+        .split('\n')
+        .filter((l) => /^#{1,6} /.test(l))
+        .map((l) => slug(l.replace(/^#+ /, '').trim())),
+    );
+  }
+  return headingCache.get(file);
+}
+
+const ANCHOR_RE = /\]\(([^)\s#]+\.md)#([^)\s]+)\)/g;
+const deadAnchors = [];
+for (const f of files) {
+  const src = fs.readFileSync(f, 'utf8');
+  for (const m of src.matchAll(ANCHOR_RE)) {
+    const target = path.resolve(path.dirname(f), m[1]);
+    const where = path.relative(process.cwd(), f);
+    if (!fs.existsSync(target)) {
+      deadAnchors.push(`${where}: no such file ${m[1]}`);
+    } else if (!headingsOf(target).includes(m[2])) {
+      deadAnchors.push(`${where}: ${m[1]} has no section #${m[2]}`);
+    }
+  }
+}
+if (deadAnchors.length) {
+  console.log(`FAIL: ${deadAnchors.length} internal section link(s) point at nothing`);
+  for (const d of deadAnchors) console.log(`  ${d}`);
+  console.log('\nFix these first; external citations were not checked in this run.');
+  process.exit(1);
+}
+console.log('PASS: every internal section link resolves');
 
 const cites = new Map(); // url -> Set of files
 for (const f of files) {
