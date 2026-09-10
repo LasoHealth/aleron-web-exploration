@@ -371,7 +371,9 @@ If you are still reading, these three facts override anything above that conflic
   `currentState`, `patientKey`, `providerKey`, `practiceLocationKey`,
   `noteTypeName`, `noteTypeSystem`, `noteTypeCoding`.
 
-> **Corrected by [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X5.** Locking over
+> **Corrected by [INSTANCE-FINDINGS: signing generates the PDF, locking never
+> does](INSTANCE-FINDINGS.md#signing-generates-the-pdf-locking-never-does).**
+> Locking over
 > the API generates **neither** the PDF nor the `DocumentReference` on
 > `aleronmd-dev`: 11 locked notes hold 0 documents, the only 2 documents belong
 > to the only 2 notes at `SGN`, and `stateChange` refuses `SGN`. The claim below

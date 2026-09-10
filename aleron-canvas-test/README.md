@@ -118,8 +118,8 @@ HTTPS comes from the Tailscale cert files in this folder. Open
   from the note's `providerKey`**, proven by placing two otherwise identical
   orders under different providers. The dropdown decides who is named on the
   order. (An order created in the Canvas UI takes the acting user instead —
-  [INSTANCE-FINDINGS X9: how an order actually reaches the signed
-  PDF](../docs/INSTANCE-FINDINGS.md#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits).)
+  [INSTANCE-FINDINGS X9: how an order reaches the signed
+  PDF](../docs/INSTANCE-FINDINGS.md#how-an-order-reaches-the-signed-pdf).)
   The table shows all three identities —
   `originator` (the API caller), `orderingProvider` (ours), `committer` (set
   when the note is signed, which commits its staged commands).

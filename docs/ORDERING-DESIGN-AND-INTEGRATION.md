@@ -332,7 +332,7 @@ PDF is retrievable at `GET /v3/order/{id}/requisition/pdf` and belongs in the
 chart, but a PDF hanging off the note is not what this section promises — the
 order history *is* the note, and only commands are in it. That artefact is a
 `CustomCommand` carrying Junction's order id and requisition, for the reason
-[X9](INSTANCE-FINDINGS.md#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits) measured
+[X9](INSTANCE-FINDINGS.md#how-an-order-reaches-the-signed-pdf) measured
 from a signed PDF: a `LabOrder` would print a Canvas lab partner and a competing
 requisition number. See §5.3.
 
@@ -487,7 +487,9 @@ AL-100's T5, which is the acceptance test for this whole approach.
   via **`POST /DiagnosticReport/$create-lab-report`**. It is missing from the
   CapabilityStatement but reachable — it answers a *body* complaint rather than
   `404`, and `user/DiagnosticReport.create-lab-report` is a granted scope
-  ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1). **Results are therefore not
+  ([INSTANCE-FINDINGS X1: `$create-lab-report` is externally
+  callable](INSTANCE-FINDINGS.md#corrections--documents-are-wrong-on-these)).
+  **Results are therefore not
   plugin-gated and can land before the plugin exists.** Keep the plugin effects
   `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` as the fallback: two things
   are unproven — a *successful* write through the operation, and whether

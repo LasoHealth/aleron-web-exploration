@@ -199,7 +199,8 @@ in the signed PDF. Reproduced by `O2` and `O3` in the runner and drivable at
 
 `POST /api/LabOrder/ {patient, note}` returns **`201`** with a
 `client_credentials` token and no plugin, on the same undocumented `/api/`
-surface as X5–X7. It comes back with a requisition number and reads back as a
+surface as [X5–X7](#x5-x6-x7--the-note-lifecycle-over-http). It comes back with
+a requisition number and reads back as a
 FHIR `ServiceRequest`. `/api/ImagingOrder/` and `/api/ChartSectionReview/`
 answer the same way.
 
