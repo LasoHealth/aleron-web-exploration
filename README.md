@@ -32,7 +32,7 @@ time, to fetch the canonical stylesheets and the typeface.
 
 ## Published
 
-<https://kito-laso.github.io/aleron-web-designs/>
+<https://lasohealth.github.io/aleron-web-exploration/>
 
 Pages serves `main` from the repository root, so the set publishes as it
 stands and needs no build step. Two things keep it working:

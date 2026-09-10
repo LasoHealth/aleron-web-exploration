@@ -9,7 +9,6 @@
   "scripts": {
     "create-patients": "node --env-file=script.env create-patients.mjs",
     "selftest": "node create-patients.mjs --selftest",
-    "verify-api": "node --env-file=script.env verify-api.mjs",
     "dev": "vite"
   },
   "devDependencies": {

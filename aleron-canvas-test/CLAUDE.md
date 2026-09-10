@@ -1,93 +1,63 @@
 # CLAUDE.md — aleron-canvas-test
 
-Canvas and Junction integration harness: five fixture patients, a claims runner
-that checks every documented assertion against the live `aleronmd-dev` instance,
-and a small web app for driving the flows by hand. `README.md` covers setup, the
-Canvas gotchas already handled here, and what each route does.
+Canvas and Junction integration harness: five fixture patients and a web app for
+driving the flows by hand. `README.md` covers setup, the Canvas gotchas already
+handled here, and what each route does.
 
-This file covers the ordering documents in `../docs/`. This folder is what
-reproduces their claims, which is why the guide to them lives here.
+## The ordering documents are in another repo
 
-## Ordering documents
+The Canvas/Junction ordering design is `docs/canvas/` in **`Meridian-Web`**, and
+`canvas-verify/CLAUDE.md` there is the guide to it: which document answers what,
+the precedence order that settles conflicts, and the rules that came from
+getting them wrong. **Read that before changing anything here that asserts how
+ordering, notes or results behave** — including the explanatory prose in the
+routes, which cites those findings.
 
-The Canvas/Junction ordering design lives in **`../docs/`**, checked by the
-harness in this folder. Read them in this order.
+They moved because `Meridian-Web` is where the ordering code lives and nothing
+there referenced them. The claims runner went with them, so a claim proven by
+this app now gets recorded on that side.
 
-### Precedence — this order settles every conflict
+Two of its rules bind this folder directly:
 
-1. **`../docs/INSTANCE-FINDINGS.md`** — what the
-   live `aleronmd-dev` instance actually does. **Overrides everything below**,
-   including Canvas's own published documentation.
-2. **`../docs/ORDERING-DESIGN-AND-INTEGRATION.md`** — the master document. What the
-   two APIs permit, and what the design must become as a consequence. Derived
-   from the APIs, not from the screens.
-3. **`../docs/API-GROUND-TRUTH.md`** — capability reference, pinned to the live
-   CapabilityStatement.
-4. **`../docs/API-IMPLEMENTATION-AUDIT.md`** — every physician-facing data point on
-   every screen, audited against the APIs.
-5. **`../docs/audit/VERIFY-*.md`** — research transcripts behind the vendor claims.
-   Cite these rather than re-researching.
-
-### Where to look for what
-
-| Question | Section |
-|---|---|
-| What are the hard constraints? | ORDERING §1, the five facts F1–F5 |
-| Which route does an order type take? | ORDERING §3, the routing table |
-| Why does a screen look the way it does? | ORDERING §4, nine required changes |
-| How should the backend work? | ORDERING §5 |
-| Can Canvas store X? | API-GROUND-TRUTH, then confirm against INSTANCE-FINDINGS |
-| What is still unanswered by the vendor? | ORDERING §7 |
-| Where did a claim come from? | ORDERING §9, the source register |
-
-### Rules that came from getting these wrong
-
-- **Never reference the Junction controllers in `Aleron-Web`.**
-  `JunctionController`, `GeneticsOrderService` and `PhysicianOrderPlacer` are
-  built on superseded designs. They are not evidence of intent.
-- **Canvas FHIR and the Canvas Plugin SDK are different write surfaces**, and
-  conflating them is the most common error in this work. `CommandAPI` is a Python
-  base class you subclass *inside a plugin*, not an API Canvas hosts. Commands
-  and effects are plugin-gated; only FHIR and the Note API are reachable from
-  outside.
-- **Vendor documentation is a claim, not a fact.** Canvas's Note API page states
-  that locking a note generates the PDF and its `DocumentReference`. On this
-  instance it does not — signing does
-  ([signing makes the PDF, not locking](../docs/INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http)). Several of the
-  [recorded corrections](../docs/INSTANCE-FINDINGS.md#corrections--documents-are-wrong-on-these) contradict Canvas's own pages. **Test before you build on a
-  sentence.**
-- **A finding states only what is currently true**, not how it was arrived at.
-  Where one heading owns several numbers — X5–X7 the note lifecycle, X8–X10
-  orders — they were merged because they answer one question. **The section is
-  the unit, not the number**, and new findings get appended, so read the list
-  rather than assuming a range.
-- **Cite with a link, and check that the link resolves.** A fabricated citation
-  has happened here; `../scripts/verify-doc-links.js` exists because of it.
+- **Vendor documentation is a claim, not a fact.** Canvas's Note API page says
+  locking a note generates the PDF and its `DocumentReference`. On this instance
+  signing does. Anything this app tells the user about Canvas behaviour has to
+  come from a measurement, not from a vendor page.
 - **Never cite a finding by its bare id.** "INSTANCE-FINDINGS X7" tells a
-  first-time reader nothing. Link the section and put what it found in the link
-  text: `[signing makes the PDF, not locking](../docs/INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http)`.
-  The same goes for `ORDERING §5.4` and `F3` — name the claim, not just the
-  coordinate. A reference nobody can resolve is worth less than no reference.
+  first-time reader nothing. Name what it found and where it lives.
 
-### How to re-check any of it
+## What this folder is for
+
+The app exists to drive flows a script cannot: `authorization_code` login, the
+note lifecycle button by button, placing two orders under different providers to
+see which identity sticks. It is the manual counterpart to the runner, and its
+findings belong in the documents rather than in comments here.
+
+`create-patients.mjs` stays here because the bulk delete and void acts are
+fenced to the patients in `created-patients.json`, and that fence fails closed
+when the file is unreadable. Moving the writer without the fence would have left
+the app unable to confirm any patient as a fixture.
+
+## How to run it
 
 ```sh
-node --env-file=script.env verify-api.mjs --write   # every claim, against the live instance
-npm run dev                                          # then /notes for the note lifecycle by hand
+npm run create-patients   # writes created-patients.json, idempotent
+npm run selftest          # CSV against the documented value sets, no network
+npm run dev               # then /notes, /orders, /physician, /patient
 ```
 
-**In that runner, `FAIL` means a document is wrong, not that Canvas is broken** —
-every contradiction it reports is a recorded finding, so read the section rather
-than fixing the claim. Without `--write` the write claims skip instead, so fewer
-failures appear: **that means less was tested, not that something was fixed.**
-Junction's claims skip until there is an API key. The run prints its own tally;
-no number here can stay true as findings are added.
+The claims runner and the CapabilityStatement check now live in `Meridian-Web`:
 
 ```sh
-cd ..
+node --env-file=canvas-verify/.env.canvas canvas-verify/verify-api.mjs --write
+node canvas-verify/verify-docs.cjs
+```
+
+From this repo:
+
+```sh
 node scripts/check.js             # design-system and link rules across the screens
-node scripts/verify-canvas.js     # instance still matches the pinned CapabilityStatement
-node scripts/verify-doc-links.js  # every external citation still resolves, both trees
+node scripts/verify-doc-links.js  # every citation and internal anchor resolves
 ```
 
 **`script.env`, `web.env`, the Tailscale `.key`/`.crt` and

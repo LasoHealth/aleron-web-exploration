@@ -5,7 +5,7 @@
 **Data points audited:** 92 total — OK 53, GAP 19, WRONG 9, UNVERIFIED 5, NONE 6
 (inbox 57, panel 35; the shared rail is counted once, in the inbox. Rows that repeat one field across many patients — nine patient names, 48 domain tiers — are counted as one data point each and their per-patient values listed in the note.)
 
-Newly verified against live docs in this pass (not in `API-GROUND-TRUTH.md`), each cited inline below:
+Newly verified against live docs in this pass (not in `docs/canvas/API-GROUND-TRUTH.md` (in `Meridian-Web`)), each cited inline below:
 
 | Fact | URL |
 |---|---|

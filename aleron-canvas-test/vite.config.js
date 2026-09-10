@@ -525,7 +525,7 @@ const canvasAuth = {
             // empty result is the finding rather than a failure of the button.
             note_on_absence: match
               ? undefined
-              : 'No DocumentReference matches this note. Locking over the API does not generate one on this instance; see INSTANCE-FINDINGS X5.',
+              : 'No DocumentReference matches this note. Locking over the API does not generate one on this instance; signing does. See docs/canvas/INSTANCE-FINDINGS.md in Meridian-Web, the note lifecycle over HTTP.',
           })
         }
 

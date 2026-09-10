@@ -1224,7 +1224,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
     doc page.</b> A <code>PUT</code> on a Canvas <code>Condition</code> with a changed
     <code>onsetDateTime</code> returned <code>422</code> on the live instance and the value did not
     persist; the only supported update is marking one entered in error
-    (<code>docs/INSTANCE-FINDINGS.md</code>, C2). The route for a matched problem is the SDK
+    (<code>docs/canvas/INSTANCE-FINDINGS.md</code> in <code>Meridian-Web</code>, C2). The route for a matched problem is the SDK
     <code>Assess</code> command against the existing <code>condition_id</code>, which adds to the entry
     rather than revising it. Problem 3's meta line, the rail's disposition control, the document
     signature line and act 1's fact list all said <em>update existing</em> and all four now say what
@@ -1235,7 +1235,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
     Canvas documents exactly that; on <code>aleronmd-dev</code> it is false. Eleven notes locked over the
     API hold zero documents between them, the only two documents on the instance belong to the only two
     notes that reached <code>SGN</code>, and the API refuses that state outright &mdash;
-    <code>400, this note state change is not allowed</code> (<code>docs/INSTANCE-FINDINGS.md</code>, X5).
+    <code>400, this note state change is not allowed</code> (<code>docs/canvas/INSTANCE-FINDINGS.md</code> in <code>Meridian-Web</code>, X5).
     So the surface states what locking really does, that the note becomes immutable, and stops promising
     a document that only an act inside Canvas can create.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>

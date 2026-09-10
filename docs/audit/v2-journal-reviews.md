@@ -5,7 +5,7 @@
 **Data points audited:** 153 total — OK 61, GAP 44, WRONG 6, UNVERIFIED 9, NONE 33
 (journal 93: OK 46, GAP 27, WRONG 5, UNVERIFIED 9, NONE 6 · reviews 60: OK 15, GAP 17, WRONG 1, UNVERIFIED 0, NONE 27)
 
-Newly verified beyond `API-GROUND-TRUTH.md` (all fetched 3 Sep 2026):
+Newly verified beyond `docs/canvas/API-GROUND-TRUTH.md` (in `Meridian-Web`) (all fetched 3 Sep 2026):
 
 | Fact | URL |
 |---|---|
