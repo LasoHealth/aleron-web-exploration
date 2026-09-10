@@ -4,7 +4,7 @@
 
 **Data points audited:** 159 total — OK 95, GAP 36, WRONG 6, UNVERIFIED 17, NONE 5
 
-Newly verified against live docs beyond `API-GROUND-TRUTH.md` (all fetched 3 Sep 2026):
+Newly verified against live docs beyond `docs/canvas/API-GROUND-TRUTH.md` (in `Meridian-Web`) (all fetched 3 Sep 2026):
 
 | Fact | Source |
 |---|---|

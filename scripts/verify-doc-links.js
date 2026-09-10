@@ -8,7 +8,7 @@
 // index, and it looked entirely plausible. A resolving URL is still not proof
 // the page says what you claim — but a 404 is proof it does not.
 //
-// A bare finding id is worse than a dead URL: "INSTANCE-FINDINGS X7" cannot be
+// A bare finding id is worse than a dead URL: a lone "X7" cannot be
 // resolved by a first-time reader, and no checker can tell it is wrong. The
 // convention is to link the section and say what it found, which makes the
 // reference legible and checkable. The anchor pass below checks it.
@@ -20,12 +20,11 @@ const path = require('path');
 const https = require('https');
 
 const DOCS = path.join(__dirname, '..', 'docs');
-// The ordering master document now lives with the test harness that reproduces
-// its claims, but its vendor citations are the load-bearing ones in the set, so
-// keep checking them from here. A missing sibling checkout is not a failure.
-// The harness lives inside this repo now and carries its own README, whose
-// vendor citations are worth checking too. Recurse is per root: the harness
-// folder is shallow because it holds node_modules and a React src tree.
+// docs/ is the per-screen audits; the ordering set moved to Meridian-Web and is
+// checked by canvas-verify/verify-doc-links.cjs there. The harness carries its
+// own README, whose vendor citations are worth checking too. Recurse is per
+// root: the harness folder is shallow because it holds node_modules and a React
+// src tree.
 const HARNESS = path.join(__dirname, '..', 'aleron-canvas-test');
 const ROOTS = [
   { dir: DOCS, recurse: true },
@@ -80,7 +79,7 @@ for (const { dir, recurse } of ROOTS) {
 
 // ---- Internal section links -------------------------------------------------
 // GitHub's heading slug. Verified against GitHub's own /markdown renderer for
-// every heading in docs/INSTANCE-FINDINGS.md, plus accents, duplicate headings,
+// every heading in the audits, plus accents, duplicate headings,
 // code spans, inline links, and `+ # % & / \` punctuation.
 //
 // Two things the first version of this got wrong, both silent:
@@ -206,7 +205,7 @@ const head = (url, redirects = 0, orig = url) =>
   // that is a finding and the run should fail on the surprise instead.
   const EXPECTED_404 = {
     'https://docs.canvasmedical.com/api/riskassessment/':
-      'cited as proof RiskAssessment is not exposed — see ORDERING-DESIGN-AND-INTEGRATION.md',
+      'cited as proof RiskAssessment is not exposed; see docs/canvas/ORDERING-DESIGN-AND-INTEGRATION.md in Meridian-Web',
   };
   const surprises = Object.keys(EXPECTED_404).filter((u) =>
     results.some((r) => r.url === u && r.code === 200));

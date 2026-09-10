@@ -15,7 +15,7 @@ complete sets; v3 is a single screen posing one question:
 | **v0** | A faithful replica of the portal as it stands today | `C:\LASOHealth\apps\Aleron-Web` |
 | **v1** | The canonical reference surface, recreated | `aleron-canonical-documents/system-design/diagrams/aleron-actionmap-al47m-ds.html` |
 | **v2** | v1, plus every v0 capability that v1 has no home for | both, plus the role/release matrix |
-| **v3** | v2’s care plan again, opt-in instead of opt-out, with its four acts split into steps | v2, plus the open question in `docs/ORDERING-DESIGN-AND-INTEGRATION.md` |
+| **v3** | v2’s care plan again, opt-in instead of opt-out, with its four acts split into steps | v2, plus the open question in `docs/canvas/ORDERING-DESIGN-AND-INTEGRATION.md` (in `Meridian-Web`) |
 
 They exist to be demoed side by side. v0 is the baseline you are arguing
 against; if v0 does not look like the thing the team uses today, the argument

@@ -1,21 +1,20 @@
 # Canvas/Junction harness
 
-Three things: fixture patients, a claims runner, and a web app for driving the
-flows by hand.
+Two things: fixture patients, and a web app for driving the flows by hand.
 
 - **`create-patients.mjs`** bulk-creates the 5 fixture patients from
   `patients.csv`.
-- **`verify-api.mjs`** is the claims runner. It checks every documented
-  assertion against the live `aleronmd-dev` instance and reports each as
-  confirmed or contradicted with the response that settled it. **A `FAIL` means
-  a document is wrong, not that Canvas is broken.**
-- **The Vite app** drives the same flows by hand: the note lifecycle, orders,
+- **The Vite app** drives the flows by hand: the note lifecycle, orders,
   attribution, results, physician login, and the original token-scope probe
   (whether a token scoped to one patient can reach another).
 
 It is a harness rather than a test suite because the subject under test is not
-our code. It characterizes Canvas and Junction, so the fixtures and the runner
+our code. It characterizes Canvas and Junction, so the fixtures and the app
 exist to hold somebody else’s API still long enough to measure it.
+
+The non-interactive half moved to `canvas-verify/` in the `Meridian-Web` repo,
+next to the documents whose claims it checks. The fixtures stayed here because
+the bulk acts below are fenced to the roster `create-patients.mjs` writes.
 
 ## Canvas gotchas this codebase already handles
 
@@ -110,8 +109,9 @@ HTTPS comes from the Tailscale cert files in this folder. Open
   documented API allows, and works even on a signed note.
 
   **Why signing and deleting need an undocumented endpoint, and how the ids for
-  it are derived, is [INSTANCE-FINDINGS X7](../docs/INSTANCE-FINDINGS.md).**
-  That finding has already been revised twice, so it is not restated here.
+  it are derived, is in `docs/canvas/INSTANCE-FINDINGS.md` (in `Meridian-Web`),
+  under the note lifecycle over HTTP.** That finding has already been revised
+  twice, so it is not restated here.
 
   Bulk acts are doubly fenced: the patient must appear in
   `created-patients.json`, and only notes this harness wrote are touched — the
@@ -131,9 +131,9 @@ HTTPS comes from the Tailscale cert files in this folder. Open
   What *is* ours: **for orders created here, `orderingProvider` is inherited
   from the note's `providerKey`**, proven by placing two otherwise identical
   orders under different providers. The dropdown decides who is named on the
-  order. (An order created in the Canvas UI takes the acting user instead —
-  [INSTANCE-FINDINGS X9: how an order reaches the signed
-  PDF](../docs/INSTANCE-FINDINGS.md#how-an-order-reaches-the-signed-pdf).)
+  order. (An order created in the Canvas UI takes the acting user instead: see
+  how an order reaches the signed PDF, in `docs/canvas/INSTANCE-FINDINGS.md` in
+  `Meridian-Web`.)
   The table shows all three identities —
   `originator` (the API caller), `orderingProvider` (ours), `committer` (set
   when the note is signed, which commits its staged commands).
@@ -162,11 +162,14 @@ means data crossed a scope boundary.
 
 ## Documents
 
-`docs/` holds the ordering design and its API reference, kept here because this
-is what reproduces their claims. **[CLAUDE.md](CLAUDE.md) is the guide to them** —
+The ordering design and its API reference are `docs/canvas/` in the
+`Meridian-Web` repo, with `canvas-verify/CLAUDE.md` there as the guide to them:
 which document answers what, the precedence order that settles conflicts, and
 the rules that came from getting them wrong. Start at
-[docs/ORDERING-DESIGN-AND-INTEGRATION.md](../docs/ORDERING-DESIGN-AND-INTEGRATION.md).
+`docs/canvas/ORDERING-DESIGN-AND-INTEGRATION.md`.
+
+[CLAUDE.md](CLAUDE.md) here covers what this folder is for and the rules that
+apply to it.
 
 ## Regenerating the Tailscale cert
 

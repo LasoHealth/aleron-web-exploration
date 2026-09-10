@@ -8,7 +8,7 @@
 
 Scope note: the file carries no `<script>`. All values are hardcoded fixtures in markup. `wf-scaffold` / `wf-ex__bubble` content (including the `.pfoot` at line 778) is excluded per instructions; `wf-annotations` were read and are answered in the Contradictions section.
 
-One dependency is not covered by API-GROUND-TRUTH.md and was verified live, marked `newly verified` below: Junction's lab catalogue is **marker-based** — `GET /v3/lab_tests/markers` (searchable by lab or name, with a `lab_slug` filter) and `GET /v3/lab_tests/labs` (returns `collection_methods`, `sample_types`). Source: https://docs.junction.com/api-reference/lab-testing/labs and https://docs.junction.com/changelog/lab-testing/api. This matters because an order is composed of **markers**, not of procedures.
+One dependency is not covered by `docs/canvas/API-GROUND-TRUTH.md` (in `Meridian-Web`) and was verified live, marked `newly verified` below: Junction's lab catalogue is **marker-based** — `GET /v3/lab_tests/markers` (searchable by lab or name, with a `lab_slug` filter) and `GET /v3/lab_tests/labs` (returns `collection_methods`, `sample_types`). Source: https://docs.junction.com/api-reference/lab-testing/labs and https://docs.junction.com/changelog/lab-testing/api. This matters because an order is composed of **markers**, not of procedures.
 
 ---
 
