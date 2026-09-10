@@ -76,11 +76,12 @@ node --env-file=script.env verify-api.mjs --write   # every claim, against the l
 npm run dev                                          # then /notes for the note lifecycle by hand
 ```
 
-**In that runner, `FAIL` means a document is wrong, not that Canvas is broken.**
-The `--write` run currently reports **9 confirmed, 5 contradicted, 2 skipped**,
-and each of the five is a recorded finding. Without `--write` the write claims
-skip instead, so fewer failures appear — that means less was tested, not that
-something was fixed. The two skips are Junction, pending an API key.
+**In that runner, `FAIL` means a document is wrong, not that Canvas is broken** —
+every contradiction it reports is a recorded finding, so read the section rather
+than fixing the claim. Without `--write` the write claims skip instead, so fewer
+failures appear: **that means less was tested, not that something was fixed.**
+Junction's claims skip until there is an API key. The run prints its own tally;
+no number here can stay true as findings are added.
 
 ```sh
 cd ..
