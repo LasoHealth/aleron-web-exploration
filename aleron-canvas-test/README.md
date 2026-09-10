@@ -1,7 +1,21 @@
-# Canvas EMR access tests
+# Canvas/Junction harness
 
-Two things: a script that bulk-creates 5 test patients, and a web app that checks
-whether a token scoped to one patient can reach another.
+Three things: fixture patients, a claims runner, and a web app for driving the
+flows by hand.
+
+- **`create-patients.mjs`** bulk-creates the 5 fixture patients from
+  `patients.csv`.
+- **`verify-api.mjs`** is the claims runner. It checks every documented
+  assertion against the live `aleronmd-dev` instance and reports each as
+  confirmed or contradicted with the response that settled it. **A `FAIL` means
+  a document is wrong, not that Canvas is broken.**
+- **The Vite app** drives the same flows by hand: the note lifecycle, orders,
+  attribution, results, physician login, and the original token-scope probe
+  (whether a token scoped to one patient can reach another).
+
+It is a harness rather than a test suite because the subject under test is not
+our code. It characterizes Canvas and Junction, so the fixtures and the runner
+exist to hold somebody else’s API still long enough to measure it.
 
 ## Canvas gotchas this codebase already handles
 
