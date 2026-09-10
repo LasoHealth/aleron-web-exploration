@@ -5,11 +5,10 @@ enough about Junction or the Canvas write surfaces. This document runs the other
 direction: it establishes what the two APIs actually permit, and derives what the
 design and the backend must look like as a consequence.
 
-4 September 2026. Supersedes
-[DECISION-junction-ordering-physician.md](DECISION-junction-ordering-physician.md),
-which reasoned from the legacy `JunctionController` / `GeneticsOrderService` /
-`PhysicianOrderPlacer` code as though it were the intended model. **No claim here
-rests on those controllers.** Every factual claim is sourced in §9.
+4 September 2026. **No claim here rests on the legacy `JunctionController` /
+`GeneticsOrderService` / `PhysicianOrderPlacer` code**, which an earlier brief
+treated as the intended model; that brief is gone and this document replaced it.
+Every factual claim is sourced in §9.
 
 Companion documents: [API-IMPLEMENTATION-AUDIT.md](API-IMPLEMENTATION-AUDIT.md)
 (every data point on every screen), [API-GROUND-TRUTH.md](API-GROUND-TRUTH.md)
@@ -304,25 +303,21 @@ orders with four different endings. Three states are enough:
 Priority 2 is *"the complete order history is save-able to the patient's chart."*
 
 The mechanism is not a per-order document. It is the note: staged and signed
-commands live in it, and locking it via `PATCH /core/api/notes/v1/Note` with
-`stateChange` — externally callable — makes it immutable.
+commands live in it, and **the sequence Aleron performs is create, lock, sign.**
 
-> **Corrected twice; [INSTANCE-FINDINGS X7: signing makes the PDF, not
-> locking](INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all) is current.**
-> This section said locking *"generates the PDF **and** the FHIR
-> `DocumentReference`"*, which is what
-> [`/api/note/`](https://docs.canvasmedical.com/api/note/) states and what the
-> instance contradicts: **14 locked notes, 0 documents.** **Signing is what
-> generates them** — the first note signed produced a document within five
-> seconds, `period.start` matching exactly.
->
-> `stateChange` refuses `SGN`, but `POST /api/NoteStateChangeEvent/` reaches it
-> and accepts a `client_credentials` token, so **the sequence is Aleron's to
-> perform: create, lock, sign.** That endpoint is **undocumented as HTTP** —
-> Canvas's own front end calling itself — so priority 2 rests on something
-> Canvas has not promised to keep. The supported alternative is a plugin
-> `SignNoteActionButton` in the note footer, which is a physician click rather
-> than a headless call. Vendor question 9 asks Canvas to settle this.
+**Signing is what generates the PDF and the FHIR `DocumentReference`** — not
+locking, whatever [`/api/note/`](https://docs.canvasmedical.com/api/note/) says.
+On this instance 14 locked notes produced 0 documents and the first signature
+produced one within five seconds, `period.start` matching exactly
+([INSTANCE-FINDINGS X5–X7](INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http)).
+`stateChange` refuses `SGN`; `POST /api/NoteStateChangeEvent/` reaches it with a
+`client_credentials` token.
+
+**That endpoint is undocumented as HTTP** — Canvas's own front end calling
+itself — so priority 2 rests on something Canvas has not promised to keep. The
+supported alternative is a plugin `SignNoteActionButton` in the note footer,
+which is a physician click rather than a headless call. Vendor questions 9–11
+ask Canvas to settle it.
 
 For Junction labs, the chart also needs the results, which arrive as **real
 values** — units, reference ranges and abnormal flags, not a PDF. The route is
@@ -463,7 +458,7 @@ Also worth sending, all currently unused: `icd_codes`, `clinical_notes`
 `LabOrder`.** Junction returns an order id and a requisition; priority 2 needs
 that preserved on the patient's note, not only in Aleron's database. The obvious
 command is the wrong one:
-[INSTANCE-FINDINGS X9](INSTANCE-FINDINGS.md#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits)
+[INSTANCE-FINDINGS X9](INSTANCE-FINDINGS.md#x8-x9-x10--orders-end-to-end)
 measured a `LabOrder` in a signed PDF and it printed **`LAB PARTNER: Generic
 Lab`** alongside a Canvas-minted requisition number. On a Junction order both
 assertions are false — a lab that never touched the specimen, and a second
@@ -488,19 +483,15 @@ AL-100's T5, which is the acceptance test for this whole approach.
   have no event.
 - Structured `BiomarkerResult` (`name`, `value`, `unit`, `reference_range`,
   `min_range_value`, `max_range_value`, `is_above_max_range`,
-  `is_below_min_range`, `interpretation`, `loinc`) → a lab report in the chart.
-  **This section used to say that meant the plugin effects `CREATE_LAB_REPORT` +
-  `ATTACH_LAB_REPORT_RESULTS`, and that is no longer the only route.**
-  [INSTANCE-FINDINGS X1](INSTANCE-FINDINGS.md) found
-  `POST /DiagnosticReport/$create-lab-report` answering a *body* complaint
-  rather than `404`, with `user/DiagnosticReport.create-lab-report` among the
-  granted scopes — it is simply missing from the CapabilityStatement. **Results
-  are therefore not plugin-gated**, which decouples them from AL-100: results
-  can land before the plugin exists. Two things stay unproven — a *successful*
-  write through that operation (only the route is confirmed), and whether
-  anything outside a plugin does the `ATTACH_LAB_REPORT_RESULTS` half. Prefer
-  the FHIR operation, keep the effects as the fallback the plugin already
-  affords.
+  `is_below_min_range`, `interpretation`, `loinc`) → a lab report in the chart,
+  via **`POST /DiagnosticReport/$create-lab-report`**. It is missing from the
+  CapabilityStatement but reachable — it answers a *body* complaint rather than
+  `404`, and `user/DiagnosticReport.create-lab-report` is a granted scope
+  ([INSTANCE-FINDINGS](INSTANCE-FINDINGS.md) X1). **Results are therefore not
+  plugin-gated and can land before the plugin exists.** Keep the plugin effects
+  `CREATE_LAB_REPORT` + `ATTACH_LAB_REPORT_RESULTS` as the fallback: two things
+  are unproven — a *successful* write through the operation, and whether
+  anything outside a plugin does the `ATTACH_LAB_REPORT_RESULTS` half.
 - Result PDFs and the requisition PDF are separately retrievable and belong in
   the chart alongside.
 - Model `order.status` and the 52-value `OrderStatus` **as strings**. Both are
@@ -543,41 +534,130 @@ Ordered by how much they would change if the answer surprises us.
 
 ## 7. Open questions for the vendors
 
+Every quoted phrase below links to the page it was read from **and** to the
+research transcript that recorded it. Check the quote before it goes into an
+email to a vendor: a paraphrase that hardened into a quotation is the failure
+mode this section exists to prevent, and it has happened here once already
+([VERIFY-commands-over-http](audit/VERIFY-commands-over-http.md) §3).
+
 **Junction**
 
 1. Which `delegated_flow` is available to us, and does it require our own
    certified lab account? What is the lead time? (§2.1)
+   — the four-member enum is on
+   [Get lab accounts](https://docs.junction.com/api-reference/lab-testing/lab_accounts);
+   *"Delegation is now at the lab account level"* and the enforcement grace
+   period are in the
+   [lab-testing changelog](https://docs.junction.com/changelog/lab-testing/api).
+   Transcript: [VERIFY-junction-flow2](audit/VERIFY-junction-flow2.md).
 2. Under `fully_delegated`, who contacts a patient with a critical result?
-3. **A contradiction to resolve:** `critical-results` says the lab calls *"the
-   Junction-assigned physician… They act as the ordering physician"*, which
+   — prompted by *"When there are critical results, Junction's physician network
+   will always be notified"* on
+   [Order and Follow-up Physician](https://docs.junction.com/lab/overview/physicians),
+   quoted under "The critical-results caveat" in
+   [VERIFY-junction-flow2](audit/VERIFY-junction-flow2.md).
+2b. **If we are in the network flow rather than a delegated one, is the Aleron
+   physician's result signature the review of record, a duplicate of one Junction
+   has already performed, or a control with no external standing?** §4.9 builds
+   the review surface on the delegated answer, where validation is ours. The
+   non-delegated answer is different in kind, not degree: Junction's network has
+   already evaluated those results for abnormal and critical findings, so two
+   physicians would be reviewing the same panel and the screen shows one of them.
+   **This is a clinical-responsibility question, not a copy defect**, and it is
+   settled by the contract rather than by the API.
+3. **A contradiction to resolve:** the lab calls *"the Junction-assigned
+   physician. They act as the ordering physician when placing the order"*, which
    cannot describe a delegated flow where our physician is the orderer.
+   — [Critical Results](https://docs.junction.com/lab/results/critical-results),
+   read against the enum and written up as open question 5 of
+   [VERIFY-junction-flow2](audit/VERIFY-junction-flow2.md), which also asks what
+   Junction's network does on being notified of a test it did not order.
 4. Is `signature_image` rendered onto the requisition, or is it billing-only?
+   — its entire description is *"An image of the physician signature for health
+   insurance billing"*, on
+   [Create order](https://docs.junction.com/api-reference/lab-testing/create-order),
+   beside `patient_signature_image` with identical wording. §5.3 says not to
+   design on it; T4 settles it with a sandbox requisition PDF.
 5. Is `licensed_states` validated anywhere?
+   — typed bare `string[]` rather than the `USState` enum the same spec uses
+   elsewhere, on
+   [Get team physicians](https://docs.junction.com/api-reference/lab-testing/get-team-physicians).
+   Open question 7 of [VERIFY-junction-flow2](audit/VERIFY-junction-flow2.md);
+   only testable by sending a mismatch in sandbox.
+
+> **Junction has no imaging, radiology, referral or prescription surface**, so
+> none of those belong in this column. Checked 9 Sep 2026 against Junction's own
+> two OpenAPI specs — 205 paths in
+> [`swagger.json`](https://docs.junction.com/swagger.json), 38 in
+> [`org-management-api.json`](https://docs.junction.com/org-management-api.json)
+> — with **zero** matches for `imaging`, `radiolog`, `referral`, `prescri`,
+> `medication` or `pharmac` in any path or anywhere in either spec body, and zero
+> across the 545 URLs in the
+> [sitemap](https://docs.junction.com/sitemap.xml). `LabTestCollectionMethod` is
+> `testkit`, `walk_in_test`, `at_home_phlebotomy`, `on_site_collection` — there
+> is no order-type dimension to widen. **Those order types are Canvas's to
+> solve** (§3), and the decision is not to press Junction on it. One caveat kept
+> for honesty: absence from the docs is not absence from the product — the org
+> spec publishes nine undocumented `/ehr_integration/` endpoints.
 
 **Canvas**
 
 6. Is API-initiated prescription signing prohibited, or merely not enumerated?
    The docs have never prohibited it in writing — which also means it could
    appear in a release without any documentation reading as contradictory.
+   — there is **no prohibiting sentence**: 337 pages searched for `must be signed
+   in` / `only be signed in` / `signed in the (Canvas) UI`, **zero hits**. The
+   conclusion rests on four converging positive statements instead — *"The `send`
+   action is the only command action available through the SDK"*, `sign()`
+   *"can only be called on ImagingOrder and Refer"*, the `No COMMIT` row, and the
+   `CommandAPI` action list
+   ([`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/),
+   [Commands API](https://docs.canvasmedical.com/sdk/handlers-simple-api-commands/),
+   [writing-commands-over-http](https://docs.canvasmedical.com/guides/writing-commands-over-http/)).
+   Transcript: [VERIFY-prescription-signing](audit/VERIFY-prescription-signing.md),
+   which is also where *"watch the changelog"* comes from.
 7. Is there any command-level "awaiting signature" queue or permalink, or is
    `Task` genuinely the only durable hand-off?
+   — the `task-permalink` extension on a FHIR `Task` read/search response is
+   documented at [`/api/task/`](https://docs.canvasmedical.com/api/task/), and
+   the only documented signature *label* is for inbound documents rather than
+   orders. Both established in
+   [VERIFY-signature-attribution](audit/VERIFY-signature-attribution.md), which
+   also proposes the test that would confirm it.
 8. Does `sign()` on `ImagingOrder` / `Refer` constitute a clinical attestation,
-   or only a state transition? Every `sign_action` is documented as
-   staged → committed, never as an attestation.
+   or only a state transition?
+   — every `sign_action` is documented as a state change and never as an
+   attestation: *"Signs the prescription, transitioning it from staged to
+   committed state"*
+   ([`/sdk/commands/`](https://docs.canvasmedical.com/sdk/commands/), quoted in
+   [VERIFY-plugin-mechanics](audit/VERIFY-plugin-mechanics.md) and
+   [API-GROUND-TRUTH](API-GROUND-TRUTH.md)). **This rests on an absence, not on a
+   sentence saying it is not an attestation** — which is why it is a question for
+   Canvas and not a finding.
 9. **[Note → Update](https://docs.canvasmedical.com/api/note/#update) says
    locking generates the PDF and the `DocumentReference`. Signing is what does**
-   ([INSTANCE-FINDINGS X7: signing makes the PDF, not
-   locking](INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all)) — 14 API-locked notes produced
-   0 documents; one signature produced one. Will Canvas correct the page?
+   ([INSTANCE-FINDINGS X7](INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http))
+   — 14 API-locked notes produced 0 documents; one signature produced one. Will
+   Canvas correct the page?
 10. **`stateChange` cannot reach `SGN` or `DLT`, but `POST
     /api/NoteStateChangeEvent/` can, and it accepts a `client_credentials`
     token.** That endpoint is undocumented. **Will Canvas support it, or name
     the supported headless equivalent?** Without one, a partner application
     cannot sign or delete a note except by putting a button in the Canvas UI for
     a physician to click.
+    — the states `stateChange` does accept are on
+    [Note → Update](https://docs.canvasmedical.com/api/note/#update); what the
+    undocumented endpoint reaches, and its `noteChecksum` conflict behaviour, is
+    measured in
+    [INSTANCE-FINDINGS X7](INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http).
 11. The same endpoint records a **named human** — the OAuth application's owner
     — where the v1 Note API records **Canvas Bot**, on one identical token. Is
     that intended, and is the owner configurable per call?
+    — measured on the instance across both surfaces with one token, under
+    "Attribution differs by surface" in
+    [INSTANCE-FINDINGS X7](INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http);
+    the two note-attribution mechanisms it contrasts are
+    [X4](INSTANCE-FINDINGS.md#x4--attribution-has-two-mechanisms-and-they-are-not-the-same-one).
 
 ---
 

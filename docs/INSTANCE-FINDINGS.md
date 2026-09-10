@@ -11,15 +11,13 @@ Reproduce, from the repo root: `cd aleron-canvas-test && node --env-file=script.
 
 Each finding below is carried by a claim in that runner, so it can be re-checked
 rather than taken on trust. **A `FAIL` there means a document is wrong, not that
-Canvas is broken** — [X5](#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does) and [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all) both surface as `FAIL` on `W3`, and [X6](#x6--a-note-cannot-be-removed-and-a-signed-notes-title-can-still-be-changed)/[X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all) as
-`FAIL` on `W5`. The `/notes` page of the same app drives the note lifecycle by
-hand: create, lock, sign, retrieve the PDF, delete.
+Canvas is broken** — the note-lifecycle findings surface as `FAIL` on `W3` and
+`W5`. The `/notes` page of the same app drives the lifecycle by hand: create,
+lock, sign, retrieve the PDF, delete.
 
-**One exception: [X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits)
-has no runner claim.** It came from a note driven by hand in the Canvas UI and a
-PDF retrieved afterwards, because the thing it measures — what a committed
-command looks like in the signed artefact — is not reachable from the API at
-all. Re-checking it means repeating that by hand.
+**Two things have no runner claim**, and re-checking them means repeating them
+by hand: how a command renders in the signed PDF, and what the PDF omits. Both
+were read off a real document, because neither is reachable from the API.
 
 ## Confirmed — the design can rely on these
 
@@ -35,13 +33,11 @@ all. Re-checking it means repeating that by hand.
 
 | # | Finding | Consequence |
 |---|---|---|
-| **X1** | **`$create-lab-report` exists and is externally callable.** `POST /DiagnosticReport/$create-lab-report` returns `400 body -> parameter must contain at least 1 item` (a body complaint, not a missing route), and `user/DiagnosticReport.create-lab-report` is a granted scope. It is simply absent from the CapabilityStatement's `operation` array. | **Junction lab results can be written into the chart without a plugin.** Results are no longer plugin-gated, so they are not blocked on the plugin in [AL-100](https://lasohealth.atlassian.net/browse/AL-100). **ORDERING §5.4 and §4.5 now say this** (corrected 8 Sep); **audit Part 1 step 5 still says to use the plugin `CREATE_LAB_REPORT` effect.** Still unproven: a *successful* write through the operation, and whether the `ATTACH_LAB_REPORT_RESULTS` half has a non-plugin route. |
+| **X1** | **`$create-lab-report` exists and is externally callable.** `POST /DiagnosticReport/$create-lab-report` returns `400 body -> parameter must contain at least 1 item` (a body complaint, not a missing route), and `user/DiagnosticReport.create-lab-report` is a granted scope. It is simply absent from the CapabilityStatement's `operation` array. | **Junction lab results can be written into the chart without a plugin**, so they are not blocked on [AL-100](https://lasohealth.atlassian.net/browse/AL-100). Still unproven: a *successful* write through the operation, and whether the `ATTACH_LAB_REPORT_RESULTS` half has a non-plugin route. |
 | **X2** | **The Note API returns a real `permalink`.** A locked note came back with `"permalink": "/permalinks/v1/Tm90ZTo5Njo0"`, which resolves — `302 → /login?next=/permalinks/…`, a genuine UI route that lands on the note after auth. | **The prescription hand-off is a supported link, not a URL constructed by convention.** ORDERING §4.7 and Part 5 decision 9 both assume no contract and prescribe a 404 fallback. Use `note.permalink`. |
 | **X3** | **`QuestionnaireResponse` has no create at `user` scope.** Granted scope is `user/QuestionnaireResponse.rs`, while `patient/QuestionnaireResponse.crus` has create and update. | Writing a patient-reported outcome may need a **patient-scoped** token, not a staff one. The documents call this "the cheapest fix in the audit" without accounting for the token. Still unconfirmed by a write test. |
 
 ## X4 — attribution has two mechanisms, and they are not the same one
-
-**Corrects a conflation in this project, including the probe built to test it.**
 
 | Surface | Grant | How the physician gets named |
 |---|---|---|
@@ -57,10 +53,8 @@ Consequences:
 
 1. **The `403` on an `authorization_code` token was expected behaviour**, not a
    Canvas role to grant. The Note API is not built for per-user tokens.
-2. **The attribution probe tested the wrong surface.** Notes are not a valid
-   proxy for command attribution, and the question priority 1 actually turns on
-   — whose name is on an *order* — remains untested. It cannot be tested without
-   a deployed plugin, which was already the case before the probe was written.
+2. **Notes are not a proxy for command attribution.** The question priority 1
+   turns on — whose name is on an *order* — needs a deployed plugin to answer.
 3. **Priority 2 gets cheaper.** Saving order history into the chart as notes
    needs `client_credentials` plus a correct `providerKey`, not per-physician
    OAuth enrolment. §2.2 of the ordering document gates priorities 1 *and* 2 on
@@ -70,134 +64,38 @@ What is still open: whether a plugin route authenticated with a physician's
 token attributes a *command* to that physician. That is F1, it is the load-bearing
 claim for priority 1, and nothing tested so far touches it.
 
-## X5 — locking over the API does not generate the PDF, and the API cannot reach the state that does
+## X5, X6, X7 — the note lifecycle over HTTP
 
-> **Half superseded by [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all).** The measurements below stand: the v1 REST Note API
-> cannot reach `SGN`, and locking generates nothing. The conclusion drawn from
-> them — that Aleron cannot produce the PDF at all — is **wrong**. Signing does
-> it, and `/api/NoteStateChangeEvent/` reaches `SGN`.
+Create, lock, sign, delete, and which act produces the legal-record PDF. Two
+surfaces reach note state and they are not equivalent.
 
-**Resolves U1. Corrects Canvas's own documentation for this instance.**
+### Two surfaces, one of which reaches the states that matter
 
-[**Note → Update → `stateChange`**](https://docs.canvasmedical.com/api/note/#update)
-states plainly, as the second sentence of the first allowed transition and
-nowhere else on the page: *"Locking a note will result in the Note PDF being
-generated along with it associated FHIR DocumentReference record."* It is
-attached directly to `"ULK" → "LKD"`, `"NEW" → "LKD"`, `"CVD" → "LKD"` — so it
-describes exactly the transition tested below, not some other path. On
-`aleronmd-dev` it does not hold. Three measurements, all reproducible:
+| Act | v1 REST — `PATCH /core/api/notes/v1/Note` `stateChange` | `POST /api/NoteStateChangeEvent/` |
+|---|---|---|
+| Lock `LKD` | **`200`** | **`201`** |
+| Sign `SGN` | **`400` — *"This note state change is not allowed. NEW -> SGN"*** | **`201`** |
+| Delete `DLT` | refused as a *transition* from `NEW`, `LKD` and `ULK` alike — **17 attempted, 0 deleted** | **`201`, 17 of 17**, soft and reversible via `UND` |
 
-| Measurement | Result |
-|---|---|
-| **11 notes at `currentState: LKD`**, every one locked by `PATCH … {"stateChange":"LKD"}` returning `200` | **0 `DocumentReference`s between them** |
-| The instance holds **exactly 2 `DocumentReference`s**, both `category: clinical-note`, both `application/pdf`, `period.start` matching a note's `datetimeOfService` exactly | they are the **only 2 notes at `SGN`** |
-| `PATCH … {"stateChange":"SGN"}` | **`400 — "This note state change is not allowed. NEW -> SGN"`** |
+Both accept a **`client_credentials`** token. The v1 enum admits
+`ULK`/`NEW`/`CVD` → `LKD` and `LKD` → `ULK` plus appointment states; **`SGN`
+appears nowhere in it**. `DEL`, `DELETED`, `EIE`, `ERR`, `VOID` and `CAN` are
+rejected as invalid choices, `DLT` as an unreachable transition.
+`DELETE /Note/{key}` answers `405 Method "DELETE" not allowed.`
 
-The documented transition table confirms the refusal is by design: `stateChange`
-admits `ULK/NEW/CVD → LKD` and `LKD → ULK`, plus appointment states. **`SGN`
-appears nowhere in it.** Both documents were generated at `01:17`, minutes after
-the API had locked those notes at `01:15`–`01:16`, and while a human was signed
-into the Canvas UI — so the generating act was a UI action, not our `PATCH`.
+### Calling the undocumented endpoint
 
-**Consequence, and it is a real constraint on priority 2.** Aleron can create a
-note, fill it and lock it, and the chart will hold that note — but Aleron
-**cannot cause the legal-record PDF or the `DocumentReference` from outside
-Canvas**, because the state that produces them is unreachable over the API. Any
-screen promising a filed legal document as a consequence of an Aleron act is
-promising something Aleron cannot perform.
-
-Alternative pathway, since the document is what the chart wants:
-**`DocumentReference` has `create`** (`user/DocumentReference.crs`, C5) and
-Canvas supports [writing a PDF to it directly](https://docs.canvasmedical.com/release-notes/docref-create/).
-Aleron can compose its own order-history PDF and file it. That is an
-Aleron-authored document rather than Canvas's rendering of the note, and the
-difference should be visible on the screen rather than glossed.
-
-Still open: **which UI act generated them** — the sign action, or the `Create PDF`
-menu item. Both are UI-only, so the constraint above holds either way; it decides
-only whether the PDF rides along with a signature the physician is already
-giving, or is a separate step nobody will remember.
-
-## X6 — a note cannot be removed, and a signed note's title can still be changed
-
-> **Half superseded by [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all).** The title finding stands. "Nothing is removable"
-> is **wrong**: it is unreachable over the v1 REST API, but
-> `/api/NoteStateChangeEvent/` deletes with `DLT`, reversibly.
-
-Two halves of one question: **what does the Note API let you undo?**
-
-**Nothing is removable.** `DELETE /Note/{key}` answers
-`405 Method "DELETE" not allowed.` The `stateChange` enum *does* accept `DLT` —
-`DEL`, `DELETED`, `EIE`, `ERR`, `VOID` and `CAN` are all refused as invalid
-choices, while `DLT` is refused as a *transition* — but it is unreachable from
-`NEW`, `LKD` and `ULK` alike, which is every state a partner application can put
-a note in. Attempted across all 17 test notes on the fixture patient: **17
-attempted, 0 deleted.** So a note Aleron writes is permanent, and a wrong one can
-only be marked, never withdrawn.
-
-**But the title is not fixed by signing.** `PATCH {"title": …}` returned `200` on
-all 17, including **both notes at `SGN`** and the 13 at `LKD`. This extends the
-earlier locked-note observation to signed notes: the state that is supposed to
-settle a record does not settle its title.
-
-Consequences:
-
-1. **`journal.html` asserted *"signed entries never change"* in three places,
-   and for the title that is false.** Corrected: the note body has no field on
-   the Note API that edits it, so the signed *text* is safe by omission rather
-   than by rule, and the screen now claims only that.
-   **Untested, and it matters:** `providerKey` — the field that names the
-   author — is on the same `PATCH` allow-list as `title`. Whether a signed
-   note's author can be reassigned could not be established, because the
-   instance holds **exactly one `Practitioner`** and there is no second
-   identity to move a note to. If it is mutable, attribution is not settled by
-   signing, which bears directly on priority 1.
-2. **Aleron needs its own guard against writing a note it did not mean to.**
-   There is no cleanup path, so a mistaken note is a permanent chart artefact.
-   This belongs in the confirm surface, before the write, not after it.
-3. The harness at `aleron-canvas-test/notes` makes all of this pressable —
-   `Delete` attempts both routes and shows what Canvas said; `Void` retitles,
-   which is the only cleanup that works.
-
-## X7 — `NoteStateChangeEvent`: signing makes the PDF, and delete exists after all
-
-**Overturns the "unreachable" halves of [X5](#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does) and [X6](#x6--a-note-cannot-be-removed-and-a-signed-notes-title-can-still-be-changed).** Found by watching the
-Canvas UI delete a note in the browser's network tab:
-`POST /api/NoteStateChangeEvent/` with `{noteId, state: "DLT", noteChecksum,
-lastModifiedBySessionKey}`.
-
-### Where it is documented
-
-`NoteStateChangeEvent` is documented, but **only as a plugin SDK concept, never
-as an HTTP endpoint**:
-
-| Where | What it says |
-|---|---|
-| [SDK data — Note](https://docs.canvasmedical.com/sdk/data-note/) | `NoteStateChangeEvent` is the note's audit history, reachable as `note.state_history`. `CurrentNoteStateEvent` holds the present state. |
-| [SDK events](https://docs.canvasmedical.com/sdk/events/) | `NOTE_STATE_CHANGE_EVENT_PRE_CREATE`, `_CREATED`, `_UPDATED`. The pre-create event **can block a transition** by returning an `EventValidationError` effect. |
-| [SDK action buttons](https://docs.canvasmedical.com/sdk/handlers-action-buttons/) | `NoteStateActionButton`, with `LockNoteActionButton` and `SignNoteActionButton`. Its transition table includes **`NoteStates.DELETED`** and **`NoteStates.SIGNED`**. |
-| [Release notes](https://docs.canvasmedical.com/product-updates/release-notes/) | *"Adds NoteStateChangeEvent to the data module for improved note event tracking."* |
-
-The SDK page also says the locked note's PDF is *"stored on a
-`DocumentReference` pointing back at the `NoteStateChangeEvent` that recorded
-the lock"* — a generic foreign key, reached through `note.state_history`, not
-from the note. And: *"Only encounter, inpatient, and review note types are
-captured this way."*
-
-### What the endpoint actually does
-
-`POST /api/NoteStateChangeEvent/` is **undocumented**, and it **accepts a
-`client_credentials` bearer token**. It needs two ids, neither of them the
-`noteKey`:
+`POST /api/NoteStateChangeEvent/` is Canvas's own front end calling itself. It
+needs two ids, neither of them the `noteKey`:
 
 - **`noteId`** — an integer, carried base64 in the note's own `permalink`:
   `Tm90ZTo5NjoxNg==` decodes to `Note:96:16`.
-- **`noteChecksum`** — optimistic concurrency, readable at `GET /api/Note/{noteId}`.
-  A stale one is refused `409 "This note is out of date."`
+- **`noteChecksum`** — optimistic concurrency, readable at
+  `GET /api/Note/{noteId}`. A stale one is refused `409 "This note is out of date."`
 - `lastModifiedBySessionKey`, present in the captured UI payload, is **not required**.
 
 `GET /api/Note/{noteId}` also returns the note type's own
-**`stateTransitionMatrix`**, which is far richer than the REST API's:
+**`stateTransitionMatrix`**, richer than the REST enum:
 
 | From | Permitted |
 |---|---|
@@ -206,18 +104,44 @@ captured this way."*
 | `SGN` | Amend `ULK`, Sign `SGN` |
 | `DLT` | **Restore `UND`** |
 
-### Measured on the instance
+### Signing generates the PDF; locking never does
 
-| Act | Result |
+[**Note → Update → `stateChange`**](https://docs.canvasmedical.com/api/note/#update)
+states, attached directly to `"ULK" → "LKD"`, `"NEW" → "LKD"` and
+`"CVD" → "LKD"`: *"Locking a note will result in the Note PDF being generated
+along with it associated FHIR DocumentReference record."* **On this instance it
+does not hold.**
+
+| Measurement | Result |
 |---|---|
-| `DLT` via the endpoint | **`201`**, note reaches `DLT`. **17 of 17 test notes deleted.** Soft and reversible via `UND`. |
-| `SGN` via the endpoint | **`201`**, note reaches `SGN` |
-| `DocumentReference` after that `SGN` | **`2 → 3` within 5 seconds**, `period.start` matching the note's `datetimeOfService` exactly |
-| `LKD` via the **same** endpoint | `201`, and **no document, ever** |
+| 11 notes at `LKD`, every one locked by `PATCH … {"stateChange":"LKD"}` → `200` | **0 `DocumentReference`s between them** |
+| `LKD` via `/api/NoteStateChangeEvent/` | `201`, and **no document, ever** |
+| First note taken to `SGN` | `DocumentReference` count **2 → 3 within 5 seconds**, `period.start` matching the note's `datetimeOfService` exactly |
+| The instance's `DocumentReference`s | all `category: clinical-note`, `application/pdf`, one per note at `SGN` and none otherwise |
 
-**So signing generates the PDF, not locking** — and it is the transition, not
-the endpoint. Both Canvas pages attribute it to the lock; on this instance 14
-locked notes produced none and the first signature produced one.
+So it is the **transition**, not the endpoint, that generates the document.
+
+**Only some note types are captured at all.** Canvas: *"Only encounter,
+inpatient, and review note types are captured this way."* A `data`-category note
+refuses the transition outright —
+`400 {"state":["Signing is not required for this note type."]}` — so a
+command-bearing `data` note never produces a PDF and its absence is not a
+failure. The PDF hangs off a `DocumentReference` *"pointing back at the
+`NoteStateChangeEvent` that recorded the lock"*, reached through
+`note.state_history` rather than from the note.
+
+### Signing does not settle the title
+
+`PATCH {"title": …}` returned `200` on all 17 test notes, **including both at
+`SGN`** and the 13 at `LKD`. The note *body* has no field on the Note API that
+edits it, so signed text is safe by omission rather than by rule — which is all
+`journal.html` now claims.
+
+**Untested and load-bearing:** `providerKey`, the field naming the author, sits
+on the same `PATCH` allow-list as `title`. Whether a signed note's author can be
+reassigned could not be established — the instance exposes exactly one
+`Practitioner`, so there is no second identity to move a note to. If it is
+mutable, signing does not settle attribution either.
 
 ### Attribution differs by surface, on one identical token
 
@@ -231,122 +155,158 @@ SGN | Kaede Ito signed this note
 ```
 
 The v1 Note API records **Canvas Bot**; `/api/NoteStateChangeEvent/` records a
-**named human** — the OAuth application's owner. A third attribution mechanism,
-after the two in [X4](#x4--attribution-has-two-mechanisms-and-they-are-not-the-same-one), and still not "the physician who is logged into Aleron".
+**named human** — the OAuth application's owner. Neither is "the physician
+logged into Aleron"; the two supported mechanisms are in
+[X4](#x4--attribution-has-two-mechanisms-and-they-are-not-the-same-one).
 
-### What this means for the design
+### Where `NoteStateChangeEvent` is documented — SDK only, never as HTTP
 
-1. **[X5](#x5--locking-over-the-api-does-not-generate-the-pdf-and-the-api-cannot-reach-the-state-that-does)'s "Aleron cannot produce the legal-record PDF" is wrong.** It can:
-   lock, then sign. §4.5 and the EMR screen need revising again.
-2. **[X6](#x6--a-note-cannot-be-removed-and-a-signed-notes-title-can-still-be-changed)'s "a note cannot be withdrawn" is wrong.** `DLT` works and `UND`
-   reverses it, so a mistaken note is recoverable.
-3. **Both depend on an undocumented endpoint.** Canvas's own front end calls
-   it and nothing obliges Canvas to keep it stable. Building priority 2 on it
-   is a deliberate risk, not a free win — **vendor question 9 should now ask
-   Canvas to support it, or to say what the supported equivalent is.**
-4. **A plugin reaches the same transitions supported:** `NoteStateActionButton`
-   with `STATE_ACTION = NoteStates.SIGNED` / `DELETED`. That is a physician
-   clicking a button Aleron placed in the Canvas note footer — documented,
-   stable, but not headless.
-5. **`NOTE_STATE_CHANGE_EVENT_PRE_CREATE` can block a transition.** Aleron
-   could refuse a lock whose orders are inconsistent, from inside Canvas.
+| Page | What it says |
+|---|---|
+| [SDK data — Note](https://docs.canvasmedical.com/sdk/data-note/) | It is the note's audit history, reachable as `note.state_history`; `CurrentNoteStateEvent` holds the present state |
+| [SDK events](https://docs.canvasmedical.com/sdk/events/) | `NOTE_STATE_CHANGE_EVENT_PRE_CREATE`, `_CREATED`, `_UPDATED`. Pre-create **can block a transition** by returning an `EventValidationError` effect |
+| [SDK action buttons](https://docs.canvasmedical.com/sdk/handlers-action-buttons/) | `NoteStateActionButton`, with `LockNoteActionButton` and `SignNoteActionButton`; its transition table includes **`NoteStates.DELETED`** and **`NoteStates.SIGNED`** |
+| [Release notes](https://docs.canvasmedical.com/product-updates/release-notes/) | *"Adds NoteStateChangeEvent to the data module for improved note event tracking."* |
 
-## X8 — an order row is reachable without a plugin; a signable order is not
+### Consequences for the design
 
-**Found by attempting the sign-off, which is the only way it could have been
-found.** An earlier version of this finding claimed F2/F3 were simply wrong.
-They are not, and the claim was retracted the same day.
+1. **Aleron can produce the legal-record PDF headlessly: lock, then sign** —
+   over an endpoint Canvas has not promised to keep. Priority 2 rests on it, and
+   that is a deliberate risk. Vendor questions 9–11 ask Canvas to support it or
+   name the supported equivalent.
+2. **The supported alternative is not headless:** a plugin
+   `NoteStateActionButton` with `STATE_ACTION = NoteStates.SIGNED` / `DELETED`
+   puts a button in the Canvas note footer for a physician to click.
+3. **A mistaken note is recoverable, but only through that endpoint.** `DLT`
+   then `UND`. Aleron still needs its own guard before writing, in the confirm
+   surface rather than after the fact.
+4. **`NOTE_STATE_CHANGE_EVENT_PRE_CREATE` lets Aleron refuse a transition from
+   inside Canvas** — for example a lock whose orders are inconsistent.
+5. **`DocumentReference` has `create`** (`user/DocumentReference.crs`, C5) and
+   Canvas supports [writing a PDF to it directly](https://docs.canvasmedical.com/release-notes/docref-create/).
+   That files an *Aleron-authored* document rather than Canvas's rendering of the
+   note, and the screen should say which it is showing.
+6. The harness at `aleron-canvas-test`'s `/notes` drives all of it by hand —
+   create, lock, sign, retrieve the PDF, delete, and `Void` (retitle).
 
-### What is reachable
+## X8, X9, X10 — orders end to end
+
+What the API can create, what a refresh can read back, and how an order renders
+in the signed PDF. Reproduced by `O2` and `O3` in the runner and drivable at
+`aleron-canvas-test`'s `/orders`.
+
+### A row is reachable; a signable order is not
 
 `POST /api/LabOrder/ {patient, note}` returns **`201`** with a
-`client_credentials` token and no plugin — the same undocumented `/api/` surface
-as [X7](#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all).
-It comes back with a requisition number, and the order reads back as a FHIR
-`ServiceRequest`. `/api/ImagingOrder/` and `/api/ChartSectionReview/` answer the
-same way; `/api/Prescribe/`, `/api/Refer/`, `/api/Command/` and
-`/api/ServiceRequest/` are all `404`.
+`client_credentials` token and no plugin, on the same undocumented `/api/`
+surface as X5–X7. It comes back with a requisition number and reads back as a
+FHIR `ServiceRequest`. `/api/ImagingOrder/` and `/api/ChartSectionReview/`
+answer the same way.
 
-Both endpoints key on **integer primary keys**, not the uuids the rest of the
-API uses. A note's pk is carried base64 in its own permalink
+**The `/api/` surface is keyed on model names, not command names.**
+`/api/Prescribe/`, `/api/Refer/`, `/api/Command/` and `/api/ServiceRequest/` all
+`404`, while `/api/Referral/`, `/api/Prescription/` and `/api/ImagingOrder/`
+return `200` with a `{links, total, entry}` envelope. All three are `total: 0`
+here, so **whether they expose a transmission field is unknown** until something
+creates one.
+
+Both create endpoints key on **integer primary keys**, not the uuids the rest of
+the API uses. A note's pk is carried base64 in its own permalink
 (`TGFiT3JkZXI6MTY4OjE=` is `LabOrder:168:1`); the patient's comes from
 `GET /api/Patient/?key=<uuid>`.
 
-### What is not
-
-**The order never becomes a command in the note.** After creating one and
-signing its note in the Canvas UI:
+**But the order never becomes a command in the note.**
 
 | Measurement | Result |
 |---|---|
-| note state history | `NEW → LKD → SGN`, signed by a named human |
 | non-text items in the note body | **0** — the order is not in it |
-| `audit.committer` | **`null`**, and `modified` unchanged since creation |
+| `audit.committer` | **`null`**, `modified` unchanged since creation |
 | `POST /api/LabOrder/{id}/commit` | `404` |
 | `PATCH /api/LabOrder/{id} {"committer": 1}` | **`200`, and the field stays `null`** |
+| `tests` set through this endpoint | `200`, stays `[]` |
 
-So Canvas opens an **empty note** with nothing to sign, signing it signs an
-empty note, and the order stays detached forever. **F2/F3 hold for the layer
+Canvas opens an **empty note** with nothing to sign. **F2/F3 hold for the layer
 that matters:** the signable command layer is plugin-gated exactly as
 documented. A record is reachable; an order a physician can sign is not.
 
-### What Aleron does control
+### What a refresh can read
 
-**For an order created through `/api/LabOrder/`, `orderingProvider` is inherited
-from the note's `providerKey`.** Proven by a controlled comparison rather than
-inference — two orders identical but for the note's provider:
+**FHIR `ServiceRequest.status` tracks the commit**, so detecting a signature
+needs no plugin and no undocumented endpoint. Correlated by `created` timestamp
+to the microsecond:
+
+| `LabOrder` | `audit.committer` | FHIR `ServiceRequest.status` |
+|---|---|---|
+| 19 | `null` | **`draft`** |
+| 21 | `null` | **`draft`** |
+| 20 | `"5"` | **`active`** |
+
+So `draft` = staged, `active` = signed, `entered_in_error` = withdrawn, from
+`GET /ServiceRequest?patient=…`. **`requester` is the `orderingProvider`** —
+`Practitioner/e766816672f34a5b866771c773e38f3c` for the order under Youta Priti,
+`…/eae30f55e67740a1b26d3e6e9e6def54` for the two under Kaede Ito — so
+attribution is readable over FHIR too.
+
+**Transmission is not.** The field union across all 21 `ServiceRequest`s on the
+instance is `resourceType, id, status, intent, category, subject, authoredOn,
+requester, reasonReference, code`. Nothing about sending. Transmission state
+exists only on `/api/LabOrder/{id}` — `transmissionType`,
+`manualProcessingStatus`, `electronicLabIntegrationTask`, `hgRequestResult`,
+`healthgorillaId` — which is the undocumented surface again. **"Is it signed?"
+is answerable over documented FHIR; "did it actually transmit?" is not.**
+
+**`externallyExposableId` is not the FHIR id.** `GET /ServiceRequest/{that}`
+answered `404` for all three orders. Whatever correlates a command row to its
+FHIR resource, it is not that field — do not build a join on it.
+
+### Who is named on the order
+
+For an order created through `/api/LabOrder/`, **`orderingProvider` is inherited
+from the note's `providerKey`**. Proven by controlled comparison — two orders
+identical but for the note's provider:
 
 | Note `providerKey` | Order's `orderingProvider` |
 |---|---|
 | `e766816672f34a5b866771c773e38f3c` | Youta Priti |
 | `5eede137ecfe4124b8b773040e33be14` | Canvas Bot |
 
-**The rule is origin-dependent, and this is narrower than it first read.** An
-order placed through the Canvas UI on the same kind of note came back with
-`orderingProvider` set to the **acting user** (Kaede Ito), not the note's
-provider (Youta Priti MD) — see [X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits).
-So: note provider for API-created, acting user for UI-created. Only the first
-half is a lever Aleron holds.
-
-An order can also name **staff who are not FHIR `Practitioner`s** — the instance
-exposes one Practitioner and at least three staff.
-
-**Three identities land on one order, and only the middle one is ours:**
+**The source is origin-dependent:** an order placed through the Canvas UI took
+the **acting user** (Kaede Ito), not the note's provider (Youta Priti MD). Note
+provider for API-created, acting user for UI-created; only the first is a lever
+Aleron holds. An order can also name **staff who are not FHIR `Practitioner`s** —
+the instance exposes one Practitioner and at least three staff.
 
 | Field | Who | Settable by Aleron |
 |---|---|---|
 | `audit.originator` | the API caller — the OAuth app's owner | no |
 | `orderingProvider` | the note's provider when API-created, the acting user when UI-created | **yes, for the API path** |
-| `audit.committer` | set when the note is signed, which commits its staged commands — **no plugin involved** ([X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits)) | not directly |
+| `audit.committer` | set when the note is signed, which commits its staged commands — no plugin involved | not directly |
 
 **Consequence for priority 1.** The *naming* half is satisfiable without a
 plugin: set the note's provider and the order carries that physician. The
-*signing* half is not, and it is the half that makes an order an order.
+*signing* half is not — and the gap is **origination, not commit**. Signing the
+note commits whatever is staged in it; getting a command staged there is what
+the `/api/LabOrder/` row never achieves. The vendor question is therefore
+whether anything other than `CommandAPI` in a plugin can originate a command.
 
-**[X9](#x9--how-an-order-actually-reaches-the-signed-pdf-and-what-the-pdf-omits) narrows what is missing.** Committing is not the gap — signing the note
-commits whatever commands are staged in it, with no plugin and no separate call.
-The gap is getting a command staged there in the first place, which is what the
-`/api/LabOrder/` row never becomes. So the vendor question is not "what commits
-a command" but whether anything other than `CommandAPI` in a plugin can
-originate one.
+### How an order reaches the signed PDF
 
-**Withdrawal works and is the right shape:** `PATCH {enteredInError: true}` then
-`{deleted: true}`. `DELETE` answers `405`, and the FHIR `ServiceRequest` then
-reads `status: entered_in_error` rather than vanishing.
+Signing the note commits its staged commands — both notes below hold a
+`labOrder` command and only the state differs:
 
-Reproduced by `O2` and `O3` in the runner, and drivable by hand at
-`aleron-canvas-test`'s `/orders`.
+| Note | State | Order | `audit.committer` |
+|---|---|---|---|
+| 64 | `NEW` | 19 | **`null`** |
+| 66 | `SGN` | 20 | **`"5"`** |
 
-## X9 — how an order actually reaches the signed PDF, and what the PDF omits
+> **Caveat.** `committer` and `originator` are both `"5"` here, because the same
+> person created the order and signed the note, so this does not prove the two
+> fields track different people. A clean test needs one person to originate and
+> another to sign — T2 of [AL-100](https://lasohealth.atlassian.net/browse/AL-100).
 
-**Measured on 8 Sep 2026 from a real note**: the user opened note 66 for a
-fixture patient, added a Lab Order through the Canvas UI, signed the note, and
-the PDF was retrieved over the API. Everything below is read off that document
-and the two orders either side of it — order 19 on unsigned note 64, order 20 on
-signed note 66. It corrects [X8](#x8--an-order-row-is-reachable-without-a-plugin-a-signable-order-is-not)
-on two points and settles the shape of the Junction artefact.
-
-### What the PDF contains
+The signed PDF renders it under **`PLAN`**, labelled with the command's schema
+key, not under an "Orders" heading. Sections appear only where content exists —
+an empty note produced `SIGNATURES` alone.
 
 ```
 PLAN
@@ -360,56 +320,30 @@ SIGNATURES
 Electronically signed by Kaede Ito on 9/8/26 at 6:46 PM PDT
 ```
 
-The order lands under **`PLAN`**, labelled with the command's schema key
-(`LabOrder:`), not under an "Orders" heading. Printed fields: test name,
-last-modified timestamp, `FASTING`, `INDICATIONS` with the ICD-10 code, `LAB
-PARTNER`. **Sections appear only where content exists** — an empty note produced
-`SIGNATURES` alone.
+**No ordering physician is printed.** The only clinician names in the legal
+document are the header — *"seen by Youta Priti MD"*, the note's provider — and
+`SIGNATURES`, the signer. Per-order attribution is stored and never printed, so
+a requirement that the chart *show* who ordered what is not met by this artefact.
 
-### Signing the note commits its staged commands
+**Committing did not transmit.** `transmissionType: null`,
+`manualProcessingStatus: "NEEDS_REVIEW"`. `Generic Lab` is a configured partner
+and nothing reached it — a configuration fact about this instance, not a
+guarantee.
 
-| Note | State | Order | `audit.committer` |
-|---|---|---|---|
-| 64 | `NEW` | 19 | **`null`** |
-| 66 | `SGN` | 20 | **`"5"`** |
+**Canvas mints its own requisition and asserts a lab partner.** The order
+carried Canvas requisition `B232B1844E2` and printed `LAB PARTNER: Generic Lab`.
+For an order placed through Junction both are false in the record: a second
+requisition competing with Junction's, and a lab that never touched the
+specimen. **That is the argument for `CustomCommand` over `LabOrder` for the
+Junction artefact** — it renders under its own declared section with our
+content, inventing neither. Whether a `CustomCommand` survives into the signed
+PDF is AL-100's T5 and is not yet proven.
 
-Both notes hold a `labOrder` command; only the state differs. **No separate
-commit call, no plugin and no token exchange were involved** — signing the note
-commits what is staged in it. This is a cheaper mechanism than the design
-assumed, and it is why [X8](#x8--an-order-row-is-reachable-without-a-plugin-a-signable-order-is-not)'s "needs a plugin" phrasing for `committer` is
-narrowed below.
+### Withdrawal
 
-> **Caveat on this evidence.** `committer` and `originator` are both `"5"` here,
-> because the same person created the order and signed the note. This does
-> **not** prove the two fields track different people. A clean test needs one
-> person to originate and another to sign; folded into T2 of
-> [AL-100](https://lasohealth.atlassian.net/browse/AL-100).
-
-### Committing did not transmit
-
-`transmissionType: null`, `manualProcessingStatus: "NEEDS_REVIEW"`. `Generic
-Lab` is a configured partner on this instance and **nothing reached it**. That
-softens the duplicate-order risk from a certainty to a configuration question —
-it is this instance's setup, not a guarantee.
-
-### The PDF prints no ordering physician
-
-The only clinician names in the whole legal document are the header — *"seen by
-Youta Priti MD"*, the note's provider — and `SIGNATURES`, the signer. **Per-order
-attribution is stored and never printed.** If the requirement is that the chart
-*shows* which physician ordered what, the artefact does not do it today; that is
-a gap in the PDF, not in the data.
-
-### Canvas mints its own requisition and asserts a lab partner
-
-The order came back with Canvas requisition `B232B1844E2` and printed `LAB
-PARTNER: Generic Lab`. For an order actually placed through Junction **both are
-false in the record**: a second requisition number competing with Junction's,
-and a lab that never touched the specimen. **This is the strongest argument for
-`CustomCommand` over `LabOrder` for the Junction artefact** — a custom command
-renders under its own declared section with our content, inventing neither.
-Scoped in AL-100, whose T5 asks whether a `CustomCommand` survives into the
-signed PDF at all; the docs describe what it renders, not what is preserved.
+`PATCH {enteredInError: true}` then `{deleted: true}`. `DELETE` answers `405`,
+and the FHIR `ServiceRequest` then reads `status: entered_in_error` rather than
+vanishing.
 
 ## Still untestable without more setup
 

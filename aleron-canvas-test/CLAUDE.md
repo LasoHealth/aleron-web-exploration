@@ -28,9 +28,6 @@ harness in this folder. Read them in this order.
 5. **`../docs/audit/VERIFY-*.md`** — research transcripts behind the vendor claims.
    Cite these rather than re-researching.
 
-`../docs/DECISION-junction-ordering-physician.md` is **superseded** and kept only
-because it is cited. It reasoned from the legacy controllers, which is backwards.
-
 ### Where to look for what
 
 | Question | Section |
@@ -56,21 +53,19 @@ because it is cited. It reasoned from the legacy controllers, which is backwards
 - **Vendor documentation is a claim, not a fact.** Canvas's Note API page states
   that locking a note generates the PDF and its `DocumentReference`. On this
   instance it does not — signing does
-  ([X7: `NoteStateChangeEvent` — signing makes the PDF, and delete exists after
-  all](../docs/INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all)). Several of the
+  ([signing makes the PDF, not locking](../docs/INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http)). Several of the
   [recorded corrections](../docs/INSTANCE-FINDINGS.md#corrections--documents-are-wrong-on-these) contradict Canvas's own pages. **Test before you build on a
   sentence.**
-- **A section with a correction banner has been overturned in part.** Read the
-  banner before the section. Every numbered correction from
-  [X4](../docs/INSTANCE-FINDINGS.md#x4--attribution-has-two-mechanisms-and-they-are-not-the-same-one)
-  on narrows or
-  reverses something stated earlier, and new ones get appended — so read the
-  list, do not assume a range.
+- **A finding states only what is currently true**, not how it was arrived at.
+  Where one heading owns several numbers — X5–X7 the note lifecycle, X8–X10
+  orders — they were merged because they answer one question. **The section is
+  the unit, not the number**, and new findings get appended, so read the list
+  rather than assuming a range.
 - **Cite with a link, and check that the link resolves.** A fabricated citation
   has happened here; `../scripts/verify-doc-links.js` exists because of it.
 - **Never cite a finding by its bare id.** "INSTANCE-FINDINGS X7" tells a
   first-time reader nothing. Link the section and put what it found in the link
-  text: `[X7: signing makes the PDF, not locking](../docs/INSTANCE-FINDINGS.md#x7--notestatechangeevent-signing-makes-the-pdf-and-delete-exists-after-all)`.
+  text: `[signing makes the PDF, not locking](../docs/INSTANCE-FINDINGS.md#x5-x6-x7--the-note-lifecycle-over-http)`.
   The same goes for `ORDERING §5.4` and `F3` — name the claim, not just the
   coordinate. A reference nobody can resolve is worth less than no reference.
 
