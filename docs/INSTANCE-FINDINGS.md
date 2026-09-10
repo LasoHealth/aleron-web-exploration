@@ -23,7 +23,7 @@ were read off a real document, because neither is reachable from the API.
 
 | # | Finding | Evidence |
 |---|---|---|
-| **C1** | **An engine risk score cannot be an Observation.** A vital (weight, LOINC 29463-7) was accepted `201`; a cardiovascular 10-year risk score (LOINC 99055-6) was refused `422 Requested Sign does not exist`. | W1 |
+| **C1** | **`Observation` create is a closed vocabulary, and neither engine output nor lab results are in it.** A vital (weight, LOINC 29463-7) was accepted `201`. A cardiovascular 10-year risk score (LOINC 99055-6) and total cholesterol (LOINC 2093-3, an ordinary panel analyte) were both refused `422 Requested Sign does not exist` — cholesterol under `laboratory` **and** `vital-signs` categories, so the gate is the code, not the category. Observations hold vitals and nothing else. | W1, W7 |
 | **C2** | **Condition update really is entered-in-error only.** `PUT` with a changed `onsetDateTime` returned `422` and the value did not persist. So "update existing problem" has no FHIR path; the SDK `Assess` command is the route. | W2 |
 | **C3** | **`ServiceRequest` has no create** — `POST` returns `405 Method Not Allowed`. The FHIR route to orders is closed. | W4 |
 | **C4** | **`RiskAssessment`, `FamilyMemberHistory`, `AuditEvent` and `Subscription` all return `404`.** No push mechanism of any kind; Aleron learns of Canvas acts by reading. | A1–A3 |
@@ -182,10 +182,22 @@ logged into Aleron"; the two supported mechanisms are in
    surface rather than after the fact.
 4. **`NOTE_STATE_CHANGE_EVENT_PRE_CREATE` lets Aleron refuse a transition from
    inside Canvas** — for example a lock whose orders are inconsistent.
-5. **`DocumentReference` has `create`** (`user/DocumentReference.crs`, C5) and
-   Canvas supports [writing a PDF to it directly](https://docs.canvasmedical.com/release-notes/docref-create/).
-   That files an *Aleron-authored* document rather than Canvas's rendering of the
-   note, and the screen should say which it is showing.
+5. **`DocumentReference` create works, in exactly one shape** (`user/DocumentReference.crs`,
+   C5; measured by `W6`). It files an *Aleron-authored* document rather than Canvas’s
+   rendering of the note, and the screen should say which it is showing. Three
+   constraints, each found by being refused:
+   - `content[0].attachment.contentType` **must be `application/pdf`**. `text/plain`
+     is `400`, so a plain-text body cannot be filed at all.
+   - `type.coding` must contain **exactly one** item. A free-text `type.text` is `400`.
+   - the LOINC must be on a **closed 24-code allowlist**, which the `422` enumerates:
+     `53243-2, 42348-3, 53245-7, 91983-7, 96335-5, 11503-0, 75503-3, 34105-7, 47039-3, 64290-0, 52034-6, 34113-1, 11504-8, 46209-3, 80570-5, 64285-0, 51848-0, 64298-3, 57833-6, 34823-5, 101904-1, 51851-4, 34109-9, 52070-0`.
+     `11506-3` (Progress note) is **not** on it.
+
+   `application/pdf` + `34109-9` created `201`, so the door is open and narrow. Two
+   paths shipped in `Aleron-Web` walk into the frame: `recordOrderAuthorization()`
+   sends `text/plain` with a free-text type, and `recordProgressNote()` sends
+   `11506-3`. Neither can ever have written to this instance, and the only test
+   covering them stubs the client.
 6. The harness at `aleron-canvas-test`'s `/notes` drives all of it by hand —
    create, lock, sign, retrieve the PDF, delete, and `Void` (retitle).
 
