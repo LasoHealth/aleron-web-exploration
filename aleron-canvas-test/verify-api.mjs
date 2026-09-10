@@ -451,6 +451,147 @@ const claims = [
       }
     },
   },
+    {
+      id: 'W6',
+      claim: 'DocumentReference create works from outside Canvas, so an order-authorization document is a real interim record',
+      doc: 'C5 records DocumentReference.crs from the granted scope and the vendor release note, neither of which is a measurement. Aleron-Web already ships this path (DocumentReferenceResource::recordOrderAuthorization) but its only test stubs the client, so nothing has ever proven the write lands. ORDERING §4.5 prefers a CustomCommand instead; if this fails there is no interim and the order record is blocked on AL-100 rather than improved by it.',
+      write: true,
+      async run() {
+        if (!SUBJECT) return { status: 'SKIP', detail: 'no fixture patients' }
+        const prac = await call('GET', '/Practitioner?_count=1')
+        const practitionerId = prac.body?.entry?.[0]?.resource?.id
+        if (!practitionerId) return { status: 'SKIP', detail: 'no Practitioner on the instance to attribute to' }
+
+        // The exact shape Aleron-Web sends: text/plain body, requires-signature,
+        // author and reviewer both the ordering physician, review required.
+        const EXT = 'http://schemas.canvasmedical.com/fhir/'
+        const body = {
+          resourceType: 'DocumentReference',
+          extension: [
+            { url: EXT + 'document-reference-clinical-date', valueDate: new Date().toISOString().slice(0, 10) },
+            { url: EXT + 'document-reference-review-mode', valueCode: 'RR' },
+            {
+              url: EXT + 'document-reference-reviewer',
+              valueReference: { reference: `Practitioner/${practitionerId}`, type: 'Practitioner' },
+            },
+            { url: EXT + 'document-reference-requires-signature', valueBoolean: true },
+            { url: EXT + 'document-reference-comment', valueString: 'verify-api W6 probe' },
+          ],
+          status: 'current',
+          type: { text: 'Lab Order Authorization' },
+          category: [{ coding: [{ system: EXT + 'document-reference-category', code: 'uncategorizedclinicaldocument' }] }],
+          subject: { reference: `Patient/${SUBJECT.id}`, type: 'Patient' },
+          content: [{ attachment: { contentType: 'text/plain', data: Buffer.from('W6 probe: order authorization').toString('base64') } }],
+          author: [{ reference: `Practitioner/${practitionerId}`, type: 'Practitioner' }],
+        }
+        const res = await call('POST', '/DocumentReference', { body })
+        // The instance may only accept application/pdf. Retry as a PDF so the
+        // finding distinguishes 'create is closed' from 'our contentType is wrong'.
+        const MINIMAL_PDF = 'JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0NvdW50IDAvS2lkc1tdPj4KZW5kb2JqCnRyYWlsZXIKPDwvUm9vdCAxIDAgUj4+CiUlRU9G';
+        const asPdf = res.status >= 400
+          ? await call('POST', '/DocumentReference', { body: { ...body, content: [{ attachment: { contentType: 'application/pdf', data: MINIMAL_PDF } }] } })
+          : null
+        if (asPdf?.location) created.push('DocumentReference ' + asPdf.location)
+        // Third shape: PDF plus a real LOINC coding. create() already accepts a
+        // loincCode; recordOrderAuthorization simply never passes one.
+        const asCoded = asPdf && asPdf.status >= 400
+          ? await call('POST', '/DocumentReference', { body: { ...body,
+              type: { coding: [{ system: 'http://loinc.org', code: '11506-3' }] },
+              content: [{ attachment: { contentType: 'application/pdf', data: MINIMAL_PDF } }] } })
+          : null
+        if (asCoded?.location) created.push('DocumentReference ' + asCoded.location)
+        // Fourth shape: an accepted LOINC. 11506-3 (Progress note) is refused and
+        // the error names the allowlist, so try one that is on it. 34109-9 is "Note".
+        const asAccepted = asCoded && asCoded.status >= 400
+          ? await call('POST', '/DocumentReference', { body: { ...body,
+              type: { coding: [{ system: 'http://loinc.org', code: '34109-9' }] },
+              content: [{ attachment: { contentType: 'application/pdf', data: MINIMAL_PDF } }] } })
+          : null
+        if (asAccepted?.location) created.push('DocumentReference ' + asAccepted.location)
+        if (res.location) created.push(`DocumentReference ${res.location}`)
+
+        if (res.status < 300) {
+          return {
+            status: 'PASS',
+            detail: `created ${res.status}. The interim order-authorization document is real, so DocumentReference can carry the record until AL-100 lands.`,
+          }
+        }
+        if (asAccepted && asAccepted.status < 300) {
+          return {
+            status: 'INFO',
+            detail:
+              `text/plain ${res.status}; pdf ${asPdf.status}; pdf+11506-3 ${asCoded.status}; ` +
+              `pdf+34109-9 created ${asAccepted.status}. DocumentReference create WORKS, but ` +
+              'the shape is narrow: application/pdf only, exactly one type.coding, and a LOINC ' +
+              'from a closed 24-code allowlist. Aleron-Web fails all three — recordOrderAuthorization ' +
+              'sends text/plain with a free-text type, and recordProgressNote sends LOINC 11506-3, ' +
+              'which is not on the list. Both are fixable in the resource class.',
+          }
+        }
+        if (asCoded && asCoded.status < 300) {
+          return {
+            status: 'INFO',
+            detail:
+              `text/plain ${res.status}; application/pdf ${asPdf.status}; ` +
+              `application/pdf + LOINC coding created ${asCoded.status}. ` +
+              'DocumentReference create WORKS. recordOrderAuthorization is wrong in two ' +
+              'fields: it sends text/plain and a free-text type where Canvas requires ' +
+              'application/pdf and exactly one type.coding. Fixable, not a closed door.',
+          }
+        }
+        if (asPdf && asPdf.status < 300) {
+          return {
+            status: 'INFO',
+            detail: `text/plain refused ${res.status}: ${why(res)} — but application/pdf created ${asPdf.status}. DocumentReference create WORKS; Aleron-Web's recordOrderAuthorization sends text/plain and cannot land as written. That is a bug to fix, not a closed door.`,
+          }
+        }
+        return {
+          status: 'FAIL',
+          detail: `text/plain ${res.status}: ${why(res)}${asPdf ? `; pdf ${asPdf.status}: ${why(asPdf)}` : ''}${asCoded ? `; pdf+11506-3 ${asCoded.status}: ${why(asCoded)}` : ''}${asAccepted ? `; pdf+34109-9 ${asAccepted.status}: ${why(asAccepted)}` : ''}. DocumentReference is NOT a working interim — the order record depends on AL-100's CustomCommand.`,
+        }
+      },
+    },
+    {
+      id: 'W7',
+      claim: 'Observation create accepts a real lab analyte, so Junction results can land as Observations',
+      doc: 'W1 tried only a weight (accepted) and a risk score (refused 422 "Requested Sign does not exist"). API-GROUND-TRUTH says create is "restricted in practice to vitals/panel-shaped categories. Do not assume arbitrary scores can be stored." Aleron-Web\'s OrderResultCanvasRecorder maps every Junction result to an Observation, so whether a lab LOINC passes decides if that path works at all.',
+      write: true,
+      async run() {
+        if (!SUBJECT) return { status: 'SKIP', detail: 'no fixture patients' }
+        const mk = (category, code, display, value, unit) => ({
+          resourceType: 'Observation',
+          status: 'final',
+          category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: category }] }],
+          code: { coding: [{ system: 'http://loinc.org', code, display }] },
+          subject: { reference: `Patient/${SUBJECT.id}` },
+          effectiveDateTime: new Date().toISOString(),
+          valueQuantity: { value, unit, system: 'http://unitsofmeasure.org', code: unit },
+        })
+        // Total cholesterol: an ordinary Quest/Junction panel analyte. Tried as a
+        // lab first, since that is the correct FHIR category for a result, then
+        // as a vital in case the gate is on category rather than code.
+        const asLab = await call('POST', '/Observation', { body: mk('laboratory', '2093-3', 'Cholesterol [Mass/volume] in Serum or Plasma', 190, 'mg/dL') })
+        const asVital = asLab.status >= 400
+          ? await call('POST', '/Observation', { body: mk('vital-signs', '2093-3', 'Cholesterol [Mass/volume] in Serum or Plasma', 190, 'mg/dL') })
+          : null
+        if (asLab.location) created.push(`Observation ${asLab.location}`)
+        if (asVital?.location) created.push(`Observation ${asVital.location}`)
+
+        if (asLab.status < 300) {
+          return { status: 'PASS', detail: `lab-category cholesterol accepted ${asLab.status}. Junction results can land as Observations.` }
+        }
+        if (asVital && asVital.status < 300) {
+          return {
+            status: 'INFO',
+            detail: `laboratory category refused (${asLab.status}: ${why(asLab)}) but vital-signs accepted (${asVital.status}). The gate is the category, not the code — Aleron-Web must send vital-signs or use $create-lab-report.`,
+          }
+        }
+        return {
+          status: 'FAIL',
+          detail: `lab ${asLab.status}: ${why(asLab)}${asVital ? `; as vital ${asVital.status}: ${why(asVital)}` : ''}. A real lab analyte cannot be an Observation, so OrderResultCanvasRecorder cannot work and $create-lab-report is the only route.`,
+        }
+      },
+    },
   {
     id: 'W4',
     claim: 'ServiceRequest has no create, so the FHIR route to orders is closed and only commands remain',

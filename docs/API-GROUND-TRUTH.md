@@ -126,8 +126,13 @@ Key consequences:
   nothing else. Do not generalise it to "Canvas takes no orders by API".
 - **DocumentReference cannot be updated.** A locked note written as a
   DocumentReference is immutable; an amendment is a new resource.
-- **Observation cannot be updated**, and create is restricted in practice to
-  vitals/panel-shaped categories. Do not assume arbitrary scores can be stored.
+- **Observation cannot be updated**, and create is a **closed vocabulary of vitals**,
+  not a category filter. Measured: a weight is accepted; a risk score and an ordinary
+  lab analyte (total cholesterol, LOINC 2093-3) are both `422 Requested Sign does not
+  exist`, the analyte under `laboratory` and `vital-signs` alike. **Observations hold
+  vitals only.** Neither engine output nor lab results can be stored as one, so lab
+  results need `$create-lab-report` and engine output needs a CDM
+  ([INSTANCE-FINDINGS C1](INSTANCE-FINDINGS.md#confirmed--the-design-can-rely-on-these), `W1`/`W7`).
 - **Goal and CarePlan are read-only in FHIR.** A goal is writable only as a
   Plugin SDK `Goal` command.
 - **MedicationRequest is read-only.** Prescriptions cannot be created in FHIR.
@@ -211,6 +216,11 @@ Effects write data or drive UI. Categories and the notable members:
 **Clinical data**
 - `CREATE_OBSERVATION`, `UPDATE_OBSERVATION` — note UPDATE exists here even
   though FHIR Observation has no update.
+- **`DocumentReference` create is open but narrowly shaped**: `application/pdf` only,
+  exactly one `type.coding`, and a LOINC from a closed 24-code allowlist that the `422`
+  enumerates. `11506-3` (Progress note) is not on it; `34109-9` (Note) is. Measured by
+  `W6` — see [INSTANCE-FINDINGS](INSTANCE-FINDINGS.md#consequences-for-the-design)
+  point 5 for the list and what it breaks.
 - `CREATE_LAB_REPORT`, `UPDATE_LAB_REPORT`, `ATTACH_LAB_REPORT_RESULTS`,
   `ENTER_IN_ERROR_LAB_REPORT` — **this is how a Junction result becomes a real
   Canvas lab report with values, units, reference ranges and abnormal flags.**
