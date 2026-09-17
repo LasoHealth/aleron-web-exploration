@@ -140,7 +140,7 @@
 ### Disclosure — what Canvas owns, what Aleron owns
 | # | Data point as shown | Source | Verdict | Note |
 |---|---|---|---|---|
-| 85 | Source: `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` section 7 | Aleron | GAP | An internal repo path rendered in `<code>` on the product surface. Also: the file does not exist anywhere in this workspace; only references to it do. Unverifiable citation. |
+| 85 | Source: `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` section 7 | Aleron | GAP | An internal repo path rendered in `<code>` on the product surface. Also: the document is now [a Confluence page](https://lasohealth.atlassian.net/wiki/spaces/AL/pages/525860888/Aleron+MD+Role+and+Release+Matrix+v1), so the path a physician sees resolves to nothing. |
 | 86 | Current decision: "Do not assume embedded Canvas signing works." | Claim | WRONG | Stale for notes. `SIGN_NOTE` is a published SDK effect. See C7. |
 | 87 | "Written into Canvas: the locked note, and the problem-list decisions" | Canvas FHIR:DocumentReference + Condition | OK | Both creates exist. |
 | 88 | "Written and signed by Aleron: Imaging orders and referrals, as commands in the note. **One act each**" | Claim | WRONG | Two calls, not one: `originate(commit=True)` is silently ignored for order commands, so signing is a separate call. The screen's own `finding` annotation records this trap and the product surface then contradicts it. Also folds `Refer` in with `ImagingOrder` despite `Refer` having no `send` (#61). |

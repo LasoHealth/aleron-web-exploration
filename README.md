@@ -337,8 +337,8 @@ Recreating something faithfully is a good way to find out it is broken.
 - v1: `aleron-canonical-documents/system-design/diagrams/aleron-actionmap-al47m-ds.html`
   and its app build at `aleron-canonical-documents/apps/physician/`
 - Design law: `aleron-canonical-documents/product-design-system/physician-register.html`
-- Workflow law: `aleron-canonical-documents/docs/product/ROLE_AND_RELEASE_MATRIX_V1.md`
-  and `docs/PRODUCTION_PATIENT_PHYSICIAN_STRATEGY.md`
+- Workflow law: [Aleron MD Role and Release Matrix v1](https://lasohealth.atlassian.net/wiki/spaces/AL/pages/525860888/Aleron+MD+Role+and+Release+Matrix+v1)
+  and [Aleron MD production patient to physician workflow strategy](https://lasohealth.atlassian.net/wiki/spaces/AL/pages/525729795/Aleron+MD+production+patient+to+physician+workflow+strategy)
 - Sibling set: the patient wireframes at `C:\LASOHealth\apps\aleron-wireframes`
 
 ## v3 is one screen, on purpose
