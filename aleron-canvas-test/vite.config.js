@@ -36,6 +36,12 @@ const PROBE_PATIENT = '61bd3c40e6ea4b0a81e59a46100d9041'
 const AUTH = (CANVAS_URL ?? '').replace(/\/+$/, '')
 const FHIR = AUTH.replace('https://', 'https://fumage-')
 
+// Junction is a second vendor on the same harness. The key is sandbox-only —
+// api.tryvital.io refuses it 401 — and it never leaves this process: see the
+// note on /api/junction below for why it must not become a VITE_ variable.
+const JUNCTION_KEY = process.env.JUNCTION_KEY ?? process.env.JUNCTION_API_KEY
+const JUNCTION_BASE = process.env.JUNCTION_BASE_URL ?? 'https://api.sandbox.tryvital.io'
+
 if (!WEB_CLIENT_ID || !WEB_CLIENT_SECRET) {
   console.warn('[canvas] web.env is missing WEB_CLIENT_ID / WEB_CLIENT_SECRET — login will fail')
 }
@@ -505,16 +511,26 @@ const canvasAuth = {
           const bundle = await dr.json().catch(() => null)
           const docs = (bundle?.entry ?? []).map((e) => e.resource)
           const at = Date.parse(note.datetimeOfService)
-          const match = docs.find((d) => Date.parse(d.context?.period?.start ?? '') === at)
+          // Every match, never .find(): an amended note carries a second
+          // DocumentReference with the SAME period.start (status: superseded
+          // vs current), so .find() would return the original and hide the
+          // amendment — reporting "nothing changed" in exactly the case where
+          // the version chain worked. See INSTANCE-FINDINGS.md C6.
+          const matches = docs
+            .filter((d) => Date.parse(d.context?.period?.start ?? '') === at)
+            .sort((a, b) => String(a.date ?? '').localeCompare(String(b.date ?? '')))
+          const match = matches[matches.length - 1] ?? null
 
           return send(200, {
             op,
             note: { noteKey: note.noteKey, currentState: note.currentState, datetimeOfService: note.datetimeOfService },
             documentsOnPatient: bundle?.total ?? docs.length,
             found: Boolean(match),
+            versionsForThisNote: matches.length,
             document: match
               ? {
                   id: match.id,
+                  status: match.status,
                   contentType: match.content?.[0]?.attachment?.contentType,
                   // Served through this server: the attachment URL needs a
                   // bearer token the browser does not hold.
@@ -724,6 +740,127 @@ const canvasAuth = {
         res.statusCode = 502
         res.setHeader('content-type', 'application/json')
         res.end(JSON.stringify({ error: 'pdf_fetch_failed', detail: String(err) }))
+      }
+    })
+
+    // ---- Junction lab orders -------------------------------------------
+    // The key stays here. This repo publishes to GitHub Pages, so anything
+    // reachable from the browser bundle is public: a VITE_-prefixed Junction
+    // key would be committed in effect even though web.env is gitignored.
+    server.middlewares.use('/api/junction', async (req, res) => {
+      res.setHeader('content-type', 'application/json')
+      const send = (status, body) => {
+        res.statusCode = status
+        res.end(JSON.stringify(body, null, 2))
+      }
+      if (!JUNCTION_KEY) return send(500, { error: 'web.env has no JUNCTION_KEY' })
+      if (req.method !== 'POST') return send(405, { error: 'method_not_allowed' })
+
+      const jcall = async (method, path, body) => {
+        const r = await fetch(JUNCTION_BASE + path, {
+          method,
+          headers: { 'x-vital-api-key': JUNCTION_KEY, 'content-type': 'application/json' },
+          body: body && JSON.stringify(body),
+        })
+        const text = await r.text()
+        let json = null
+        try { json = JSON.parse(text) } catch {}
+        return { status: r.status, json, text }
+      }
+
+      try {
+        const { op, physician, labTestId } = JSON.parse((await readBody(req)) || '{}')
+
+        // Everything the delegation question turns on, in one call.
+        if (op === 'context') {
+          const accounts = await jcall('GET', '/v3/lab_test/lab_account')
+          const users = await jcall('GET', '/v2/user?limit=1')
+          const teamId = users.json?.users?.[0]?.team_id
+          const team = teamId ? await jcall('GET', `/v2/team/${teamId}`) : null
+          const roster = teamId ? await jcall('GET', `/v2/team/${teamId}/physicians`) : null
+          const tests = await jcall('GET', '/v3/lab_tests')
+          return send(200, {
+            op,
+            labAccounts: accounts.json?.data ?? [],
+            teamDelegatedFlow: team?.json?.delegated_flow ?? null,
+            roster: roster?.json ?? [],
+            tests: (tests.json ?? []).map((t) => ({
+              id: t.id, name: t.name, method: t.method, lab: t.lab?.slug,
+            })),
+          })
+        }
+
+        // Place one order and read the physician back. `physician: null` is the
+        // control arm and is the whole point — see the note below.
+        if (op === 'place') {
+          const tag = `harness-${Date.now()}`
+          const user = await jcall('POST', '/v2/user', { client_user_id: tag })
+          if (!user.json?.user_id) return send(502, { op, error: 'user_create_failed', detail: user.text })
+
+          const body = {
+            user_id: user.json.user_id,
+            lab_test_id: labTestId,
+            patient_details: {
+              first_name: 'Aleron', last_name: 'Harness', dob: '1980-01-01', gender: 'male',
+              // Twilio's magic test number, and a domain that cannot receive
+              // mail: this team has patient SMS and email switched on.
+              phone_number: '+15005550006', email: `${tag}@example.com`,
+            },
+            patient_address: {
+              receiver_name: 'Aleron Harness', first_line: '9500 Wilshire Blvd',
+              city: 'Beverly Hills', state: 'CA', zip: '90210', country: 'US',
+            },
+          }
+          if (physician) body.physician = physician
+
+          // POST /v3/order 503s intermittently on sandbox with "the order
+          // creation service is temporarily unavailable".
+          let made
+          for (let attempt = 1; attempt <= 4; attempt++) {
+            made = await jcall('POST', '/v3/order', body)
+            if (made.status !== 503) break
+            await new Promise((r) => setTimeout(r, 1500 * attempt))
+          }
+          if (made.status !== 200) return send(made.status, { op, error: 'order_failed', detail: made.text })
+
+          const id = made.json.order.id
+          await jcall('POST', `/v3/order/${id}/test?final_status=received.at_home_phlebotomy.requisition_created&delay=0`)
+          const read = await jcall('GET', `/v3/order/${id}`)
+          return send(200, {
+            op,
+            orderId: id,
+            sent: physician ?? null,
+            readBack: read.json?.physician ?? null,
+            status: read.json?.last_event?.status ?? read.json?.status,
+            requisitionUrl: `/api/junction-pdf?order=${id}`,
+          })
+        }
+
+        return send(400, { error: `unknown op ${op}` })
+      } catch (err) {
+        send(500, { error: 'junction_failed', detail: String(err) })
+      }
+    })
+
+    server.middlewares.use('/api/junction-pdf', async (req, res) => {
+      const id = new URL(req.url, REDIRECT_URI).searchParams.get('order')
+      if (!id || !JUNCTION_KEY) {
+        res.statusCode = 400
+        res.setHeader('content-type', 'application/json')
+        return res.end('{"error":"need order, and a JUNCTION_KEY"}')
+      }
+      try {
+        const r = await fetch(`${JUNCTION_BASE}/v3/order/${id}/requisition/pdf`, {
+          headers: { 'x-vital-api-key': JUNCTION_KEY },
+        })
+        res.statusCode = r.status
+        res.setHeader('content-type', r.ok ? 'application/pdf' : 'application/json')
+        res.setHeader('content-disposition', 'inline; filename="requisition.pdf"')
+        res.end(Buffer.from(await r.arrayBuffer()))
+      } catch (err) {
+        res.statusCode = 502
+        res.setHeader('content-type', 'application/json')
+        res.end(JSON.stringify({ error: 'requisition_fetch_failed', detail: String(err) }))
       }
     })
 

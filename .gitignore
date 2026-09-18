@@ -15,5 +15,10 @@ scripts/.cache/
 *.crt
 # Real patient uuids on a live Canvas instance, written by create-patients.
 aleron-canvas-test/created-patients.json
+# Probe output. Same reason: it records the patient uuid, the note keys and the
+# DocumentReference ids of a live chart. The finding it produces is meant to be
+# quoted into docs/canvas/INSTANCE-FINDINGS.md in Aleron-Web; the raw file is not.
+aleron-canvas-test/documentreference-amendment.json
+aleron-canvas-test/attribution-log.jsonl
 # Dev-server output.
 *.log

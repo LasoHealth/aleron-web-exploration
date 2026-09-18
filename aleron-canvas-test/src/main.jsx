@@ -4,6 +4,7 @@ import Callback from './Callback.jsx'
 import NoteLifecycle from './NoteLifecycle.jsx'
 import OrderLifecycle from './OrderLifecycle.jsx'
 import PatientTest from './PatientTest.jsx'
+import JunctionOrder from './JunctionOrder.jsx'
 import PhysicianLogin from './PhysicianLogin.jsx'
 
 function Landing() {
@@ -21,12 +22,13 @@ function Landing() {
         <a className="btn" href="/physician">Physician app</a>
         <a className="btn" href="/notes">Note lifecycle</a>
         <a className="btn" href="/orders">Order lifecycle</a>
+        <a className="btn" href="/junction">Junction lab orders</a>
       </p>
     </>
   )
 }
 
-// Five routes, so a router dependency would be all cost and no benefit.
+// Six routes, so a router dependency would be all cost and no benefit.
 function App() {
   switch (location.pathname) {
     case '/callback': return <Callback />
@@ -34,6 +36,7 @@ function App() {
     case '/physician': return <PhysicianLogin />
     case '/notes': return <NoteLifecycle />
     case '/orders': return <OrderLifecycle />
+    case '/junction': return <JunctionOrder />
     default: return <Landing />
   }
 }

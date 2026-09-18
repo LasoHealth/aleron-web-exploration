@@ -336,7 +336,7 @@
 
               <!-- Carried from v0's locked-note record block. -->
               <div class="jn-record">
-                <p class="jn-record__h">Legal record: locked notes amend by appending, never by editing</p>
+                <p class="jn-record__h">Legal record: a signed note amends into a new version, and the old one stands</p>
                 <div class="jn-record__b">
                   <dl class="pfacts">
                     <dt>Orders signed</dt><dd>6/8/26 11:02 &middot; 4 orders released to Junction</dd>
@@ -344,13 +344,13 @@
                     <dt>Note locked</dt><dd>6/8/26 18:47 &middot; by Dr. A. Okafor</dd>
                     <dt>Note record</dt><dd><code>DocumentReference cnv-doc-4471a9</code>, written to Canvas</dd>
                     <dt>Problem list</dt><dd>2 Conditions pushed to Canvas &middot; <span class="pna">1 push pending reconciliation</span></dd>
-                    <dt>Addenda</dt><dd><span class="pna">None.</span> An addendum would appear here as a linked, separately signed entry.</dd>
+                    <dt>Versions</dt><dd>1. <span class="pna">No amendments.</span> An amendment would add a version here and mark this one superseded, still readable and unchanged.</dd>
                   </dl>
                 </div>
                 <div class="jn-acts">
-                  <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Append addendum</button>
+                  <button class="amd-button" data-density="row" data-wide data-variant="secondary" type="button">Amend</button>
                   <button class="amd-button" data-density="row" data-wide data-variant="tertiary" type="button">Export PDF</button>
-                  <span class="pbase">The original note is never altered. This is the HIPAA amendment path.</span>
+                  <span class="pbase">Amending unlocks the note, takes the change, and locks and signs it again. This version is kept and marked superseded. Canvas names the act <em>Amend</em> and keeps the chain itself.</span>
                 </div>
               </div>
             </div>
@@ -426,7 +426,7 @@
           <dl class="pfacts">
             <dt>Two clocks</dt><dd>Signing orders and locking the note are separate acts. Sign and send transmits the orders; an order can transmit from a note that is not yet locked. Locking freezes the note and generates the archival PDF and the Canvas DocumentReference.</dd>
             <dt>Asynchronous</dt><dd>A non-visit encounter collapses the two clocks: the note is drafted at the decision moment, so nothing is left to catch up on.</dd>
-            <dt>Amendment</dt><dd>A locked note amends by appending a linked, separately signed addendum. The original text is never altered.</dd>
+            <dt>Amendment</dt><dd>A signed note amends by unlocking, taking the change, then locking and signing again. Canvas mints a new chart document and marks the previous one superseded; the earlier version stays readable and byte-identical. Measured 15 Sep 2026, so the chain is Canvas's work rather than something Aleron has to build.</dd>
             <dt>Change of direction</dt><dd>A changed decision is a new entry, never an edit. The 6/14 portal encounter cancels an order placed on 6/8, and the 6/8 note is unchanged.</dd>
             <dt>Release</dt><dd>Neither signing nor locking makes a plan patient-visible. Release is a third, separate act and it happens in Care Plan.</dd>
             <dt>One signature</dt><dd>One authenticated signature covers every order enumerated in it. CLIA requires a valid request from an authorized person, not a per-test signature; state law or the performing lab may require more.</dd>

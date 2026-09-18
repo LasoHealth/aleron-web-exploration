@@ -332,7 +332,12 @@ body.wf ::selection { background: var(--gold); color: var(--ink); }
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold {
+/* Marked by default. Text that will not ship has to announce itself without
+   anyone opting in, because the failure it guards against is a reader taking
+   scaffold for product copy — and that reader is exactly the one who never
+   finds the toggle. The toggle removes it instead, so a clean product render
+   is a deliberate act rather than the resting state. */
+.wf-stage .wf-scaffold {
   color: var(--wf-flag);
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -341,16 +346,20 @@ body.wf ::selection { background: var(--gold); color: var(--ink); }
 }
 /* A marked block that carries its own nested colours, a pbound or a details,
    would otherwise keep them and read as unmarked. */
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold b,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold strong,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold summary,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold code,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold em,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold span,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold p,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold li,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold dt,
-.wf-flagcb:checked ~ .wf-stage .wf-scaffold dd { color: var(--wf-flag); }
+.wf-stage .wf-scaffold b,
+.wf-stage .wf-scaffold strong,
+.wf-stage .wf-scaffold summary,
+.wf-stage .wf-scaffold code,
+.wf-stage .wf-scaffold em,
+.wf-stage .wf-scaffold span,
+.wf-stage .wf-scaffold p,
+.wf-stage .wf-scaffold li,
+.wf-stage .wf-scaffold dt,
+.wf-stage .wf-scaffold dd { color: var(--wf-flag); }
+/* Checked hides it outright rather than decolouring it: the point of the clean
+   render is to show what actually ships, and prose that breaks when the
+   scaffold leaves is a defect this makes visible instead of hiding. */
+.wf-flagcb:checked ~ .wf-stage .wf-scaffold { display: none; }
 
 /* Register-scoped because the reviewer palette is day-only and a single red
    cannot clear 4.5:1 on both a warm paper and a navy ground. Same reasoning as
@@ -377,17 +386,18 @@ body.wf ::selection { background: var(--gold); color: var(--ink); }
    visibility: hidden, which would drop it out of the accessibility tree and
    leave the description pointing at nothing.
 
-   The whole layer is absent until the reviewer bar's toggle is on, so the
-   default render carries neither the blocks nor the pins. */
-.wf-ex { display: none; }
-.wf-flagcb:checked ~ .wf-stage .wf-ex {
+   The whole layer is present by default, pins and marks together, and the
+   toggle takes it away. A reader who never touches the control still sees
+   every mark; the clean product render is the one you ask for. */
+.wf-ex {
   display: inline-block;
   position: relative;
   vertical-align: middle;
   line-height: 1;
 }
+.wf-flagcb:checked ~ .wf-stage .wf-ex { display: none; }
 .wf-ex__pin {
-  display: none;
+  display: inline-grid;
   place-items: center;
   width: var(--s-lg);
   height: var(--s-lg);
@@ -402,7 +412,6 @@ body.wf ::selection { background: var(--gold); color: var(--ink); }
   line-height: 1;
   cursor: help;
 }
-.wf-flagcb:checked ~ .wf-stage .wf-ex__pin { display: inline-grid; }
 .wf-ex__pin:hover { background: var(--wf-flag); color: var(--surface-page); }
 .wf-ex__pin:focus-visible { outline: var(--line-focus) solid var(--signal-forward); outline-offset: var(--s-2xs); }
 /* The same pointer: coarse guard section B proposes for dense row actions. A
@@ -465,7 +474,7 @@ body.wf ::selection { background: var(--gold); color: var(--ink); }
    because the mark rule is (0,4,0) and a bare .wf-ex > .wf-ex__bubble is
    (0,2,0), so text-decoration: none in the geometry block lost on
    specificity rather than on order. */
-.wf-flagcb:checked ~ .wf-stage .wf-ex > .wf-ex__bubble { text-decoration: none; }
+.wf-stage .wf-ex > .wf-ex__bubble { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .wf-ex__bubble { transition: none; } }
 
 /* The toggle, in the reviewer bar. A label rather than a button because the
@@ -499,8 +508,11 @@ body:not(:has(.wf-scaffold)) .wf-flag { display: none; }
   border-radius: 50%;
   border: var(--line-thin) solid currentColor;
 }
-.wf-flagcb:checked ~ .wf-bar .wf-flag { border-color: #A81F11; color: #A81F11; }
-.wf-flagcb:checked ~ .wf-bar .wf-flag i { background: #A81F11; }
+/* Lit while the marks are showing, which is now the resting state. Written as
+   :not(:checked) so the neutral base rule above stays the one definition of
+   the unlit control. */
+.wf-flagcb:not(:checked) ~ .wf-bar .wf-flag { border-color: #A81F11; color: #A81F11; }
+.wf-flagcb:not(:checked) ~ .wf-bar .wf-flag i { background: #A81F11; }
 .wf-flagcb:focus-visible ~ .wf-bar .wf-flag { outline: var(--line-focus) solid var(--wf-gold); outline-offset: var(--s-2xs); }
 
 /* Inline marker for annotating a live element in place, keyed to the list

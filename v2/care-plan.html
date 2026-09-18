@@ -245,7 +245,7 @@
     white-space: nowrap;
   }
   /* Qualifiers that used to trail the type on the same line. "required" is an
-     obligation that cannot be rejected, so it stays visible rather than being
+     obligation that must be dispositioned, so it stays visible rather than being
      folded into the detail prose. */
   .ap-ometa { padding-left: calc(5.25rem + var(--s-xs)); }
   .ap-odetail, .ap-odx { padding-left: calc(5.25rem + var(--s-xs)); }
@@ -768,7 +768,7 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
                 <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> added to an existing entry, <span class="pval">2</span> note only</dd>
                 <dt>Orders</dt><dd><span class="pval">6</span> staged in this note, none sent. Order authorization is act 2.</dd>
                 <dt>Preview note</dt><dd>Current with the fields above &middot; hash <span class="pval">note 7a41 c0d9 be52 3f8e</span></dd>
-                <dt>On lock</dt><dd>Chart note NOTE-47M-0114 becomes an immutable snapshot and stops accepting changes. The 6 staged orders are frozen as they stand; an order added after this lock opens a new note for the same episode. <span class="wf-scaffold">Canvas documents that locking also produces the note PDF and the legal-record document. It did not reproduce on the staging instance, so treat the PDF as expected rather than confirmed.</span></dd>
+                <dt>On lock</dt><dd>Chart note NOTE-47M-0114 is frozen as this version and stops accepting changes. The 6 staged orders are frozen as they stand. Adding an order later means amending: the note unlocks, takes the change and relocks, minting a fresh document and leaving this one standing as a superseded version. <span class="wf-scaffold">Canvas documents that locking also produces the note PDF and the legal-record document. It did not reproduce on the staging instance, so treat the PDF as expected rather than confirmed.</span></dd>
               </dl>
 
               <label class="pattest">
@@ -795,7 +795,9 @@ The 163-gene panel confirmed a heterozygous ATM pathogenic variant. Management i
               <div class="preason">
                 <strong>Withheld until all of these clear</strong>
                 <ul>
-                  <li>The Preview note is not locked. Act 1 comes first.</li>
+                  <!-- Removed: "The Preview note is not locked. Act 1 comes first."
+                       Ordering never requires a locked note. v3 corrected this; see
+                       CLAUDE.md and AL-90. -->
                   <li>Colorectal screening has no modality chosen, so no catalog entry resolves. Colonoscopy is a referral, FIT is a lab, and the patient picks.</li>
                   <li>Entra step-up re-authentication is older than 15 minutes. Authorizing an order requires a fresh identity confirmation.</li>
                 </ul>

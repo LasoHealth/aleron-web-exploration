@@ -22,8 +22,10 @@
 
      It is a tablist, not a wizard. A wizard says step 3 waits on step 2, and
      here it does not: note lock and order authorization are independent
-     physician acts and either can go first. So every step is reachable from
-     every other and none is disabled by the one before it.
+     physician acts: ordering never requires a locked note. That is
+     directional, not a symmetry, because a locked note takes no further
+     orders. So every step is reachable from every other and none is
+     disabled by the one before it.
 
      amd-stepper is the canonical component and is used unchanged. Only the
      button inside a step carries local rules, and it sets none of the
@@ -165,6 +167,19 @@
   .ap-sechead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-xs); }
   .ap-sechead > span:last-child { margin-left: auto; }
 
+  /* The review-level condition band. A blocker that stops one action belongs on
+     that action's row; this one stops every order on the review, so it is
+     stated once above the list rather than repeated on six rows. The canonical
+     .amd-annunciator is the container and its hazard tile is the P3 shape; what
+     is local is the arrangement. Its grid stretches every child, so the sentence
+     takes the document's prose size and the recovery control sizes to its label
+     the way the tile already does. The scaffold note runs inline inside the
+     sentence rather than as a pinned bubble: .ap-doc clips to its own radius, so
+     an absolutely positioned bubble opened inside the document would be cut off
+     by it, and an inline mark costs nothing. */
+  .cp-cond > p { font-size: var(--size-small); line-height: 1.6; color: var(--text-secondary); }
+  .cp-cond > .amd-button { justify-self: start; }
+
   /* A problem is a group, and the air had stopped saying so. The largest gap
      inside one was 20px and the gap between two was 26px, a ratio of 1.3 against
      the craft floor of 2.0, and the divider rule was the same 0.09 hairline as
@@ -300,7 +315,7 @@
     white-space: nowrap;
   }
   /* Qualifiers that used to trail the type on the same line. "required" is an
-     obligation that cannot be rejected, so it stays visible rather than being
+     obligation that must be dispositioned, so it stays visible rather than being
      folded into the detail prose. */
   .ap-ometa { padding-left: calc(5.25rem + var(--s-xs)); }
   .ap-odetail, .ap-odx { padding-left: calc(5.25rem + var(--s-xs)); }
@@ -717,10 +732,12 @@
 
           <p class="ap-dnote">
             <b>Chart note NOTE-47M-0114, opened in Canvas 30 Aug 2026 and empty</b>, at the start of this
-            cycle. The note is what the list adds into. Ticking a suggestion stages it inside the note,
-            opening one edits the staged copy, unticking it takes it back out, and a problem you add
-            joins the same note. Staged means saved in the chart and not acted on: nothing reaches the
-            problem list until the note locks, and nothing transmits until the orders are authorized.
+            cycle. Ticking a suggestion stages it in this note: saved in the chart, not acted on. Nothing
+            reaches the problem list until the note locks, and nothing transmits until the orders are
+            authorized. <span class="wf-scaffold">The list and the note are one document, not two:
+            opening a staged item edits the copy inside the note, unticking takes it back out, and a
+            problem you add joins the same note. Mechanics of the wireframe, not copy a physician on
+            their fortieth review needs to read.</span>
           </p>
 
           <div class="ap-body">
@@ -735,6 +752,22 @@
                 <textarea class="amd-input" id="cp-ind" rows="2">Proactive longevity screening under the membership programme. No diagnosis code is required; the indication is documented for clinical and medical-board defensibility.</textarea>
               </div>
             </section>
+
+            <!-- A condition on the review, not on an action. It stops every
+                 order below it, so it is stated once here instead of repeating
+                 on six rows, and it names the act that clears it: step-up
+                 freshness is recovered in place, and the draft survives it. -->
+            <div class="amd-annunciator cp-cond" role="alert">
+              <span class="amd-annunciator__hazard">All ordering blocked</span>
+              <p>Your identity confirmation is older than 5 minutes. It holds for every order on this
+              review, not for one of them. Confirm your identity and the whole review clears at once;
+              the draft, the dispositions and the reasons below are untouched while it stands.
+              <span class="wf-scaffold">The stale state, rendered so it can be reviewed. Step-up
+              freshness is the only review-level condition there is, so on a confirmation under 5
+              minutes old this band is absent and nothing sits above the list at all. Rare and
+              total, not ambient.</span></p>
+              <button class="amd-button" data-variant="secondary" data-density="row" type="button">Confirm identity</button>
+            </div>
 
             <!-- ONE LIST. Every candidate the engine surfaced, included or not,
                  with its assessment, plan and orders behind a disclosure. The
@@ -761,7 +794,7 @@
                           <span class="v3-sum__title">ATM pathogenic variant, heterozygous</span>
                           <span class="ap-pdx">Z15.09</span>
                         </span>
-                        <span class="v3-sum__meta"><span class="padv">required channel</span> &middot; <span id="v3-req-state">must be dispositioned</span> &middot; assess existing <span class="ap-pdx">cnd-4471</span> &middot; 2 orders</span>
+                        <span class="v3-sum__meta"><span class="padv">required channel</span> &middot; <span id="v3-req-state">must be dispositioned</span> &middot; assess existing <span class="ap-pdx">cnd-4471</span> &middot; 2 orders &middot; <span class="padv">ordering will ask for a pre-test counselling attestation</span></span>
                       </span>
                       <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
                     </summary>
@@ -961,7 +994,7 @@
                           <span class="v3-sum__title">Health maintenance</span>
                           <span class="ap-pdx">Z12.11</span>
                         </span>
-                        <span class="v3-sum__meta">not added &middot; deferred: no modality chosen &middot; 1 order</span>
+                        <span class="v3-sum__meta">not added &middot; deferred: no modality chosen &middot; <span class="ptile">Not orderable</span> &middot; 1 order</span>
                       </span>
                       <span class="v3-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></span>
                     </summary>
@@ -971,7 +1004,7 @@
                         <label class="amd-prose-heading" for="cp-r4">Reason not carried</label>
                         <textarea class="amd-input" id="cp-r4" rows="2">Deferred: the patient has not chosen a modality, and a colonoscopy referral and an annual FIT are different commitments. Revisit once the choice is made.</textarea>
                       </div>
-                      <p class="pbase">Adding it would queue 1 order: colorectal cancer screening, colonoscopy or FIT. <span class="wf-scaffold">The reason above has no field in Canvas FHIR; it needs a Custom Data Model to persist.</span></p>
+                      <p class="pbase">Adding it would queue 1 order: colorectal cancer screening, colonoscopy or FIT. <span class="wf-scaffold">This item is a preventive-care rule, so its disposition belongs in <code>DetectedIssue.mitigation</code>, which takes accepted, deferred or refuted with author and date. A scored suggestion's reason has no FHIR field and still needs a home.</span></p>
                     </div>
                   </details>
                 </div>
@@ -1096,7 +1129,8 @@
       <!-- the progressive commitment workflow.
            Three acts, each with its own attestation, each now its own step.
            They are not a chain. The note lock and the order authorization are
-           independent and either can go first; only the release needs both.
+           independent: ordering never waits on the lock. Only the release
+           needs both.
            The matrix numbers the acts 1, 2 and 3 and the rail numbers the
            steps 1 to 4, so the headings here carry the act name and no
            ordinal, and the mapping is stated under "Why three acts". -->
@@ -1118,7 +1152,7 @@
                 <dt>Problem list</dt><dd><span class="pval">1</span> add to active list, <span class="pval">1</span> added to an existing entry, <span class="pval">1</span> note only</dd>
                 <dt>Orders</dt><dd><span class="pval">5</span> staged in this note, none sent. <span class="pval">4</span> of them are authorizable in step 3, which neither waits on this act nor follows from it; the fifth is the prescription.</dd>
                 <dt>Preview note</dt><dd>Current with the fields above &middot; hash <span class="pval">note 7a41 c0d9 be52 3f8e</span></dd>
-                <dt>On lock</dt><dd>Chart note NOTE-47M-0114 becomes an immutable snapshot and stops accepting changes. The 5 staged orders are frozen as they stand; an order added after this lock opens a new note for the same episode. <span class="wf-scaffold">Canvas documents that locking also produces the note PDF and the legal-record document. It did not reproduce on the staging instance, so treat the PDF as expected rather than confirmed.</span></dd>
+                <dt>On lock</dt><dd>Chart note NOTE-47M-0114 is frozen as this version and stops accepting changes. The 5 staged orders are frozen as they stand. Adding an order later means amending: the note unlocks, takes the change and relocks, minting a fresh document and leaving this one standing as a superseded version. <span class="wf-scaffold">Signing produces the PDF, not locking. The amendment chain is measured: re-signing mints a second DocumentReference and marks the earlier one superseded, still readable and byte-identical.</span></dd>
               </dl>
 
               <label class="pattest">
@@ -1159,7 +1193,7 @@
                 <strong>Withheld until all of these clear</strong>
                 <ul>
                   <li>Colorectal screening has no modality chosen, so no catalog entry resolves. Colonoscopy is a referral, FIT is a lab, and the patient picks.</li>
-                  <li>Entra step-up re-authentication is older than 15 minutes. Authorizing an order requires a fresh identity confirmation.</li>
+                  <li>Entra step-up re-authentication is older than 5 minutes. Authorizing an order requires a fresh identity confirmation.</li>
                   <li><b>Not in force here.</b> If the note had already been locked, the orders below would be the ones frozen inside it and any new order would open a new note for this episode. The note is open, so all 4 are in it and authorizable.</li>
                 </ul>
               </div>
@@ -2111,10 +2145,52 @@
     nor v2 does this: in v0 an unchecked suggestion never appears, and in v2 a removed one leaves
     no trace.</span></p>
   <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
-    <span>The required channel is checked on arrival and cannot be declined. A genetics obligation
+    <span>The required channel is checked on arrival and must be dispositioned: included, deferred
+    with a reason, or excepted with a reason. It can be set aside, never silently. A genetics obligation
     is not ranked against opportunities and is not the physician's to omit, so opt in applies to
     the scored suggestions and not to obligations. Without that carve-out an opt-in model would
     make it possible to sign a note that silently drops a P/LP finding.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>A condition on the review states itself above the list. Step-up freshness stops every
+    order on this plan at once, and until now the screen said so only inside step 3, where a
+    physician arrives after working the list. It sits above the list in the canonical
+    <code>amd-annunciator</code> with its hazard tile, and it names the act that clears it, because
+    this gate is recovered in place: a fresh confirmation reopens the whole review and the draft
+    survives untouched. A blocker that is total is not the same shape as a blocker that is fatal,
+    and the band carries the recovery so the two do not read alike. The band is absent on a
+    confirmation under 5 minutes old, and step-up freshness is the only review-level condition
+    there is, so on the ordinary cycle nothing sits above the list at all.</span></p>
+  <p class="wf-note" data-kind="new"><span class="wf-note__tag">new</span>
+    <span>The genetics row says the counselling attestation is coming. Its summary line named the
+    channel, the disposition, the matched condition and the order count, and said nothing about the
+    one thing that will stop the order: a physician attesting to pre-test counselling. It is stated
+    as a forthcoming requirement of the act, not as a status, because there is no patient-level
+    counselling record anywhere in Canvas or Junction to read a status from, and the screen cannot
+    claim to know whether counselling happened. Advisory, in words, because a requirement that
+    arrives later is not a blocker now, and P3 reserves the tile so a real blocker outranks
+    it.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The colorectal blocker is a tile, not a phrase. <b>Health maintenance</b> read
+    <em>deferred: no modality chosen</em>, in tertiary text at the same weight as the disposition
+    beside it, so the one condition that stops the order dead sat in the shape the surface uses for
+    ordinary state. No catalog entry resolves until the patient picks, because colonoscopy is a
+    referral and FIT is a lab, and neither is orderable as "colorectal screening". P3: hazard is a
+    tile. The deferral is still stated, since why it was set aside and what stops it are two
+    different facts about the row.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>Step-up freshness is 5 minutes, not 15. The step-3 blocker list said re-authentication
+    older than 15 minutes, which is the idle-session timeout;
+    <code>physician_portal.two_factor.reauth_window</code> defaults to 300 seconds. A physician
+    pacing a review against 15 minutes is locked out at 5, which is the failure the number was
+    printed to prevent.</span></p>
+  <p class="wf-note" data-kind="fixed"><span class="wf-note__tag">fixed</span>
+    <span>The document note was three kinds of text in one paragraph. What the note is and what
+    staging costs stay on the surface: a physician has to know that ticking a suggestion has not
+    transmitted it, and that is a safety consequence rather than a tour of the controls. What
+    ticking, opening and unticking each do to the staged copy is now <code>wf-scaffold</code>,
+    because it explains the wireframe to its reader and no clinician needs it twice. The claim
+    that nothing reaches the problem list until the note locks is ungraded in
+    <code>docs/audit/v3-care-plan.md</code> and still wants measuring.</span></p>
   <p class="wf-note" data-kind="dropped"><span class="wf-note__tag">dropped</span>
     <span>v0's two-step wizard, <em>1 Select actions</em> then <em>2 Review and sign note</em>. One
     list does both jobs here, because the compression pass that took the core loop from three
