@@ -1,0 +1,67 @@
+{
+  "space": "AL",
+  "space_id": "508166146",
+  "base_branch": "main",
+  "github_blob_base": "https://github.com/LasoHealth/aleron-web-exploration/blob/main/",
+  "page_url_base": "https://lasohealth.atlassian.net/wiki/spaces/AL/pages/",
+  "recorded_at_sha": "9b20681c51ebd888f54b36a49929bdf83e278a5f",
+  "recorded": "2026-09-18",
+  "note": "NOTHING IN THIS REPO HAS BEEN MIGRATED OR DELETED. The 11 per-screen audits in docs/audit/ and the v0/v1 regression sweep all stay here, and scripts/verify-doc-links.js still checks their external citations. This ledger exists so a re-run knows which Confluence pages already draw on this repo and does not create duplicates.",
+  "parents": {
+    "Screen audits — physician portal wireframes": "526450689",
+    "Answered questions": "526516225"
+  },
+  "pages_derived_from_this_repo": {
+    "note": "These pages were written for Confluence, not migrated. Each merges findings from this repo with research done in Meridian-Web, so none is a carbon copy of a file here. They cite this repo by GitHub blob URL on branch main — moving or renaming a cited file breaks those links, and nothing checks them from the Confluence side.",
+    "Six capabilities to restore to the physician portal": {
+      "pageId": "526516245",
+      "cites": [
+        "docs/audit/v0-v1-regression.md"
+      ],
+      "note": "Lifts the 'Undocumented capability regressions' section as product guidance. The sweep itself stays here; deleting it would break this page's source link."
+    },
+    "Does the PREVENT β table reproduce 16.0 %?": {
+      "pageId": "526778369",
+      "cites": [
+        "docs/audit/v2-risk-models.md",
+        "v2/risk-models.html"
+      ]
+    },
+    "Does the platform have patient-reported outcome data?": {
+      "pageId": "526745601",
+      "cites": [
+        "docs/audit/v2-patient-data.md"
+      ]
+    },
+    "Can Aleron place a Junction order under its own physician?": {
+      "pageId": "526549054",
+      "note": "Researched fresh against docs.junction.com on 2026-09-18; cites no file here."
+    },
+    "Can an external app write Canvas commands?": {
+      "pageId": "526680072"
+    },
+    "Whose signature does a plugin write carry?": {
+      "pageId": "526450777"
+    }
+  },
+  "not_migrated": {
+    "note": "Considered and deliberately left in place. All 11 screen audits plus the regression sweep — roughly 500 KB and 1,664 graded data points. They stay because scripts/verify-doc-links.js resolves their external vendor citations over the network, and because a reader wanting per-data-point detail is usually already in the repo. Migrating them means accepting that check becomes a human catch.",
+    "files": [
+      "docs/audit/v0-v1-regression.md",
+      "docs/audit/v2-care-plan.md",
+      "docs/audit/v2-emr.md",
+      "docs/audit/v2-inbox-panel.md",
+      "docs/audit/v2-journal-reviews.md",
+      "docs/audit/v2-messages-ai.md",
+      "docs/audit/v2-orders.md",
+      "docs/audit/v2-patient-data.md",
+      "docs/audit/v2-risk-actions.md",
+      "docs/audit/v2-risk-models.md",
+      "docs/audit/v2-standing-orders.md",
+      "docs/audit/v3-care-plan.md"
+    ]
+  },
+  "blocked_cleared": {
+    "docs/audit/v2-patient-data.md": "2026-09-18 Kaede Ito — filename gate hit on 'patient-data'. Cleared: Ethan Park is a synthetic fixture, not a real patient. Not migrated in this pass regardless."
+  }
+}
