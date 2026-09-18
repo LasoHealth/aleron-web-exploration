@@ -180,7 +180,7 @@ Route abbreviations used below: `LO` = the authorize card, `LG` = the orders led
 | 127 | `An order for a test with no configured id is refused, fail closed` | Aleron | OK | |
 | 128 | `The mobile standing-order rail does not enforce it yet` | Aleron | OK | |
 | 129 | `order state is logistics visible, results hidden until release` | Aleron | OK | |
-| 130 | `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` | Aleron | OK | |
+| 130 | `Aleron MD Role and Release Matrix v1` | Aleron | OK | |
 
 ### Screening — counts
 
@@ -268,7 +268,7 @@ Route abbreviations used below: `LO` = the authorize card, `LG` = the orders led
 12. **`Last: never` overstates a read.** #141. Use "no record in this chart". *Copy fix.*
 13. **Aleron is keeping its own cross-system order ledger and the screen never says so.** #6, #72, #74. Numbers 4471 to 4523 span Junction, Canvas commands and staged prescriptions. Decide and document that Aleron stores order id, foreign id, type, route, standing order, attestation and signature per order. *Architectural, and it is the change that breaks "Canvas is the system of record" most visibly.*
 14. **Result signature has no home.** #23, #95, #106, #118. `LabReview` committed in a note plus `SIGN_NOTE` is the path; it needs a note id, which the screen also lacks. *New integration.*
-15. **API vocabulary is on the product surface.** `2fa.recent`, `423`, `ServiceRequest`, `LabOrderCommand`, `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` all render inside `.pbound` and `.pdisc`, which are product, not `wf-scaffold`. BRIEF forbids this explicitly. *Copy fix.*
+15. **API vocabulary is on the product surface.** `2fa.recent`, `423`, `ServiceRequest`, `LabOrderCommand`, `Aleron MD Role and Release Matrix v1` all render inside `.pbound` and `.pdisc`, which are product, not `wf-scaffold`. BRIEF forbids this explicitly. *Copy fix.*
 16. **The timeline's stated pinning rule does not match its own dots.** #168 vs #169. "Overdue items pin to today" is true only of items due before this year; CAC and PHQ-2 are overdue and plot at their real dates. *Copy fix.*
 
 ## Alternative pathways

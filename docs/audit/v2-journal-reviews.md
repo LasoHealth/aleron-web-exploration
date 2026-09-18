@@ -252,7 +252,7 @@ The blunt version: **make Canvas `Provenance` the authoritative spine, render Al
 |---|---|---|---|---|
 | 52 | "Read relevant patient" grant | Aleron | GAP | Canvas OAuth credentials are tenant-wide. Canvas cannot enforce per-physician patient relevance; Aleron must, and the screen's cross-patient reads (24, 26) go through Aleron's own filter. |
 | 53 | "immutable append-only" | Aleron | GAP | True of Canvas `Provenance` (no create, no update, auto-generated). Not yet true of anything Aleron owns. |
-| 54 | Source `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` §§2, 6 | Aleron doc | OK | Scaffold, correctly inside `wf-scaffold`. |
+| 54 | Source `Aleron MD Role and Release Matrix v1` §§2, 6 | Aleron doc | OK | Scaffold, correctly inside `wf-scaffold`. |
 | 55 | "Physician: Read, relevant patients only. No write path exists." | Aleron | OK | |
 | 56 | "Admin: Read and export. Still no write path." | Aleron | OK | |
 | 57 | "Recorded per act: Actor id, signature or release authorization id, timestamp, package hash" | Aleron | **NONE** | This is the schema of the log that does not exist. Canvas `Provenance` records `agent`, `target`, `recorded`, activity — no signature id, no hash. |

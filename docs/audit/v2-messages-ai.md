@@ -131,7 +131,7 @@ Newly verified against live docs beyond `docs/canvas/API-GROUND-TRUTH.md` (in `M
 | M71 | `Send physician message: member yes, physician yes, ops support-scoped` | `Canvas SDK:` Message effect roles | GAP | The SDK permits Patient↔Staff in both directions and forbids Patient↔Patient. It has no notion of "support-scoped"; that scoping is Aleron's to enforce and Canvas will not enforce it. |
 | M72 | `Actor id and licence identity on every physician-originated message` (stored on the record) | `Canvas FHIR:Communication` | GAP | `sender` is stored; licence identity is not a field. See M38. |
 | M73 | `Send AI message` kept separate, AI channel lives in the chart rail | `Aleron` | OK | Correct separation, and it is what keeps model output out of `Communication`. |
-| M74 | Source citation `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` sections 2, 3, 5 | `Aleron` | OK | Internal doc, not an API claim. |
+| M74 | Source citation `Aleron MD Role and Release Matrix v1` sections 2, 3, 5 | `Aleron` | OK | Internal doc, not an API claim. |
 
 ### Footer
 

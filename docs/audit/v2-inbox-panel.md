@@ -132,7 +132,7 @@ The panel is the screen that breaks. Its default density is **With risk by domai
 | # | Data point as shown | Source | Verdict | Note |
 |---|---|---|---|---|
 | I53 | "Every word in the lifecycle column is a state in the Role and Release Matrix v1 section 4…" | static | OK | |
-| I54 | `Source` → `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` section 4 | `NONE` | WRONG | An internal repository path in front of a physician. The BRIEF forbids putting the API on a product surface for exactly this reason; a source-control path is the same failure with a different vocabulary. |
+| I54 | `Source` → `Aleron MD Role and Release Matrix v1` section 4 | `NONE` | WRONG | An internal repository path in front of a physician. The BRIEF forbids putting the API on a product surface for exactly this reason; a source-control path is the same failure with a different vocabulary. |
 | I55 | `Queue` → "Physician work items, assigned. Ops-only states are filtered out." | `Derived` | OK | Accurate description of `?owner=…&status=requested`. |
 | I56 | `Sort` → "Lifecycle rank, then wait duration descending" | `Aleron` | OK | See I23 for what the server can and cannot do. |
 | I57 | `Not shown` → enrolment, invitation and onboarding states | `Aleron` | OK | Correct and useful. These states precede any Canvas Task, so their absence is structural rather than a filter. |
@@ -203,7 +203,7 @@ Rail: identical markup to the inbox. Verdicts as **I1–I11**, not re-counted.
 | # | Data point as shown | Source | Verdict | Note |
 |---|---|---|---|---|
 | P31 | "The inbox is filtered to states whose *Physician visible* column… permits an act…" | static | OK | |
-| P32 | `Source` → `docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` section 4 | `NONE` | WRONG | Same defect as I54. |
+| P32 | `Source` → `Aleron MD Role and Release Matrix v1` section 4 | `NONE` | WRONG | Same defect as I54. |
 | P33 | `Panel` → "Patients assigned to this physician, all lifecycle states" | `Derived` | OK | Accurate description of the reverse-chain query, provided assignment is CareTeam membership. |
 | P34 | `Domains` → Cardiovascular, kidney, cancer, metabolic, neurodegenerative, systemic | `Aleron` | OK | Product taxonomy, not patient data. |
 | P35 | `Unmodelled` → shown as `insufficient data`, never as low | `Aleron` | OK | |
@@ -249,7 +249,7 @@ Rail: identical markup to the inbox. Verdicts as **I1–I11**, not re-counted.
 
 8. **`1 of 12 waiting patients is carried as a fixture.` is reviewer text on the product surface. (Small.)** Move it into a `wf-scaffold` note. In a `role="status"` region it reads to a physician as a warning that their queue is incomplete.
 
-9. **`docs/product/ROLE_AND_RELEASE_MATRIX_V1.md` section 4 appears on both product surfaces. (Small.)** A repo path is implementation detail in front of a clinician, which is the failure mode the BRIEF's `api-on-product-surface` rule exists to catch. Say "the Role and Release Matrix" in prose and put the path in an annotation.
+9. **`Aleron MD Role and Release Matrix v1` section 4 appears on both product surfaces. (Small.)** A repo path is implementation detail in front of a clinician, which is the failure mode the BRIEF's `api-on-product-surface` rule exists to catch. Say "the Role and Release Matrix" in prose and put the path in an annotation.
 
 10. **"137 more patients on this panel, all in states with no physician act outstanding" asserts what has not been fetched. (Small.)** Either compute it (`Bundle.total` for the actless label set) or say "137 more patients on this panel" and stop.
 
