@@ -1,4 +1,4 @@
-# CLAUDE.md — aleron-canvas-test
+# CLAUDE.md — aleron-integration-test
 
 Canvas and Junction integration harness: five fixture patients and a web app for
 driving the flows by hand. `README.md` covers setup, the Canvas gotchas already

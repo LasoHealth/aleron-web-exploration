@@ -25,7 +25,7 @@ const DOCS = path.join(__dirname, '..', 'docs');
 // own README, whose vendor citations are worth checking too. Recurse is per
 // root: the harness folder is shallow because it holds node_modules and a React
 // src tree.
-const HARNESS = path.join(__dirname, '..', 'aleron-canvas-test');
+const HARNESS = path.join(__dirname, '..', 'aleron-integration-test');
 const ROOTS = [
   { dir: DOCS, recurse: true },
   { dir: HARNESS, recurse: false },

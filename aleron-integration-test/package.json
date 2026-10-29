@@ -1,5 +1,5 @@
 {
-  "name": "aleron-canvas-test",
+  "name": "aleron-integration-test",
   "private": true,
   "type": "module",
   "description": "Canvas/Junction integration harness: fixture patients, a claims runner against the live instance, and a web app for driving the flows by hand.",
