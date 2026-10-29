@@ -9,7 +9,8 @@
   "scripts": {
     "create-patients": "node --env-file=script.env create-patients.mjs",
     "selftest": "node create-patients.mjs --selftest",
-    "dev": "vite"
+    "dev": "vite",
+    "dev:loopback": "vite --mode loopback"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.0",
