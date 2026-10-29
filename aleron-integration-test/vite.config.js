@@ -769,7 +769,24 @@ const canvasAuth = {
       }
 
       try {
-        const { op, physician, labTestId } = JSON.parse((await readBody(req)) || '{}')
+        const { op, physician, labTestId, skip = [], method, ids = [], query = {}, test } =
+          JSON.parse((await readBody(req)) || '{}')
+
+        // Full event history for orders already placed, so a later read can show
+        // whether the simulator kept going after the page stopped looking.
+        if (op === 'readOrders') {
+          const orders = []
+          for (const id of ids) {
+            const o = (await jcall('GET', `/v3/order/${id}`)).json
+            orders.push({
+              id,
+              status: o?.status ?? null,
+              last: o?.last_event?.status ?? null,
+              events: (o?.events ?? []).map((e) => `${e.created_at} ${e.status}${e.status_detail ? ` (${e.status_detail})` : ''}`),
+            })
+          }
+          return send(200, { op, orders })
+        }
 
         // Everything the delegation question turns on, in one call.
         if (op === 'context') {
@@ -834,6 +851,434 @@ const canvasAuth = {
             status: read.json?.last_event?.status ?? read.json?.status,
             requisitionUrl: `/api/junction-pdf?order=${id}`,
           })
+        }
+
+        // "Which lab tests can the team order?" Junction has no per-physician or
+        // dry-run catalog, so each probe below is one open question from the
+        // research: what the list returns, and whether it agrees with what an
+        // order accepts. Read-only; `tryOrders` is the one that writes.
+        if (op === 'labs') {
+          const list = async (qs) => {
+            const rows = []
+            let cursor = null
+            let pages = 0
+            do {
+              const q = new URLSearchParams(qs)
+              if (cursor) q.set('next_cursor', cursor)
+              const r = await jcall('GET', `/v3/lab_test?${q}`)
+              if (r.status !== 200) return { status: r.status, detail: r.text.slice(0, 300), rows }
+              rows.push(...(r.json?.data ?? []))
+              cursor = r.json?.next_cursor
+              pages++
+            } while (cursor && pages < 20)
+            return { status: 200, pages, rows: rows.map(slimTest) }
+          }
+          const slimTest = (t) => ({
+            id: t.id,
+            name: t.name,
+            method: t.method,
+            lab: t.lab?.slug,
+            status: t.status,
+            auto: t.auto_generated,
+            markers: t.markers?.length ?? 0,
+            markersNotOrderable: (t.markers ?? []).filter((m) => m.is_orderable === false).length,
+            requiredAoe: (t.markers ?? []).filter((m) => m.aoe?.questions?.some((q) => q.required)).length,
+          })
+
+          const accounts = await jcall('GET', '/v3/lab_test/lab_account')
+          const platform = (accounts.json?.data ?? []).find((a) => a.owner === 'platform')
+          const [active, anyStatus, withAuto, withAccount, big, deprecated, labs] = await Promise.all([
+            list({ status: 'active', lab_test_limit: '100' }),
+            list({ lab_test_limit: '100' }),
+            list({ generation_method: 'all', lab_test_limit: '100' }),
+            platform
+              ? list({ status: 'active', lab_test_limit: '100', lab_account_id: platform.id })
+              : Promise.resolve(null),
+            jcall('GET', '/v3/lab_test?lab_test_limit=500'),
+            jcall('GET', '/v3/lab_tests'),
+            jcall('GET', '/v3/lab_tests/labs'),
+          ])
+          return send(200, {
+            op,
+            base: JUNCTION_BASE,
+            accounts: { status: accounts.status, data: accounts.json?.data ?? accounts.text.slice(0, 300) },
+            active,
+            anyStatus,
+            withAuto,
+            withAccount,
+            limit500: { status: big.status, detail: big.status === 200 ? null : big.text.slice(0, 300) },
+            deprecated: { status: deprecated.status, detail: deprecated.text.slice(0, 200) },
+            labs: { status: labs.status, count: Array.isArray(labs.json) ? labs.json.length : (labs.json?.data?.length ?? null) },
+          })
+        }
+
+        // Side effect: places one real sandbox order per active test, under the
+        // physician Aleron would send. Orders cannot be deleted on Junction, so
+        // this is a button, not part of `labs`. The physician is fixed rather than
+        // generated: it registers on the team roster once instead of once per run.
+        if (op === 'tryOrders') {
+          const active = []
+          let cursor = null
+          do {
+            const q = new URLSearchParams({ status: 'active', lab_test_limit: '100' })
+            if (cursor) q.set('next_cursor', cursor)
+            const r = await jcall('GET', `/v3/lab_test?${q}`)
+            if (r.status !== 200) return send(r.status, { op, error: 'list_failed', detail: r.text.slice(0, 300) })
+            active.push(...(r.json?.data ?? []))
+            cursor = r.json?.next_cursor
+          } while (cursor)
+
+          // One user for every order. Sandbox caps users at 50, and creating one
+          // per order used the allowance up. Patient identity travels in
+          // patient_details, so the user is only the owner of the order.
+          let userId = (await jcall('GET', '/v2/user?limit=1')).json?.users?.[0]?.user_id
+          if (!userId) {
+            const made = await jcall('POST', '/v2/user', { client_user_id: `harness-${Date.now()}` })
+            userId = made.json?.user_id
+            if (!userId) return send(502, { op, error: 'user_create_failed', detail: made.text.slice(0, 300) })
+          }
+
+          const results = []
+          for (const t of active.filter((t) => !skip.includes(t.id))) {
+            const tag = `harness-${Date.now()}`
+            const body = {
+              user_id: userId,
+              order_set: { lab_test_ids: [t.id] },
+              physician: { first_name: 'Harness', last_name: 'Orderer', npi: '1234567893', licensed_states: ['CA'] },
+              patient_details: {
+                first_name: 'Aleron', last_name: 'Harness', dob: '1980-01-01', gender: 'male',
+                phone_number: '+15005550006', email: `${tag}@example.com`,
+              },
+              patient_address: {
+                receiver_name: 'Aleron Harness', first_line: '9500 Wilshire Blvd',
+                city: 'Beverly Hills', state: 'CA', zip: '90210', country: 'US',
+              },
+            }
+            let made
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              made = await jcall('POST', '/v3/order', body)
+              if (made.status !== 503) break
+              await new Promise((r) => setTimeout(r, 1500 * attempt))
+            }
+            const order = made.json?.order
+            results.push({
+              id: t.id,
+              name: t.name,
+              method: t.method,
+              status: made.status,
+              orderId: order?.id ?? null,
+              orderStatus: order?.status ?? null,
+              statusDetail: order?.last_event?.status_detail ?? null,
+              labAccountId: order?.lab_account_id ?? null,
+              detail: made.status === 200 ? null : made.text.slice(0, 300),
+            })
+          }
+          return send(200, { op, tried: results.length, accepted: results.filter((r) => r.status === 200).length, results })
+        }
+
+        // How cancellation behaves once an order exists, for one lab test. One row
+        // per scenario, and each scenario places its own order because an order
+        // cannot be un-cancelled or deleted: five orders per run. States are
+        // driven with the sandbox simulator, which the docs do not describe for
+        // cancelled targets, so a refused simulation is itself a result.
+        // The order body below repeats tryOrders; kept separate so the tested
+        // path is not touched.
+        if (op === 'cancelScenarios') {
+          const mid = {
+            walk_in_test: 'sample_with_lab.walk_in_test.partial_results',
+            at_home_phlebotomy: 'collecting_sample.at_home_phlebotomy.draw_completed',
+            testkit: 'collecting_sample.testkit.transit_customer',
+          }
+          if (!labTestId || !mid[method]) return send(400, { op, error: 'need labTestId and a known method' })
+
+          let userId = (await jcall('GET', '/v2/user?limit=1')).json?.users?.[0]?.user_id
+          if (!userId) {
+            const made = await jcall('POST', '/v2/user', { client_user_id: `harness-${Date.now()}` })
+            userId = made.json?.user_id
+            if (!userId) return send(502, { op, error: 'user_create_failed', detail: made.text.slice(0, 300) })
+          }
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+          const place = async () => {
+            const tag = `harness-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+            const body = {
+              user_id: userId,
+              order_set: { lab_test_ids: [labTestId] },
+              physician: { first_name: 'Harness', last_name: 'Orderer', npi: '1234567893', licensed_states: ['CA'] },
+              patient_details: {
+                first_name: 'Aleron', last_name: 'Harness', dob: '1980-01-01', gender: 'male',
+                phone_number: '+15005550006', email: `${tag}@example.com`,
+              },
+              patient_address: {
+                receiver_name: 'Aleron Harness', first_line: '9500 Wilshire Blvd',
+                city: 'Beverly Hills', state: 'CA', zip: '90210', country: 'US',
+              },
+            }
+            let made
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              made = await jcall('POST', '/v3/order', body)
+              if (made.status !== 503) break
+              await sleep(1500 * attempt)
+            }
+            return made.status === 200 ? { id: made.json.order.id } : { detail: made.text.slice(0, 300) }
+          }
+          const read = async (id) => {
+            const o = (await jcall('GET', `/v3/order/${id}`)).json
+            return {
+              status: o?.status ?? null,
+              last: o?.last_event?.status ?? null,
+              detail: o?.last_event?.status_detail ?? null,
+              transaction: o?.order_transaction?.status ?? null,
+            }
+          }
+          // Waits for the simulator to land on the target, since the docs do not
+          // say whether it is synchronous or what `delay` is measured in.
+          // One call did not reach the target on the first run (the order sat at
+          // requisition_created after a 200), so repeat the call and record how
+          // many it took: the simulator may advance one stage per call.
+          const simulate = async (id, finalStatus) => {
+            const trail = []
+            let r
+            let seen = null
+            let calls = 0
+            while (calls < 4 && seen?.last !== finalStatus) {
+              r = await jcall('POST', `/v3/order/${id}/test?final_status=${finalStatus}&delay=0`)
+              calls++
+              if (r.status !== 200) break
+              for (let i = 0; i < 4; i++) {
+                seen = await read(id)
+                if (trail[trail.length - 1] !== seen.last) trail.push(seen.last)
+                if (seen.last === finalStatus) break
+                await sleep(1000)
+              }
+            }
+            return {
+              target: finalStatus,
+              http: r.status,
+              detail: r.status === 200 ? null : r.text.slice(0, 200),
+              reached: seen?.last === finalStatus,
+              now: seen?.last ?? null,
+              calls,
+              trail,
+            }
+          }
+          // The reference documents POST /v3/order/{id}/cancel; the guide shows
+          // DELETE /v3/lab_test/{id}/cancel. Try the reference, and only fall
+          // back if the route does not exist, so the result says which one is real.
+          const cancel = async (id) => {
+            const tried = []
+            let r = await jcall('POST', `/v3/order/${id}/cancel`)
+            tried.push(`POST /v3/order/{id}/cancel: ${r.status}`)
+            if (r.status === 404 || r.status === 405) {
+              r = await jcall('DELETE', `/v3/lab_test/${id}/cancel`)
+              tried.push(`DELETE /v3/lab_test/{id}/cancel: ${r.status}`)
+            }
+            return { http: r.status, tried, body: r.text.slice(0, 300), after: await read(id) }
+          }
+
+          const rows = []
+          let firstId = null
+          const scenario = async (name, fn) => {
+            const o = await place()
+            if (!o.id) return rows.push({ scenario: name, error: 'place_failed', detail: o.detail })
+            rows.push({ scenario: name, orderId: o.id, ...(await fn(o.id)) })
+          }
+          await scenario('Fresh order, cancel', async (id) => {
+            firstId = id
+            return { cancel: await cancel(id) }
+          })
+          if (firstId) rows.push({ scenario: 'Cancel the same order again', orderId: firstId, cancel: await cancel(firstId) })
+          await scenario('Requisition created, cancel', async (id) => {
+            const sim = await simulate(id, `received.${method}.requisition_created`)
+            return { sim, cancel: await cancel(id) }
+          })
+          await scenario(`${mid[method].split('.').slice(-1)[0]}, cancel`, async (id) => {
+            const sim = await simulate(id, mid[method])
+            return { sim, cancel: await cancel(id) }
+          })
+          await scenario('Completed, cancel', async (id) => {
+            const sim = await simulate(id, `completed.${method}.completed`)
+            return { sim, cancel: await cancel(id) }
+          })
+          await scenario('Simulate straight to cancelled', async (id) => {
+            const sim = await simulate(id, `cancelled.${method}.cancelled`)
+            return { sim, after: await read(id) }
+          })
+          return send(200, { op, method, labTestId, rows })
+        }
+
+        // ---- creating our own lab tests ---------------------------------
+        // The picker feeds from GET /v3/lab_tests/markers and the result is a
+        // POST /v3/lab_tests. Sandbox only: every panel made here is permanent
+        // apart from archiving, so the probe names them and archives them again.
+        const slimMarker = (m) => ({
+          id: m.id,
+          name: m.name,
+          type: m.type ?? null,
+          providerId: m.provider_id ?? null,
+          labId: m.lab_id ?? null,
+          unit: m.unit ?? null,
+          aLaCarte: m.a_la_carte_enabled,
+          orderable: m.is_orderable,
+          requiredQuestions: (m.aoe?.questions ?? []).filter((q) => q.required).length,
+          expectedResults: m.expected_results?.length ?? 0,
+          components: m.components?.length ?? 0,
+        })
+        const slimTest = (t) => ({
+          id: t.id,
+          version: t.version ?? null,
+          name: t.name,
+          method: t.method,
+          status: t.status,
+          isActive: t.is_active,
+          lab: t.lab?.slug ?? null,
+          markers: t.markers?.length ?? 0,
+          fasting: t.fasting,
+        })
+
+        // Archive by id and show the whole reply, for panels the probe could not archive.
+        if (op === 'archiveTests') {
+          const out = []
+          for (const id of ids) {
+            const r = await jcall('PATCH', `/v3/lab_tests/${id}`, { active: false })
+            out.push({ id, http: r.status, body: r.text.slice(0, 400) })
+          }
+          return send(200, { op, out })
+        }
+
+        if (op === 'labList') {
+          const r = await jcall('GET', '/v3/lab_tests/labs')
+          return send(r.status, {
+            op,
+            status: r.status,
+            labs: (Array.isArray(r.json) ? r.json : []).map((l) => ({
+              id: l.id, slug: l.slug, name: l.name, methods: l.collection_methods,
+            })),
+          })
+        }
+
+        if (op === 'markers') {
+          const q = new URLSearchParams()
+          for (const k of ['lab_slug', 'name', 'a_la_carte_enabled', 'page', 'size']) {
+            if (query[k] !== undefined && query[k] !== '') q.set(k, query[k])
+          }
+          const r = await jcall('GET', `/v3/lab_tests/markers?${q}`)
+          const list = r.json?.markers ?? []
+          return send(200, {
+            op,
+            status: r.status,
+            detail: r.status === 200 ? null : r.text.slice(0, 300),
+            total: r.json?.total ?? null,
+            page: r.json?.page ?? null,
+            pages: r.json?.pages ?? null,
+            markers: list.map(slimMarker),
+            // The raw first marker, so the fields the docs promise can be checked by eye.
+            sample: list[0] ?? null,
+          })
+        }
+
+        if (op === 'createTest') {
+          const r = await jcall('POST', '/v3/lab_tests', test)
+          return send(200, {
+            op,
+            status: r.status,
+            detail: r.status === 200 ? null : r.text.slice(0, 400),
+            test: r.status === 200 ? slimTest(r.json) : null,
+          })
+        }
+
+        // Each row answers one question the docs leave open or contradict.
+        if (op === 'probeCreate') {
+          const rows = []
+          const created = []
+          const stamp = Date.now()
+          const rec = (name, r, note) =>
+            rows.push({ name, http: r.status, note: note ?? (r.status === 200 ? '' : r.text.slice(0, 220)) })
+          const get = (p) => jcall('GET', p)
+          const create = async (name, body) => {
+            const r = await jcall('POST', '/v3/lab_tests', {
+              description: 'Aleron harness probe, sandbox only',
+              fasting: false,
+              name: `Aleron harness probe ${name} ${stamp}`,
+              ...body,
+            })
+            if (r.status === 200) created.push(r.json.id)
+            const t = r.json
+            // Marker names are listed because a panel has come back with more
+            // markers than were sent, and the picker has to explain that.
+            rec(name, r, r.status === 200
+              ? `${t.status}, lab ${t.lab?.slug}, ${t.markers?.length} markers: ${(t.markers ?? []).map((m) => `${m.name} (${m.id}, ${m.type})`).join('; ')}`
+              : undefined)
+            return r
+          }
+
+          const labs = (await get('/v3/lab_tests/labs')).json ?? []
+          const lab = (slug) => labs.find((l) => l.slug === slug)
+          const all = await get('/v3/lab_tests/markers?size=100')
+          rec('markers: no lab filter, size=100', all,
+            `total ${all.json?.total}, ${new Set((all.json?.markers ?? []).map((m) => m.lab_id)).size} lab(s) on this page`)
+          rec('markers: size=101', await get('/v3/lab_tests/markers?size=101'))
+
+          const lc = await get('/v3/lab_tests/markers?lab_slug=labcorp&a_la_carte_enabled=true&size=100')
+          const [m1, m2] = (lc.json?.markers ?? []).filter((m) => m.type === 'biomarker' && m.provider_id)
+          rec('markers: lab_slug=labcorp, a_la_carte', lc,
+            `total ${lc.json?.total}, pages ${lc.json?.pages}, size ${lc.json?.size}. Using ${m1?.name} (${m1?.id}) and ${m2?.name} (${m2?.id})`)
+          if (!m1 || !m2) return send(200, { op, rows, error: 'fewer than two labcorp biomarkers, stopping' })
+
+          const both = await get(`/v3/lab_tests/markers?lab_slug=labcorp&lab_id=${lab('quest')?.id}&size=1`)
+          rec('markers: lab_slug=labcorp AND lab_id=quest', both,
+            `first marker lab_id ${both.json?.markers?.[0]?.lab_id} (labcorp is ${lab('labcorp')?.id}, quest is ${lab('quest')?.id})`)
+          const byCode = await get(`/v3/lab_tests/markers?lab_slug=labcorp&name=${encodeURIComponent(m1.provider_id)}`)
+          rec('markers: name = a provider_id', byCode,
+            `${byCode.json?.total} match(es), includes it: ${(byCode.json?.markers ?? []).some((m) => m.id === m1.id)}`)
+          const quest = (await get('/v3/lab_tests/markers?lab_slug=quest&size=1')).json?.markers?.[0]
+          const plain = (await get('/v3/lab_tests/markers?lab_slug=labcorp&a_la_carte_enabled=false&size=1')).json?.markers?.[0]
+
+          const made = await create('walk_in, marker_ids', { method: 'walk_in_test', marker_ids: [m1.id, m2.id], lab_slug: 'labcorp' })
+          await create('at_home_phlebotomy', { method: 'at_home_phlebotomy', marker_ids: [m1.id, m2.id], lab_slug: 'labcorp' })
+          await create('on_site_collection', { method: 'on_site_collection', marker_ids: [m1.id, m2.id], lab_slug: 'labcorp' })
+          await create('single marker m1 only', { method: 'walk_in_test', marker_ids: [m1.id], lab_slug: 'labcorp' })
+          await create('testkit, labcorp (not supported)', { method: 'testkit', marker_ids: [m1.id, m2.id], lab_slug: 'labcorp' })
+          // No testkit panel here on purpose: one probe run made one (ussl, status
+          // active), and the API refused to archive it ("Test kit panels cannot be
+          // updated"), so it stays in the sandbox catalog until the dashboard archives it.
+          await create('walk_in, provider_ids only, no lab_slug', { method: 'walk_in_test', provider_ids: [m1.provider_id] })
+          await create('both marker_ids and provider_ids', { method: 'walk_in_test', marker_ids: [m1.id], provider_ids: [m1.provider_id] })
+          await create('neither id list', { method: 'walk_in_test' })
+          if (quest) await create('markers from two labs', { method: 'walk_in_test', marker_ids: [m1.id, quest.id] })
+          await create('duplicate marker id', { method: 'walk_in_test', marker_ids: [m1.id, m1.id] })
+          if (plain) await create('marker not a_la_carte, walk_in', { method: 'walk_in_test', marker_ids: [plain.id] })
+          const unsupported = ['testkit', 'walk_in_test', 'at_home_phlebotomy', 'on_site_collection']
+            .find((m) => !(lab('labcorp')?.collection_methods ?? []).includes(m))
+          if (unsupported) await create(`method labcorp does not list: ${unsupported}`, { method: unsupported, marker_ids: [m1.id] })
+
+          if (made.status === 200) {
+            const id = made.json.id
+            const v = await get(`/v3/lab_tests/${id}?version=1`)
+            rec('GET lab test ?version=1', v, v.status === 200 ? `version ${v.json?.version}` : undefined)
+            const p = await jcall('PATCH', `/v3/lab_tests/${id}`, { marker_ids: [m1.id] })
+            rec('PATCH marker_ids (one marker)', p, p.status === 200 ? `version ${p.json?.version}, ${p.json?.markers?.length} markers` : undefined)
+            const h = await get(`/v3/lab_tests/${id}/version?size=10`)
+            rec('GET version history', h, h.status === 200 ? JSON.stringify(h.json).slice(0, 160) : undefined)
+            const a = await jcall('PATCH', `/v3/lab_tests/${id}`, { active: false })
+            rec('PATCH active:false', a, a.status === 200 ? `status ${a.json?.status}, is_active ${a.json?.is_active}` : undefined)
+            const inactive = await get('/v3/lab_test?status=inactive&lab_test_limit=100')
+            rec('list status=inactive', inactive, `contains it: ${(inactive.json?.data ?? []).some((t) => t.id === id)}`)
+            rec('DELETE lab test', await jcall('DELETE', `/v3/lab_tests/${id}`))
+          }
+
+          // Leave the active catalog as it was: the catalog page orders every active test.
+          const archived = []
+          for (const id of created) {
+            const r = await jcall('PATCH', `/v3/lab_tests/${id}`, { active: false })
+            archived.push(r.status === 200 ? 200 : `${r.status} ${r.text.slice(0, 160)}`)
+          }
+          rows.push({
+            name: 'archived the probe panels again',
+            http: archived.every((s) => s === 200) ? 200 : 'mixed',
+            note: `${archived.length} PATCH active:false. ${archived.filter((s) => s !== 200).join(' | ') || 'all 200'}`,
+          })
+          return send(200, { op, rows })
         }
 
         return send(400, { error: `unknown op ${op}` })
@@ -1025,15 +1470,24 @@ const canvasAuth = {
   },
 }
 
-export default defineConfig({
+// `vite --mode loopback` serves plain HTTP on loopback only, for the Junction
+// screens, which need no TLS and no Canvas login. The Tailscale cert is issued
+// for HOST alone, so https://localhost fails the name check, and the Canvas app's
+// redirect URI is registered against HOST, so /physician and /probe still need
+// the default mode. Loopback-only because these routes hold the Junction key.
+// Not named `local`: Vite reads `.env.local` and `.env.[mode].local`, so that
+// mode name collides with its own env-file suffix.
+export default defineConfig(({ mode }) => {
+  const local = mode === 'loopback'
+  return {
   root: HERE,
   plugins: [react(), canvasAuth],
   server: {
-    host: true,
+    host: local ? 'localhost' : true,
     port: PORT,
     strictPort: true,
-    allowedHosts: [HOST],
-    https: {
+    allowedHosts: local ? ['localhost'] : [HOST],
+    https: local ? undefined : {
       key: readFileSync(join(HERE, `${HOST}.key`)),
       cert: readFileSync(join(HERE, `${HOST}.crt`)),
     },
@@ -1058,4 +1512,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })

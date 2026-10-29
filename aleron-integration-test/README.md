@@ -90,6 +90,12 @@ npm run dev
 HTTPS comes from the Tailscale cert files in this folder. Open
 `https://maple-desktop.tailfc79a9.ts.net:5173`.
 
+For the Junction screens only (`/junction`, `/junction-labs`, `/junction-cancel`, `/junction-create-test`),
+`npm run dev:loopback` serves plain HTTP on `http://localhost:5173`, loopback only.
+The Tailscale cert does not cover `localhost`, and the Canvas login routes
+(`/physician`, `/probe`) need the default mode because their redirect URI is
+registered against the Tailscale name.
+
 - **`/physician`** — `authorization_code`, `user/*.read`, `launch` = base64 `{}`.
   A real staff login. Expected to read all 5 patients.
 - **`/patient`** — `client_credentials` + `patient=<id>` + `patient/Patient.read`,

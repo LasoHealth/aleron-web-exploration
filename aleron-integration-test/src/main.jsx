@@ -5,6 +5,9 @@ import NoteLifecycle from './NoteLifecycle.jsx'
 import OrderLifecycle from './OrderLifecycle.jsx'
 import PatientTest from './PatientTest.jsx'
 import JunctionOrder from './JunctionOrder.jsx'
+import JunctionLabs from './JunctionLabs.jsx'
+import JunctionCancel from './JunctionCancel.jsx'
+import JunctionCreateTest from './JunctionCreateTest.jsx'
 import PhysicianLogin from './PhysicianLogin.jsx'
 
 function Landing() {
@@ -23,6 +26,9 @@ function Landing() {
         <a className="btn" href="/notes">Note lifecycle</a>
         <a className="btn" href="/orders">Order lifecycle</a>
         <a className="btn" href="/junction">Junction lab orders</a>
+        <a className="btn" href="/junction-labs">Junction orderable labs</a>
+        <a className="btn" href="/junction-cancel">Junction cancellation</a>
+        <a className="btn" href="/junction-create-test">Junction create lab test</a>
       </p>
     </>
   )
@@ -37,6 +43,9 @@ function App() {
     case '/notes': return <NoteLifecycle />
     case '/orders': return <OrderLifecycle />
     case '/junction': return <JunctionOrder />
+    case '/junction-labs': return <JunctionLabs />
+    case '/junction-cancel': return <JunctionCancel />
+    case '/junction-create-test': return <JunctionCreateTest />
     default: return <Landing />
   }
 }

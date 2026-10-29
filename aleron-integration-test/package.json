@@ -1,5 +1,5 @@
 {
-  "name": "aleron-canvas-test",
+  "name": "aleron-integration-test",
   "private": true,
   "type": "module",
   "description": "Canvas/Junction integration harness: fixture patients, a claims runner against the live instance, and a web app for driving the flows by hand.",
@@ -9,7 +9,8 @@
   "scripts": {
     "create-patients": "node --env-file=script.env create-patients.mjs",
     "selftest": "node create-patients.mjs --selftest",
-    "dev": "vite"
+    "dev": "vite",
+    "dev:loopback": "vite --mode loopback"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.0",
